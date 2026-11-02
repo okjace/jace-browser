@@ -154,7 +154,7 @@ jobs:
         run: python3 scripts/build.py prepare --platform windows --usb-helper usb-helper-windows/jace-usb-helper.exe
       - name: Install build tools
         run: |
-          sudo apt-get update && sudo apt-get install -y zstd
+          sudo apt-get update && sudo apt-get install -y zstd msitools
           cd engine && ./mach --no-interactive bootstrap --application-choice browser
       - name: Get the Windows SDK and MSVC libraries
         run: python3 scripts/build.py vs-sdk --platform windows
