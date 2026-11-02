@@ -506,6 +506,7 @@ fn main() {
     }
 
     let stdin = std::io::stdin();
+    let mut workers = Vec::new();
     for line in stdin.lock().lines() {
         let Ok(line) = line else { break };
         if line.trim().is_empty() {
@@ -520,14 +521,19 @@ fn main() {
         };
         let state = state.clone();
         let out = out.clone();
-        std::thread::spawn(move || {
+        workers.retain(|w: &std::thread::JoinHandle<()>| !w.is_finished());
+        workers.push(std::thread::spawn(move || {
             let id = req.get("id").cloned().unwrap_or(Value::Null);
             let reply = match handle(&state, &req) {
                 Ok(result) => json!({ "id": id, "ok": true, "result": result }),
                 Err(e) => json!({ "id": id, "ok": false, "error": { "name": e.name, "message": e.message } }),
             };
             send(&out, &reply);
-        });
+        }));
     }
-    // stdin closed: the browser quit. Open devices close as they drop.
+    // stdin closed (the browser quit, or a script piped in its requests):
+    // answer what's still pending, then exit. Open devices close as they drop.
+    for worker in workers {
+        let _ = worker.join();
+    }
 }
