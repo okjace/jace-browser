@@ -15,7 +15,7 @@ means cross-compiling from Linux, the way Mozilla builds Firefox).
 What "prepare" does to the Firefox source, and nothing else:
   1. copies src/jace to engine/browser/jace and writes its moz.build, which
      installs it next to the browser (jace/, jace.cfg, defaults/pref/autoconfig.js,
-     browser/defaults/preferences/jace-prefs.js)
+     browser/defaults/preferences/jace-prefs.js, distribution/policies.json)
   2. adds "jace" to browser/moz.build's DIRS, and its files to the installer's
      package manifest
   3. makes browser/branding/jace from Firefox's unofficial branding, with the
@@ -120,16 +120,18 @@ def write_jace_mozbuild(jace_dir: Path):
         'FINAL_TARGET_FILES += ["autoconfig/jace.cfg"]',
         'FINAL_TARGET_FILES.defaults.pref += ["autoconfig/autoconfig.js"]',
         'FINAL_TARGET_FILES.browser.defaults.preferences += ["defaults/jace-prefs.js"]',
+        'FINAL_TARGET_FILES.distribution += ["policies/policies.json"]',
     ]
     packaged = [
         "@RESPATH@/jace.cfg",
         "@RESPATH@/defaults/pref/autoconfig.js",
         "@RESPATH@/browser/defaults/preferences/jace-prefs.js",
+        "@RESPATH@/distribution/policies.json",
     ]
     groups = {}
     for f in files_under(jace_dir):
         rel = f.relative_to(jace_dir)
-        if rel.parts[0] in ("autoconfig", "defaults") or rel.name == "moz.build":
+        if rel.parts[0] in ("autoconfig", "defaults", "policies") or rel.name == "moz.build":
             continue
         groups.setdefault(rel.parent, []).append(rel)
         packaged.append(f"@RESPATH@/jace/{rel.as_posix()}")

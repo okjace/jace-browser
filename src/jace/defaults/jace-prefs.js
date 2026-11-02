@@ -44,22 +44,19 @@ pref("media.gmp-widevinecdm.enabled", true);
 pref("media.gmp-manager.updateEnabled", true);
 pref("browser.eme.ui.enabled", true);
 
-// ---------- Quiet by default ----------
+// ---------- First run ----------
+// Jace Browser shows its own setup (about:jace-setup) on first run instead
+// of Firefox's welcome pages.
 pref("browser.shell.checkDefaultBrowser", false);
 pref("browser.aboutwelcome.enabled", false);
 pref("browser.startup.homepage_override.mstone", "ignore");
-pref("startup.homepage_welcome_url", "about:jace#welcome");
-pref("datareporting.healthreport.uploadEnabled", false);
-pref("datareporting.policy.dataSubmissionEnabled", false);
-pref("toolkit.telemetry.enabled", false);
-pref("toolkit.telemetry.unified", false);
-pref("toolkit.telemetry.archive.enabled", false);
-pref("app.normandy.enabled", false);
-pref("app.shield.optoutstudies.enabled", false);
-pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
-pref("browser.newtabpage.activity-stream.telemetry", false);
-pref("browser.newtabpage.activity-stream.showSponsored", false);
-pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
-pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
-pref("extensions.pocket.enabled", false);
-pref("browser.ping-centre.telemetry", false);
+pref("jace.setup.done", false);
+pref("jace.startup.animation", true);
+
+// ---------- Updates ----------
+// Jace Browser updates itself from GitHub releases (JaceUpdates.sys.mjs).
+pref("jace.update.check", true);
+pref("jace.update.auto", true);
+
+// Mozilla's tracking is switched off and locked in jace.cfg (see
+// src/jace/README.md, "Privacy"), and by distribution/policies.json.

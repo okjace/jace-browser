@@ -282,9 +282,18 @@ $("versions").textContent = `Jace Browser ${JaceUpdates.currentVersion}, based o
 $("check-updates").addEventListener("click", (e) =>
   busy(e.target, async () => {
     const result = await JaceUpdates.check(browserWindow());
-    $("update-result").textContent = result ? `Version ${result.latest} is available (see the bar at the top of the window).` : "You have the newest version.";
+    $("update-result").textContent = !result
+      ? "You have the newest version."
+      : result.ready
+        ? `Version ${result.latest} is downloaded and installs when you quit (or use "Restart to update" in the bar at the top).`
+        : `Version ${result.latest} is available (see the bar at the top of the window).`;
   }),
 );
+
+$("update-kind").textContent = JaceUpdates.installKind
+  ? ""
+  : "This copy can't replace itself (the portable .zip or .tar.xz), so updates open the download instead.";
+$("run-setup").addEventListener("click", () => browserWindow().openTrustedLinkIn("about:jace-setup", "tab"));
 
 // ---------------------------------------------------------------- live updates
 

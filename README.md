@@ -4,8 +4,19 @@
 
 <img src="branding/logo-1024.png" width="96" alt="Jace Browser logo">
 
+**Startup animation**
+
+![The startup animation, frame by frame: the logo pops in, the ring and J draw, the name rises, and it zooms away](docs/startup-animation.png)
+
+**First-run setup**
+
+![The eight setup steps: welcome, tabs, look, privacy, import, Jace account, default browser, done](docs/setup-dark.png)
+
 ## Features
 
+- **Startup animation**: the Jace logo draws itself in (orbit ring, the J, a spark), "Jace Browser" rises up, and it all zooms away to the browser. About 1.6 seconds, drawn over the browser while it loads so it never slows startup. Press any key to skip; turn it off in about:jace. With "reduce motion" on it's a quick fade.
+- **First-run setup** (about:jace-setup): pick vertical or horizontal tabs, an accent color and compact mode; import from Chrome, Edge, Safari, Opera, Brave or Firefox; sign in with Jace and turn on sync; make it your default browser. Run it again from about:jace.
+- **Mozilla's tracking removed**: telemetry and Glean, studies and remote experiments, crash reports, sponsored content, ad measurement, recommendations and background pings are switched off **and locked** (`src/jace/autoconfig/jace.cfg` and `src/jace/policies/policies.json`), so nothing can turn them back on. Safe Browsing, security blocklists and the Widevine download stay on, because removing them makes you less safe or breaks DRM. The full list is in **about:jace → Privacy**.
 - **Zen-style look**: the window is one soft surface, web pages float on it as a rounded card, tabs are pills, and the accent is Jace green (change it in about:jace).
 - **Vertical tabs you can turn off**: on by default. Turn them off or on with the tabs button in the toolbar, **Ctrl+Alt+V** (**Cmd+Opt+V** on macOS), or **about:jace → Look**. Compact mode hides the sidebar until you hover the left edge.
 - **Jace account**: the account button signs you in with your [Jace](https://jaceo.vercel.app) account (okjace/Jace), the same way Jace OS does.
@@ -19,8 +30,7 @@
   - Keyboards, mice, USB sticks, webcams, audio and other protected interfaces are blocked, the same as in Chrome.
   - Manage which sites can use which devices in about:jace.
 - **DRM**: Widevine is on for **Windows and macOS** (and Linux). It downloads the first time a site needs it, so Netflix, Disney+, Spotify and the rest play.
-- **Quiet**: telemetry, studies, sponsored tiles and Pocket are off.
-- **Updates**: when a new release is out, an **Update to vX** bar appears. You can also use **about:jace → About → Check for updates**.
+- **Always on the newest Firefox, automatically**: see [Automatic Firefox updates](#automatic-firefox-updates).
 
 Everything Jace-specific is in **about:jace**.
 
@@ -39,8 +49,25 @@ GitHub Actions builds every platform. The workflow is in `.github/workflows/buil
 
 Every push to `main` builds and tests all of these; download them from the run's **Artifacts**. Each installer is tested in CI:
 1. it's installed the way a person would (silent setup on Windows; from a quarantined .dmg on macOS; the AppImage on Linux)
-2. the installed browser starts headless and runs a self-test: the Zen skin, about:jace, the toolbar buttons, sync encryption, the USB helper, and DRM
+2. the installed browser starts headless and runs a self-test: the Zen skin, about:jace and the setup, the startup animation, that Mozilla's tracking is off and locked, that the policies are active, that this copy can update itself, the toolbar buttons, sync encryption, the USB helper, and DRM
 3. it's uninstalled
+
+## Automatic Firefox updates
+
+Nobody has to do anything when Mozilla ships a new Firefox:
+
+1. **Every day**, `.github/workflows/firefox-update.yml` asks Mozilla for the newest Firefox release. If it's newer than `firefox` in `jace.json` and its source is published, it moves `jace.json` to it, raises Jace Browser's version (1.0.3 → 1.0.4), adds a `CHANGELOG.md` entry, pushes to `main`, and starts the Build workflow.
+2. **Build** builds every platform and tests every installer. If all of it passes, it publishes the release (and lists it on Jace Store). If anything fails, nothing is released and it opens a GitHub issue, so installed copies stay on the last good version.
+3. **Every installed Jace Browser** checks GitHub every few hours. It downloads the new version in the background, checks it against the SHA-256 GitHub publishes for the file, and installs it when you quit, or right away with **Restart to update**. Your tabs come back.
+   - Windows: the setup .exe installs silently over the installed copy (Windows may ask for permission, because it's in Program Files).
+   - macOS: the app in Applications is replaced, and the old copy is kept until the new one is in place.
+   - Linux: the AppImage file is swapped for the new one.
+   - The portable .zip and .tar.xz can't replace themselves, so they show an **Update to vX** bar with the download instead.
+   - Turn automatic installs off in **about:jace → About**.
+
+To update right now instead of waiting for the daily run, open **Actions → Firefox update → Run workflow**. GitHub pauses scheduled workflows in repositories with no activity for 60 days; the update commits count as activity, but if it ever pauses, re-enable it on the Actions tab.
+
+## Releasing
 
 **Releasing is automatic** (same as Jace Launcher):
 1. Raise `version` in `jace.json`.
@@ -103,7 +130,7 @@ Then start Firefox with a fresh profile and open about:jace. `--remove` undoes i
 - `usb-helper/`: the native WebUSB helper (Rust, [nusb](https://crates.io/crates/nusb)).
 - `branding/`: the logo; `scripts/build.py` turns it into every icon Firefox needs.
 - `configs/`: build options (`mozconfig`), including `--enable-eme=widevine`.
-- `tests/`: sync merge and encryption tests (`node --test tests/*.test.mjs`).
+- `tests/`: sync merge and encryption tests (`node --test tests/*.test.mjs`) and the Firefox auto-update script's tests (`python3 -m unittest discover -s tests -p "test_*.py"`).
 - The server side is in [okjace/Jace](https://github.com/okjace/jace): the `sync` scope, the Jace Browser sign-in client, and `/api/oauth/sync`.
 
 ### Jace sync, in detail

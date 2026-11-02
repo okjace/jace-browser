@@ -1,0 +1,42 @@
+# Keeps Jace Browser on Mozilla's newest Firefox, with nobody doing anything:
+# every day, if Mozilla has shipped a new Firefox release, this moves
+# jace.json to it, raises Jace Browser's version, adds a CHANGELOG entry,
+# pushes that to main, and starts the Build workflow. Build releases it if
+# every platform builds and passes its installer tests (and opens an issue
+# if not), and installed copies of Jace Browser then update themselves.
+name: Firefox update
+
+on:
+  schedule:
+    - cron: "23 7 * * *"   # daily; Mozilla usually publishes releases in US daytime
+  workflow_dispatch:
+
+permissions:
+  contents: write   # push the version bump
+  actions: write    # start the Build workflow
+
+concurrency:
+  group: firefox-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Is there a newer Firefox?
+        id: up
+        run: python3 scripts/update_firefox.py
+      - name: Commit, push, and start the build
+        if: steps.up.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Firefox ${{ steps.up.outputs.firefox }} (Jace Browser ${{ steps.up.outputs.version }})"
+          git push origin HEAD:main
+          # A push made with the workflow token doesn't start other workflows,
+          # so start Build directly (this kind of start is allowed).
+          gh workflow run build.yml --ref main
+          echo "### Jace Browser ${{ steps.up.outputs.version }} now uses Firefox ${{ steps.up.outputs.firefox }}" >> "$GITHUB_STEP_SUMMARY"

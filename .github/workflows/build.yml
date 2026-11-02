@@ -38,7 +38,7 @@ jobs:
           V=$(python3 scripts/build.py version)
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"; echo "publish=true" >> "$GITHUB_OUTPUT"
-          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]] && ! gh release view "v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          elif [[ "$GITHUB_REF" == refs/heads/main && ( "$GITHUB_EVENT_NAME" == push || "$GITHUB_EVENT_NAME" == workflow_dispatch ) ]] && ! gh release view "v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "New version v$V: will be released if every build passes"
             echo "tag=v$V" >> "$GITHUB_OUTPUT"; echo "publish=true" >> "$GITHUB_OUTPUT"
           else
@@ -57,6 +57,8 @@ jobs:
           node-version: 22
       - name: Sync merge and encryption tests
         run: node --test tests/*.test.mjs
+      - name: Firefox auto-update script tests
+        run: python3 -m unittest discover -s tests -p "test_*.py"
       - name: Syntax-check the browser code
         run: for f in $(find src -name '*.mjs' -o -name '*.js'); do node --check "$f"; done
       - name: USB helper builds and answers
@@ -111,6 +113,7 @@ jobs:
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
           JACE_SELF_TEST_OUT: ${{ runner.temp }}/selftest.txt
+          JACE_SELF_TEST_UPDATE_KIND: appimage
           MOZ_HEADLESS: "1"
         run: |
           mkdir -p "$RUNNER_TEMP/profile"
@@ -189,6 +192,7 @@ jobs:
           if (!(Test-Path $exe)) { throw "not installed" }
           if (!(Test-Path "$dir\jace\bin\jace-usb-helper.exe")) { throw "USB helper missing" }
           if (!(Test-Path "$dir\jace.cfg")) { throw "jace.cfg missing" }
+          if (!(Test-Path "$dir\distribution\policies.json")) { throw "policies.json missing" }
           $lnk = Get-ChildItem "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Filter "Jace Browser*.lnk" -Recurse
           if (!$lnk) { throw "Start menu shortcut missing" }
           $key = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall" | Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like "Jace Browser*" }
@@ -196,6 +200,7 @@ jobs:
           Get-ItemProperty $key.PSPath | Select-Object DisplayName, DisplayVersion, UninstallString | Format-List
           # 2. the installed browser starts, loads Jace Browser's parts, and quits
           $env:JACE_SELF_TEST_OUT = "$env:RUNNER_TEMP\selftest.txt"
+          $env:JACE_SELF_TEST_UPDATE_KIND = "windows-setup"
           $profile = "$env:RUNNER_TEMP\profile"; New-Item -ItemType Directory $profile | Out-Null
           Start-Process -FilePath $exe -ArgumentList "--headless","-no-remote","-profile",$profile -Wait
           Get-Content $env:JACE_SELF_TEST_OUT
@@ -239,6 +244,7 @@ jobs:
       - name: Test the Mac installer (install from a downloaded .dmg, self-test, remove)
         env:
           JACE_SELF_TEST_OUT: ${{ runner.temp }}/selftest.txt
+          JACE_SELF_TEST_UPDATE_KIND: macos-app
         run: |
           set -x
           DMG=$(ls dist/*.dmg)
@@ -251,6 +257,7 @@ jobs:
           APP="/Applications/Jace Browser.app"
           codesign --verify --deep --strict "$APP"
           test -x "$APP/Contents/Resources/jace/bin/jace-usb-helper"
+          test -f "$APP/Contents/Resources/distribution/policies.json"
           mkdir -p "$RUNNER_TEMP/profile"
           timeout 300 "$APP/Contents/MacOS/jace" --headless -no-remote -profile "$RUNNER_TEMP/profile" || true
           cat "$JACE_SELF_TEST_OUT"
@@ -308,3 +315,23 @@ jobs:
             exit 0
           fi
           python3 packaging/publish_store.py "${{ needs.version.outputs.tag }}"
+
+  report-failure:
+    # An automatic Firefox update that doesn't build or pass its tests gets
+    # an issue, so it doesn't fail quietly. (Nothing is released in that case.)
+    if: failure() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: [version, tests, linux, windows, windows-installer-test, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Open an issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(python3 scripts/build.py version)
+          FF=$(python3 -c "import json;print(json.load(open('jace.json'))['firefox'])")
+          gh issue create -R "$GITHUB_REPOSITORY" \
+            --title "Jace Browser $V (Firefox $FF) didn't build" \
+            --body "The automatic update to Firefox $FF failed, so it wasn't released. Installed copies stay on the previous version. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

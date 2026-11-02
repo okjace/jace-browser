@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome: 'self'; img-src chrome: https: data: 'self'; style-src chrome: 'self' 'unsafe-inline'">
+  <meta name="color-scheme" content="light dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Welcome to Jace Browser</title>
+  <link rel="stylesheet" href="chrome://jace/content/setup/setup.css">
+  <script type="module" src="chrome://jace/content/setup/setup.mjs"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <main id="wizard">
+    <!-- 1. Welcome -->
+    <section class="step" data-step="welcome">
+      <div class="hero-logo" id="hero-logo"></div>
+      <h1>Welcome to Jace Browser</h1>
+      <p class="lead">Fast, private, and yours. Let's set it up. It takes a minute.</p>
+      <button class="primary big" data-next>Get started</button>
+    </section>
+
+    <!-- 2. Tabs -->
+    <section class="step" data-step="tabs">
+      <h2>Where do you want your tabs?</h2>
+      <p class="lead">You can switch any time with <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>V</kbd> or the tabs button.</p>
+      <div class="choices">
+        <button class="choice" data-tabs="vertical">
+          <div class="mini vertical">
+            <div class="mini-side"><i></i><i class="on"></i><i></i><i></i></div>
+            <div class="mini-main"><div class="mini-bar"></div><div class="mini-page"></div></div>
+          </div>
+          <strong>Vertical</strong><span>Tabs down the side, like Zen</span>
+        </button>
+        <button class="choice" data-tabs="horizontal">
+          <div class="mini horizontal">
+            <div class="mini-tabs"><i></i><i class="on"></i><i></i></div>
+            <div class="mini-main"><div class="mini-bar"></div><div class="mini-page"></div></div>
+          </div>
+          <strong>Horizontal</strong><span>Classic tabs across the top</span>
+        </button>
+      </div>
+      <div class="nav"><button data-back>Back</button><button class="primary" data-next>Continue</button></div>
+    </section>
+
+    <!-- 3. Look -->
+    <section class="step" data-step="look">
+      <h2>Make it yours</h2>
+      <p class="lead">Pick an accent color.</p>
+      <div class="swatches" id="swatches"></div>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" id="compact"><span class="track"></span> Compact mode <em>hide the sidebar until you hover the edge</em></label>
+        <label class="switch"><input type="checkbox" id="floating"><span class="track"></span> Floating pages <em>rounded web pages with a soft shadow</em></label>
+        <label class="switch"><input type="checkbox" id="animation"><span class="track"></span> Startup animation</label>
+      </div>
+      <div class="nav"><button data-back>Back</button><button class="primary" data-next>Continue</button></div>
+    </section>
+
+    <!-- 4. Privacy -->
+    <section class="step" data-step="privacy">
+      <div class="shield" aria-hidden="true">
+        <svg viewBox="0 0 48 48"><path d="M24 4 7 10v12c0 11 7.3 19.6 17 22 9.7-2.4 17-11 17-22V10z"/><path class="tick" d="m16 24 6 6 11-12"/></svg>
+      </div>
+      <h2>Mozilla's tracking is gone</h2>
+      <p class="lead">Jace Browser is built on Firefox with its data collection switched off and locked.</p>
+      <ul class="checks">
+        <li>No telemetry or usage reports</li>
+        <li>No studies or remote experiments</li>
+        <li>No sponsored tiles, stories or suggestions</li>
+        <li>No crash reports sent anywhere</li>
+        <li>No background pings to Mozilla</li>
+      </ul>
+      <p class="small">Still on, to keep you safe: malware &amp; phishing protection, security blocklists, and DRM downloads. Details in about:jace.</p>
+      <div class="nav"><button data-back>Back</button><button class="primary" data-next>Nice</button></div>
+    </section>
+
+    <!-- 5. Import -->
+    <section class="step" data-step="import">
+      <h2>Bring your stuff</h2>
+      <p class="lead">Import bookmarks, passwords and history from Chrome, Edge, Safari, Opera, Brave, or Firefox.</p>
+      <button class="primary big" id="import">Import from another browser</button>
+      <p class="small" id="import-result"></p>
+      <div class="nav"><button data-back>Back</button><button data-next>Skip</button></div>
+    </section>
+
+    <!-- 6. Jace account -->
+    <section class="step" data-step="account">
+      <h2>Sign in with Jace</h2>
+      <p class="lead">Sync bookmarks, passwords, tabs and the sites you're signed in to, across every Jace Browser.</p>
+      <div id="account-out">
+        <button class="primary big" id="sign-in">Sign in with Jace</button>
+      </div>
+      <div id="account-in" hidden>
+        <div class="profile"><img id="avatar" alt=""><div><strong id="name"></strong><span id="handle"></span></div></div>
+        <form id="passphrase-form">
+          <p id="passphrase-help" class="small"></p>
+          <input id="passphrase" type="password" placeholder="Sync passphrase" minlength="8" required>
+          <input id="passphrase2" type="password" placeholder="Type it again" minlength="8">
+          <button class="primary" type="submit">Turn on sync</button>
+        </form>
+        <p id="sync-on" class="ok" hidden>Sync is on. Your stuff is on its way.</p>
+      </div>
+      <p class="small error" id="account-error"></p>
+      <div class="nav"><button data-back>Back</button><button data-next id="account-next">Skip</button></div>
+    </section>
+
+    <!-- 7. Default browser -->
+    <section class="step" data-step="default">
+      <h2>Make Jace Browser your default?</h2>
+      <p class="lead">Links from other apps will open here.</p>
+      <button class="primary big" id="make-default">Make it my default</button>
+      <p class="small" id="default-result"></p>
+      <div class="nav"><button data-back>Back</button><button data-next>Not now</button></div>
+    </section>
+
+    <!-- 8. Done -->
+    <section class="step" data-step="done">
+      <div class="burst" id="burst" aria-hidden="true"></div>
+      <div class="hero-logo small" id="done-logo"></div>
+      <h1>You're all set</h1>
+      <p class="lead">Everything's in <strong>about:jace</strong> if you want to change it later.</p>
+      <button class="primary big" id="finish">Start browsing</button>
+    </section>
+
+    <div class="dots" id="dots" aria-hidden="true"></div>
+  </main>
+</body>
+</html>

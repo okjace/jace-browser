@@ -33,19 +33,23 @@ def main():
     gre = gre_dir(Path(sys.argv[1]))
     if not (gre / "omni.ja").exists():
         sys.exit(f"{gre} doesn't look like a Firefox install (no omni.ja)")
-    targets = [gre / "jace", gre / "jace.cfg", gre / "defaults" / "pref" / "autoconfig.js", gre / "browser" / "defaults" / "preferences" / "jace-prefs.js"]
+    targets = [gre / "jace", gre / "jace.cfg", gre / "defaults" / "pref" / "autoconfig.js", gre / "browser" / "defaults" / "preferences" / "jace-prefs.js", gre / "distribution" / "policies.json"]
     if "--remove" in sys.argv:
         for t in targets:
             shutil.rmtree(t, ignore_errors=True) if t.is_dir() else t.unlink(missing_ok=True)
         print("Removed Jace Browser's files.")
         return
     shutil.rmtree(gre / "jace", ignore_errors=True)
-    shutil.copytree(SRC, gre / "jace", ignore=shutil.ignore_patterns("autoconfig", "defaults", "README.md", "moz.build"))
+    shutil.copytree(SRC, gre / "jace", ignore=shutil.ignore_patterns("autoconfig", "defaults", "policies", "README.md", "moz.build"))
     shutil.copy(SRC / "autoconfig" / "jace.cfg", gre / "jace.cfg")
     (gre / "defaults" / "pref").mkdir(parents=True, exist_ok=True)
     shutil.copy(SRC / "autoconfig" / "autoconfig.js", gre / "defaults" / "pref" / "autoconfig.js")
     (gre / "browser" / "defaults" / "preferences").mkdir(parents=True, exist_ok=True)
     shutil.copy(SRC / "defaults" / "jace-prefs.js", gre / "browser" / "defaults" / "preferences" / "jace-prefs.js")
+    (gre / "distribution").mkdir(exist_ok=True)
+    if (gre / "distribution" / "policies.json").exists():
+        print("note: replacing this Firefox's existing distribution/policies.json")
+    shutil.copy(SRC / "policies" / "policies.json", gre / "distribution" / "policies.json")
     exe = "jace-usb-helper.exe" if sys.platform == "win32" else "jace-usb-helper"
     helper = ROOT / "usb-helper" / "target" / "release" / exe
     if not helper.exists():

@@ -315,3 +315,131 @@
   border-top: 1px solid var(--jace-hover);
   margin: 4px 0;
 }
+
+/* ---------- Startup animation (JaceSplash.sys.mjs) ---------- */
+
+#jace-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 60% at 50% 45%, color-mix(in srgb, var(--jace-accent) 22%, transparent), transparent 70%),
+    var(--jace-surface);
+  animation: jace-splash-out 520ms cubic-bezier(0.7, 0, 0.84, 0) 1150ms forwards;
+}
+
+#jace-splash[leaving] {
+  animation: jace-splash-out 260ms ease-in forwards;
+}
+
+.jace-splash-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.jace-splash-stage .jace-logo {
+  width: 132px;
+  height: 132px;
+  overflow: visible;
+  filter: drop-shadow(0 18px 40px color-mix(in srgb, var(--jace-accent) 45%, transparent));
+  animation: jace-logo-pop 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.jace-logo-tile {
+  transform-origin: 16px 16px;
+}
+
+.jace-logo-orbit {
+  opacity: 0;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  transform-origin: 16px 16px;
+  animation: jace-draw 700ms ease-out 220ms forwards, jace-orbit-spin 1600ms linear 220ms;
+}
+
+.jace-logo-j {
+  opacity: 0;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: jace-draw 520ms cubic-bezier(0.65, 0, 0.35, 1) 330ms forwards;
+}
+
+.jace-logo-spark {
+  opacity: 0;
+  transform-origin: 27px 10.3px;
+  animation: jace-spark 700ms ease-out 760ms forwards;
+}
+
+.jace-splash-glow {
+  position: absolute;
+  top: -40px;
+  width: 212px;
+  height: 212px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--jace-accent) 55%, transparent), transparent 65%);
+  opacity: 0;
+  animation: jace-glow 1100ms ease-out 250ms forwards;
+}
+
+.jace-splash-word {
+  font: 700 26px/1 system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  color: var(--jace-text);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: jace-rise 480ms ease-out 560ms forwards;
+}
+
+@keyframes jace-logo-pop {
+  0% { transform: scale(0.55) rotate(-8deg); opacity: 0; filter: blur(6px); }
+  60% { opacity: 1; filter: blur(0); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes jace-draw {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes jace-orbit-spin {
+  from { transform: rotate(-120deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes jace-spark {
+  0% { opacity: 0; transform: scale(0); }
+  50% { opacity: 1; transform: scale(1.8); }
+  100% { opacity: 0.9; transform: scale(1); }
+}
+
+@keyframes jace-glow {
+  0% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 1; }
+  100% { opacity: 0.55; transform: scale(1.15); }
+}
+
+@keyframes jace-rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes jace-splash-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.12); filter: blur(4px); }
+}
+
+#jace-splash[reduced],
+#jace-splash[reduced] * {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+}
+
+#jace-splash[reduced] {
+  animation: jace-splash-out 300ms ease 500ms forwards !important;
+}

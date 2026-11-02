@@ -20,6 +20,7 @@
     <a href="#look">Look</a>
     <a href="#usb">WebUSB</a>
     <a href="#drm">DRM</a>
+    <a href="#privacy">Privacy</a>
     <a href="#about">About</a>
   </nav>
 
@@ -94,6 +95,7 @@
         <label class="toggle"><input type="checkbox" data-pref="sidebar.verticalTabs"> <span>Vertical tabs <span class="muted">(Ctrl+Alt+V, or the tabs button in the toolbar)</span></span></label>
         <label class="toggle"><input type="checkbox" data-pref="jace.theme.compact"> <span>Compact mode <span class="muted">(the sidebar slides in when you hover the left edge)</span></span></label>
         <label class="toggle"><input type="checkbox" data-pref="jace.theme.floatingContent"> <span>Floating pages <span class="muted">(rounded web pages with a shadow)</span></span></label>
+        <label class="toggle"><input type="checkbox" data-pref="jace.startup.animation"> <span>Startup animation</span></label>
       </div>
       <label class="field inline">Accent color <input type="color" id="accent"></label>
       <button id="accent-reset">Jace green</button>
@@ -116,11 +118,36 @@
       <button id="widevine-check">Check for Widevine now</button>
     </section>
 
+    <section id="privacy">
+      <h2>Privacy</h2>
+      <p>Mozilla's data collection is switched off and locked, so add-ons, studies and remote experiments can't turn it back on:</p>
+      <ul class="checklist">
+        <li>Telemetry, Glean and usage reports</li>
+        <li>Studies and remote experiments (Normandy, Nimbus)</li>
+        <li>Crash reports</li>
+        <li>Sponsored tiles, stories and suggestions, and their click tracking</li>
+        <li>Ad measurement in web pages ("privacy-preserving attribution")</li>
+        <li>Personalized add-on and feature recommendations</li>
+        <li>Background pings: connectivity and captive portal checks, region lookup</li>
+        <li>Mozilla accounts and Firefox's own updater (Jace accounts and Jace updates replace them)</li>
+      </ul>
+      <p class="muted small">Kept on, because turning them off would make you less safe or break something:</p>
+      <ul class="muted small">
+        <li><strong>Safe Browsing</strong>: warns about malware and phishing sites, using Google's lists checked by partial hash.</li>
+        <li><strong>Security lists</strong> from Mozilla's Remote Settings: revoked certificates and dangerous add-ons.</li>
+        <li><strong>Widevine</strong> download for DRM video, and add-on updates from addons.mozilla.org.</li>
+        <li>Hotel and airport Wi-Fi sign-in pages no longer pop up by themselves (that check pinged Mozilla). Open any http:// page to get to them.</li>
+      </ul>
+    </section>
+
     <section id="about">
       <h2>About</h2>
       <p id="versions"></p>
+      <label class="toggle"><input type="checkbox" data-pref="jace.update.auto"> <span>Install updates automatically <span class="muted">(including new Firefox versions; downloaded in the background, installed when you quit)</span></span></label>
+      <p id="update-kind" class="muted small"></p>
       <div class="row">
         <button id="check-updates">Check for updates</button>
+        <button id="run-setup">Run setup again</button>
         <a href="https://github.com/okjace/jace-browser" target="_blank">Source code</a>
       </div>
       <p id="update-result" class="muted"></p>

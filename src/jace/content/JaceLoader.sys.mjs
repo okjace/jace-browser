@@ -6,7 +6,7 @@
  * Starts Jace Browser's features. jace.cfg (autoconfig) calls init() once,
  * early in startup, in the parent process:
  *
- * - registers about:jace (Jace settings: account, sync, look, WebUSB, DRM)
+ * - registers about:jace (Jace settings) and about:jace-setup (first-run setup)
  * - adds the toolbar widgets (Jace account, vertical tabs on/off)
  * - sets up every browser window (JaceWindow: Zen-style look, shortcuts)
  * - registers the WebUSB window actor (navigator.usb in web pages)
@@ -22,36 +22,55 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const ABOUT_JACE_URL = "chrome://jace/content/settings/settings.html";
-const ABOUT_JACE_CID = Components.ID("{6c3f5d9e-2b1a-4b8e-9a51-6a0f2f3b7c11}");
+const ABOUT_PAGES = {
+  jace: { url: ABOUT_JACE_URL, cid: "{6c3f5d9e-2b1a-4b8e-9a51-6a0f2f3b7c11}" },
+  "jace-setup": { url: "chrome://jace/content/setup/setup.html", cid: "{0f6a2c1e-8d3b-4f4a-b7e2-5c9d1a3e6b20}" },
+};
 
 let initialized = false;
 let syncStarted = false;
+let setupChecked = false;
 
-function registerAboutJace() {
-  const chromeURI = Services.io.newURI(ABOUT_JACE_URL);
-  const aboutModule = {
-    QueryInterface: ChromeUtils.generateQI(["nsIAboutModule"]),
-    newChannel(uri, loadInfo) {
-      const channel = Services.io.newChannelFromURIWithLoadInfo(chromeURI, loadInfo);
-      channel.originalURI = uri;
-      return channel;
-    },
-    getURIFlags() {
-      return Ci.nsIAboutModule.ALLOW_SCRIPT | Ci.nsIAboutModule.IS_SECURE_CHROME_UI;
-    },
-    getChromeURI() {
-      return chromeURI;
-    },
-  };
-  const factory = {
-    QueryInterface: ChromeUtils.generateQI(["nsIFactory"]),
-    createInstance(iid) {
-      return aboutModule.QueryInterface(iid);
-    },
-  };
-  Components.manager
-    .QueryInterface(Ci.nsIComponentRegistrar)
-    .registerFactory(ABOUT_JACE_CID, "about:jace", "@mozilla.org/network/protocol/about;1?what=jace", factory);
+function registerAboutPages() {
+  const registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
+  for (const [what, { url, cid }] of Object.entries(ABOUT_PAGES)) {
+    const chromeURI = Services.io.newURI(url);
+    const aboutModule = {
+      QueryInterface: ChromeUtils.generateQI(["nsIAboutModule"]),
+      newChannel(uri, loadInfo) {
+        const channel = Services.io.newChannelFromURIWithLoadInfo(chromeURI, loadInfo);
+        channel.originalURI = uri;
+        return channel;
+      },
+      getURIFlags() {
+        return Ci.nsIAboutModule.ALLOW_SCRIPT | Ci.nsIAboutModule.IS_SECURE_CHROME_UI;
+      },
+      getChromeURI() {
+        return chromeURI;
+      },
+    };
+    const factory = {
+      QueryInterface: ChromeUtils.generateQI(["nsIFactory"]),
+      createInstance(iid) {
+        return aboutModule.QueryInterface(iid);
+      },
+    };
+    registrar.registerFactory(Components.ID(cid), `about:${what}`, `@mozilla.org/network/protocol/about;1?what=${what}`, factory);
+  }
+}
+
+/** First run: show Jace Browser's setup in the first window's first tab. */
+function maybeOpenSetup(win) {
+  if (setupChecked) return;
+  setupChecked = true;
+  if (Services.prefs.getBoolPref("jace.setup.done", false)) return;
+  const url = "about:jace-setup";
+  const current = win.gBrowser.selectedBrowser.currentURI?.spec ?? "";
+  if (["about:home", "about:newtab", "about:blank", "about:welcome", ""].includes(current)) {
+    win.openTrustedLinkIn(url, "current");
+  } else {
+    win.gBrowser.selectedTab = win.gBrowser.addTrustedTab(url);
+  }
 }
 
 function registerWebUSB() {
@@ -112,6 +131,11 @@ function onBrowserWindow(win) {
     lazy.JaceSelfTest.run(win);
     return;
   }
+  try {
+    maybeOpenSetup(win);
+  } catch (e) {
+    console.error("Jace: couldn't open setup", e);
+  }
   if (!syncStarted) {
     syncStarted = true;
     // Give startup a moment before the first sync.
@@ -129,7 +153,7 @@ export const JaceLoader = {
     initialized = true;
 
     for (const [what, fn] of [
-      ["about:jace", registerAboutJace],
+      ["about:jace pages", registerAboutPages],
       ["WebUSB", registerWebUSB],
     ]) {
       try {
@@ -143,6 +167,14 @@ export const JaceLoader = {
     Services.obs.addObserver(function onWindow(subject) {
       onBrowserWindow(subject);
     }, "browser-delayed-startup-finished");
+    // Earlier, before the window is drawn: skin + startup animation, so there's no flash.
+    Services.obs.addObserver(function onBeforeShow(subject) {
+      try {
+        lazy.JaceWindow.early(subject);
+      } catch (e) {
+        console.error("Jace: early window setup failed", e);
+      }
+    }, "browser-window-before-show");
 
     Services.obs.addObserver(function onProfile() {
       Services.obs.removeObserver(onProfile, "final-ui-startup");

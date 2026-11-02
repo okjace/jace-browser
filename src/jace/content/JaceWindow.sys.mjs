@@ -15,6 +15,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
+  JaceSplash: "chrome://jace/content/JaceSplash.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceUpdates: "chrome://jace/content/JaceUpdates.sys.mjs",
 });
@@ -86,12 +87,19 @@ function timeAgo(ms) {
 }
 
 export const JaceWindow = {
-  init(win) {
-    if (win.__jaceReady) return;
-    win.__jaceReady = true;
-
+  /** Before the window is first drawn: the skin, and the startup animation on top. */
+  early(win) {
+    if (win.__jaceSkin) return;
+    win.__jaceSkin = true;
     win.windowUtils.loadSheetUsingURIString(SKIN, win.windowUtils.AUTHOR_SHEET);
     applyLook(win);
+    lazy.JaceSplash.maybeShow(win);
+  },
+
+  init(win) {
+    if (win.__jaceReady) return;
+    this.early(win);
+    win.__jaceReady = true;
 
     if (!observing) {
       observing = true;

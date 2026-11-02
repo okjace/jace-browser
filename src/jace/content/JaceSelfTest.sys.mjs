@@ -42,6 +42,41 @@ export const JaceSelfTest = {
       );
       return ch.URI.spec.startsWith("chrome://jace/");
     });
+    await check("about:jace-setup is registered", () => {
+      const ch = Services.io.newChannelFromURI(
+        Services.io.newURI("about:jace-setup"),
+        null,
+        Services.scriptSecurityManager.getSystemPrincipal(),
+        null,
+        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+        Ci.nsIContentPolicy.TYPE_OTHER,
+      );
+      return ch.URI.spec.startsWith("chrome://jace/content/setup/");
+    });
+    await check("startup animation module loads", () => {
+      const { ANIMATED_LOGO_SVG } = ChromeUtils.importESModule("chrome://jace/content/JaceSplash.sys.mjs");
+      return ANIMATED_LOGO_SVG.includes("jace-logo-j");
+    });
+    await check("Mozilla telemetry is off and locked", () =>
+      [
+        ["toolkit.telemetry.enabled", false],
+        ["datareporting.healthreport.uploadEnabled", false],
+        ["app.normandy.enabled", false],
+        ["app.shield.optoutstudies.enabled", false],
+        ["browser.newtabpage.activity-stream.showSponsored", false],
+        ["dom.private-attribution.submission.enabled", false],
+      ].every(([name, value]) => Services.prefs.prefIsLocked(name) && Services.prefs.getBoolPref(name) === value),
+    );
+    await check("enterprise policies (distribution/policies.json) are active", () => {
+      return Services.policies.status === Services.policies.ACTIVE && !Services.policies.isAllowed("Shield");
+    });
+    const expectKind = Services.env.get("JACE_SELF_TEST_UPDATE_KIND");
+    if (expectKind) {
+      await check(`can update itself (${expectKind})`, () => {
+        const { JaceUpdates } = ChromeUtils.importESModule("chrome://jace/content/JaceUpdates.sys.mjs");
+        return JaceUpdates.installKind === expectKind;
+      });
+    }
     await check("account and vertical tabs widgets exist", () => {
       const { CustomizableUI } = ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs");
       return !!CustomizableUI.getWidget("jace-account-button")?.provider && !!CustomizableUI.getWidget("jace-vertical-tabs-button")?.provider;
