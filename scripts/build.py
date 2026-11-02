@@ -242,6 +242,10 @@ def write_mozconfig(target):
     if target == "macos" and "@MACOS_SDK@" in text:
         sdk = subprocess.run(["xcrun", "--show-sdk-path"], capture_output=True, text=True).stdout.strip()
         text = text.replace("@MACOS_SDK@", sdk)
+    if shutil.which("sccache"):
+        # Compiler cache (C, C++ and Rust): rebuilds only recompile what changed.
+        # In CI it's stored in GitHub's cache (SCCACHE_GHA_ENABLED); locally in ~/.cache.
+        text += "\n# Added by scripts/build.py because sccache is installed\nac_add_options --with-ccache=sccache\n"
     (ENGINE / "mozconfig").write_text(text)
 
 
@@ -323,7 +327,12 @@ def build(args):
         log("Installing build tools (mach bootstrap)")
         run(["./mach", "--no-interactive", "bootstrap", "--application-choice", "browser"], cwd=ENGINE, env=env)
     log("Building (this takes a while)")
-    run(["./mach", "build"], cwd=ENGINE, env=env)
+    try:
+        run(["./mach", "build"], cwd=ENGINE, env=env)
+    finally:
+        if shutil.which("sccache"):
+            log("Compiler cache")
+            subprocess.run(["sccache", "--show-stats"], check=False)
 
 
 # ------------------------------------------------------------------ package

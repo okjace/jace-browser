@@ -88,6 +88,9 @@ jobs:
     # older Ubuntu = older glibc = the AppImage runs on more distros
     runs-on: ubuntu-22.04
     timeout-minutes: 360
+    env:
+      # Compiler cache in GitHub's cache: rebuilds only recompile what changed.
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - name: Make room for Firefox (needs ~40 GB)
         run: |
@@ -95,6 +98,8 @@ jobs:
           sudo docker image prune --all --force || true
           df -h /
       - uses: actions/checkout@v7
+      - name: Set up the compiler cache (sccache)
+        uses: mozilla-actions/sccache-action@v0.0.9
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -133,6 +138,9 @@ jobs:
     if: needs.version.outputs.build == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
+    env:
+      # Compiler cache in GitHub's cache: rebuilds only recompile what changed.
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - name: Make room for Firefox (needs ~40 GB)
         run: |
@@ -140,6 +148,8 @@ jobs:
           sudo docker image prune --all --force || true
           df -h /
       - uses: actions/checkout@v7
+      - name: Set up the compiler cache (sccache)
+        uses: mozilla-actions/sccache-action@v0.0.9
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
@@ -226,8 +236,13 @@ jobs:
             arch: x86_64
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 360
+    env:
+      # Compiler cache in GitHub's cache: rebuilds only recompile what changed.
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - uses: actions/checkout@v7
+      - name: Set up the compiler cache (sccache)
+        uses: mozilla-actions/sccache-action@v0.0.9
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
