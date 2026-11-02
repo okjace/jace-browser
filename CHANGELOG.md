@@ -1,6 +1,10 @@
 # Changelog
 
 ## 1.0.0
+- **Signed in to Jace websites automatically**: signing in to Jace Browser signs you in to the Jace website, and Jace's own apps skip the sign-in screen. Turn it off in about:jace.
+- **Vertical tab styles**: names and icons, only icons, or only icons that grow when you hover.
+- **Profiles button** to switch between profiles (each with its own tabs, passwords and Jace account). Hide it any time.
+- **Custom window buttons** (Jace colored dots or minimal, on Windows and Linux) and Jace-styled tab close buttons, menus and panels.
 - **Startup animation**: the Jace logo draws itself in and zooms away to the browser. Press any key to skip, or turn it off in about:jace.
 - **First-run setup**: choose your tabs, accent color and look, import from another browser, sign in with Jace and turn on sync, and make Jace Browser your default.
 - **Mozilla's tracking removed**: telemetry, studies, crash reports, sponsored content, ad measurement, recommendations and background pings are off and locked. See about:jace → Privacy.

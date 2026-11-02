@@ -19,6 +19,7 @@ function browserApi() {
   const win = () => window.browsingContext.topChromeWindow;
   return {
     logo: ANIMATED_LOGO_SVG,
+    os: Services.appinfo.OS,
     getBool: (p, d) => Services.prefs.getBoolPref(p, d),
     setBool: (p, v) => Services.prefs.setBoolPref(p, v),
     getString: (p, d) => Services.prefs.getStringPref(p, d),
@@ -62,11 +63,12 @@ function browserApi() {
 }
 
 function previewApi() {
-  const prefs = { "sidebar.verticalTabs": true, "jace.theme.floatingContent": true, "jace.startup.animation": true };
+  const prefs = { "jace.profiles.showButton": true, "sidebar.verticalTabs": true, "jace.theme.floatingContent": true, "jace.startup.animation": true };
   let profile = null;
   const listeners = [];
   return {
     logo: globalThis.JACE_PREVIEW_LOGO ?? null,
+    os: "WINNT",
     getBool: (p, d) => prefs[p] ?? d,
     setBool: (p, v) => (prefs[p] = v),
     getString: (p, d) => prefs[p] ?? d,
@@ -142,6 +144,8 @@ const tabChoices = document.querySelectorAll("[data-tabs]");
 function renderTabs() {
   const vertical = api.getBool("sidebar.verticalTabs", true);
   tabChoices.forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.tabs === "vertical") === vertical)));
+  // The tab style only matters for vertical tabs.
+  $("tab-style").hidden = !vertical;
 }
 tabChoices.forEach((b) =>
   b.addEventListener("click", () => {
@@ -151,6 +155,27 @@ tabChoices.forEach((b) =>
     renderTabs();
   }),
 );
+
+/** A row of buttons that sets one string pref. */
+function segmented(id, attr, pref, fallback) {
+  const buttons = document.querySelectorAll(`#${id} [data-${attr}]`);
+  const render = () => {
+    const value = api.getString(pref, fallback);
+    buttons.forEach((b) => b.setAttribute("aria-checked", String(b.dataset[attr] === value)));
+  };
+  buttons.forEach((b) =>
+    b.addEventListener("click", () => {
+      api.setString(pref, b.dataset[attr]);
+      render();
+    }),
+  );
+  render();
+}
+segmented("tab-style", "style", "jace.tabs.verticalStyle", "full");
+segmented("window-controls", "controls", "jace.windowControls.style", "jace");
+// macOS keeps its own window buttons.
+$("window-controls-row").hidden = api.os === "Darwin";
+
 renderTabs();
 
 // ------------------------------------------------------------------ look
@@ -190,6 +215,7 @@ for (const [id, pref, fallback] of [
   ["compact", "jace.theme.compact", false],
   ["floating", "jace.theme.floatingContent", true],
   ["animation", "jace.startup.animation", true],
+  ["profiles-button", "jace.profiles.showButton", true],
 ]) {
   const box = $(id);
   box.checked = api.getBool(pref, fallback);

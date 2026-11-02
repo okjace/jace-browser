@@ -18,6 +18,7 @@
     <a href="#account">Jace account</a>
     <a href="#sync">Sync</a>
     <a href="#look">Look</a>
+    <a href="#profiles">Profiles</a>
     <a href="#usb">WebUSB</a>
     <a href="#drm">DRM</a>
     <a href="#privacy">Privacy</a>
@@ -41,6 +42,7 @@
             <div id="profile-handle" class="muted"></div>
           </div>
         </div>
+        <label class="toggle"><input type="checkbox" data-pref="jace.account.autoSignIn"> <span>Sign me in to Jace websites automatically <span class="muted">(the Jace website, and Jace's own apps like Jace Social and Jace Store without the sign-in screen)</span></span></label>
         <label class="field">This device's name
           <input id="device-name" maxlength="80">
         </label>
@@ -97,8 +99,31 @@
         <label class="toggle"><input type="checkbox" data-pref="jace.theme.floatingContent"> <span>Floating pages <span class="muted">(rounded web pages with a shadow)</span></span></label>
         <label class="toggle"><input type="checkbox" data-pref="jace.startup.animation"> <span>Startup animation</span></label>
       </div>
+      <fieldset class="choice-group" id="tab-style">
+        <legend>Vertical tabs show</legend>
+        <label><input type="radio" name="tab-style" value="full"> Names and icons</label>
+        <label><input type="radio" name="tab-style" value="icons"> Only icons</label>
+        <label><input type="radio" name="tab-style" value="hover"> Only icons, bigger when you hover</label>
+      </fieldset>
+      <fieldset class="choice-group" id="window-controls">
+        <legend>Window buttons <span class="muted">(minimize, maximize, close on Windows and Linux; macOS keeps its own)</span></legend>
+        <label><input type="radio" name="window-controls" value="jace"> Jace (colored dots)</label>
+        <label><input type="radio" name="window-controls" value="minimal"> Minimal</label>
+        <label><input type="radio" name="window-controls" value="native"> System</label>
+      </fieldset>
+      <label class="toggle"><input type="checkbox" data-pref="jace.profiles.showButton"> <span>Show the profiles button in the toolbar</span></label>
       <label class="field inline">Accent color <input type="color" id="accent"></label>
       <button id="accent-reset">Jace green</button>
+    </section>
+
+    <section id="profiles">
+      <h2>Profiles</h2>
+      <p class="muted">Each profile has its own tabs, history, passwords, add-ons and Jace account. Open one and it gets its own window.</p>
+      <div id="profile-list" class="list"></div>
+      <form id="new-profile" class="row">
+        <input id="new-profile-name" placeholder="New profile name" maxlength="60">
+        <button class="primary" type="submit">Add profile</button>
+      </form>
     </section>
 
     <section id="usb">

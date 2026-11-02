@@ -44,6 +44,11 @@
           <strong>Horizontal</strong><span>Classic tabs across the top</span>
         </button>
       </div>
+      <div class="segmented" id="tab-style" role="radiogroup" aria-label="Vertical tabs show">
+        <button data-style="full" role="radio">Names &amp; icons</button>
+        <button data-style="icons" role="radio">Only icons</button>
+        <button data-style="hover" role="radio">Icons, bigger on hover</button>
+      </div>
       <div class="nav"><button data-back>Back</button><button class="primary" data-next>Continue</button></div>
     </section>
 
@@ -52,7 +57,16 @@
       <h2>Make it yours</h2>
       <p class="lead">Pick an accent color.</p>
       <div class="swatches" id="swatches"></div>
+      <div class="labeled" id="window-controls-row">
+        <span class="small">Window buttons</span>
+        <div class="segmented" id="window-controls" role="radiogroup" aria-label="Window buttons">
+          <button data-controls="jace" role="radio"><i class="ctl-dots"><b></b><b></b><b></b></i> Jace</button>
+          <button data-controls="minimal" role="radio">Minimal</button>
+          <button data-controls="native" role="radio">System</button>
+        </div>
+      </div>
       <div class="toggles">
+        <label class="switch"><input type="checkbox" id="profiles-button"><span class="track"></span> Profiles button <em>switch between Personal, Work, School…</em></label>
         <label class="switch"><input type="checkbox" id="compact"><span class="track"></span> Compact mode <em>hide the sidebar until you hover the edge</em></label>
         <label class="switch"><input type="checkbox" id="floating"><span class="track"></span> Floating pages <em>rounded web pages with a soft shadow</em></label>
         <label class="switch"><input type="checkbox" id="animation"><span class="track"></span> Startup animation</label>

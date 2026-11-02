@@ -15,6 +15,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
+  JaceProfiles: "chrome://jace/content/JaceProfiles.sys.mjs",
   JaceSplash: "chrome://jace/content/JaceSplash.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceUpdates: "chrome://jace/content/JaceUpdates.sys.mjs",
@@ -27,6 +28,51 @@ const LOOK_PREFS = {
   "jace.theme.compact": "jace-compact",
   "jace.theme.floatingContent": "jace-floating",
 };
+const TAB_STYLE_PREF = "jace.tabs.verticalStyle"; // "full" | "icons" | "hover"
+const CONTROLS_PREF = "jace.windowControls.style"; // "jace" | "minimal" | "native"
+export const TAB_STYLES = ["full", "icons", "hover"];
+
+function tabStyle() {
+  const style = Services.prefs.getStringPref(TAB_STYLE_PREF, "full");
+  return TAB_STYLES.includes(style) ? style : "full";
+}
+
+/**
+ * Vertical tab style, using Firefox's own sidebar modes:
+ *   full   - names and icons (sidebar expanded)
+ *   icons  - only icons (sidebar collapsed)
+ *   hover  - only icons, expanding over the page while you hover
+ * If this Firefox lacks those modes, skin/jace.css does it instead
+ * (the jace-tabs-fallback attribute).
+ */
+function applyTabStyleGlobally() {
+  const style = tabStyle();
+  if (style === "hover") {
+    Services.prefs.setStringPref("sidebar.visibility", "expand-on-hover");
+    Services.prefs.setBoolPref("sidebar.expandOnHover", true);
+  } else {
+    if (Services.prefs.getStringPref("sidebar.visibility", "always-show") === "expand-on-hover") {
+      Services.prefs.setStringPref("sidebar.visibility", "always-show");
+    }
+    Services.prefs.setBoolPref("sidebar.expandOnHover", false);
+  }
+}
+
+function applyTabStyle(win) {
+  const style = tabStyle();
+  const root = win.document.documentElement;
+  root.setAttribute("jace-tabs-style", style);
+  const sidebar = win.SidebarController;
+  const native = typeof sidebar?.toggleExpanded === "function";
+  root.toggleAttribute("jace-tabs-fallback", !native);
+  if (native && style !== "hover") {
+    try {
+      sidebar.toggleExpanded(style === "full");
+    } catch (e) {
+      console.warn("Jace: couldn't change the sidebar", e);
+    }
+  }
+}
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 function applyLook(win) {
@@ -34,6 +80,8 @@ function applyLook(win) {
   for (const [pref, attr] of Object.entries(LOOK_PREFS)) {
     root.toggleAttribute(attr, Services.prefs.getBoolPref(pref, false));
   }
+  const controls = Services.prefs.getStringPref(CONTROLS_PREF, "jace");
+  root.setAttribute("jace-window-controls", ["jace", "minimal", "native"].includes(controls) ? controls : "jace");
   const accent = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84");
   if (/^#[0-9a-f]{3,8}$/i.test(accent)) {
     root.style.setProperty("--jace-accent", accent);
@@ -46,8 +94,10 @@ function allWindows() {
 
 const prefObserver = {
   observe(_subject, _topic, pref) {
+    if (pref === TAB_STYLE_PREF) applyTabStyleGlobally();
     for (const win of allWindows()) {
       applyLook(win);
+      if (pref === TAB_STYLE_PREF) applyTabStyle(win);
       if (pref === VERTICAL_PREF) {
         const node = win.document.getElementById("jace-vertical-tabs-button");
         if (node) JaceWindow.updateVerticalTabsButton(node);
@@ -103,12 +153,15 @@ export const JaceWindow = {
 
     if (!observing) {
       observing = true;
-      for (const pref of [...Object.keys(LOOK_PREFS), "jace.theme.accent"]) {
+      applyTabStyleGlobally();
+      for (const pref of [...Object.keys(LOOK_PREFS), "jace.theme.accent", TAB_STYLE_PREF, CONTROLS_PREF]) {
         Services.prefs.addObserver(pref, prefObserver);
       }
       Services.obs.addObserver(() => this.refreshAccountButtons(), "jace-account-changed");
       Services.obs.addObserver(() => this.refreshAccountButtons(), "jace-sync-status");
     }
+
+    applyTabStyle(win);
 
     win.addEventListener(
       "keydown",
@@ -162,19 +215,88 @@ export const JaceWindow = {
     }
   },
 
-  async openAccountPanel(win, anchor) {
+  _panel(win, id) {
     const doc = win.document;
-    let panel = doc.getElementById("jace-account-panel");
+    let panel = doc.getElementById(id);
     if (!panel) {
-      panel = el(doc, "panel", {
-        id: "jace-account-panel",
-        type: "arrow",
-        role: "dialog",
-        noautofocus: "true",
-      });
+      panel = el(doc, "panel", { id, type: "arrow", role: "dialog", noautofocus: "true", class: "jace-popup" });
       doc.getElementById("mainPopupSet").append(panel);
     }
+    return panel;
+  },
+
+  async openAccountPanel(win, anchor) {
+    const panel = this._panel(win, "jace-account-panel");
     panel.replaceChildren(await this._panelBody(win, panel));
+    panel.openPopup(anchor, "bottomright topright", 0, 0, false, false);
+  },
+
+  updateProfilesButton(node) {
+    const name = lazy.JaceProfiles.currentName ?? "Profile";
+    node.setAttribute("label", name);
+    node.setAttribute("tooltiptext", `Profile: ${name}. Click to switch.`);
+    node.style.setProperty("list-style-image", `url("${lazy.JaceProfiles.badge(name)}")`);
+  },
+
+  openProfilesPanel(win, anchor) {
+    const doc = win.document;
+    const { JaceProfiles } = lazy;
+    const panel = this._panel(win, "jace-profiles-panel");
+    const box = html(doc, "div", { class: "jace-panel" });
+    const close = () => panel.hidePopup();
+    const fail = (e) => box.append(html(doc, "p", { class: "jace-panel-text jace-error", text: e.message ?? String(e) }));
+
+    box.append(html(doc, "div", { class: "jace-panel-title", text: "Profiles" }));
+    for (const p of JaceProfiles.list()) {
+      const row = html(doc, "button", { class: `jace-profile-row${p.current ? " current" : ""}` });
+      const dot = html(doc, "span", { class: "jace-profile-dot", text: p.name.charAt(0).toUpperCase() });
+      dot.style.background = p.color;
+      const label = html(doc, "span", { class: "jace-profile-name", text: p.name });
+      const note = html(doc, "span", { class: "jace-profile-note", text: p.current ? "This window" : p.running ? "Open" : "" });
+      row.append(dot, label, note);
+      if (p.current) {
+        row.disabled = true;
+      } else {
+        row.addEventListener("click", () => {
+          try {
+            JaceProfiles.open(p.name);
+            close();
+          } catch (e) {
+            fail(e);
+          }
+        });
+      }
+      box.append(row);
+    }
+
+    const form = html(doc, "form", { class: "jace-profile-new" });
+    const input = html(doc, "input", { placeholder: "New profile name", maxlength: "60" });
+    const add = html(doc, "button", { class: "jace-panel-button primary", type: "submit", text: "Add" });
+    form.append(input, add);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await JaceProfiles.create(input.value);
+        close();
+      } catch (err) {
+        fail(err);
+      }
+    });
+    box.append(form);
+
+    const manage = html(doc, "button", { class: "jace-panel-link", text: "Manage profiles" });
+    manage.addEventListener("click", () => {
+      close();
+      win.switchToTabHavingURI("about:profiles", true);
+    });
+    const hide = html(doc, "button", { class: "jace-panel-link muted", text: "Hide this button" });
+    hide.addEventListener("click", () => {
+      close();
+      JaceProfiles.showButton = false;
+    });
+    box.append(html(doc, "hr"), manage, hide);
+
+    panel.replaceChildren(box);
     panel.openPopup(anchor, "bottomright topright", 0, 0, false, false);
   },
 

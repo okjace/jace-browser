@@ -8,6 +8,7 @@ const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAc
 const { JaceSync } = ChromeUtils.importESModule("chrome://jace/content/sync/JaceSync.sys.mjs");
 const { JaceUSBService } = ChromeUtils.importESModule("chrome://jace/content/usb/JaceUSBService.sys.mjs");
 const { JaceUpdates } = ChromeUtils.importESModule("chrome://jace/content/JaceUpdates.sys.mjs");
+const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceProfiles.sys.mjs");
 const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
 
 const $ = (id) => document.getElementById(id);
@@ -227,6 +228,52 @@ $("accent-reset").addEventListener("click", () => {
   Services.prefs.clearUserPref("jace.theme.accent");
   $("accent").value = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84");
 });
+
+for (const [group, pref, fallback] of [
+  ["tab-style", "jace.tabs.verticalStyle", "full"],
+  ["window-controls", "jace.windowControls.style", "jace"],
+]) {
+  const radios = document.querySelectorAll(`input[name="${group}"]`);
+  const read = () => {
+    const value = Services.prefs.getStringPref(pref, fallback);
+    radios.forEach((r) => (r.checked = r.value === value));
+  };
+  read();
+  Services.prefs.addObserver(pref, read);
+  window.addEventListener("unload", () => Services.prefs.removeObserver(pref, read));
+  radios.forEach((r) => r.addEventListener("change", () => r.checked && Services.prefs.setStringPref(pref, r.value)));
+}
+
+// ---------------------------------------------------------------- profiles
+
+function renderProfiles() {
+  const list = $("profile-list");
+  list.replaceChildren();
+  for (const p of JaceProfiles.list()) {
+    const label = p.current ? `${p.name} (this window)` : p.running ? `${p.name} (open)` : p.name;
+    list.append(
+      item(label, null, p.current ? null : "Open", () => {
+        try {
+          JaceProfiles.open(p.name);
+        } catch (e) {
+          notice(e.message, true);
+        }
+      }),
+    );
+  }
+}
+
+$("new-profile").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await JaceProfiles.create($("new-profile-name").value);
+    $("new-profile-name").value = "";
+    renderProfiles();
+  } catch (err) {
+    notice(err.message, true);
+  }
+});
+renderProfiles();
 
 // ---------------------------------------------------------------- WebUSB
 

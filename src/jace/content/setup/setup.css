@@ -364,3 +364,23 @@ button.big { padding: 13px 28px; font-size: 16px; border-radius: 12px; margin-to
 }
 
 .dots[hidden] { display: none; }
+
+/* Segmented choices (tab style, window buttons) */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+.segmented button { border: none; padding: 7px 12px; font-size: 13px; border-radius: 9px; display: inline-flex; align-items: center; gap: 6px; }
+.segmented button[aria-checked="true"] { background: var(--card); box-shadow: 0 1px 4px rgb(0 0 0 / 0.15); font-weight: 600; }
+.segmented[hidden] { display: none; }
+.labeled { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.labeled[hidden] { display: none; }
+.ctl-dots { display: inline-flex; gap: 3px; }
+.ctl-dots b { width: 8px; height: 8px; border-radius: 50%; background: #f5b83d; }
+.ctl-dots b:nth-child(2) { background: var(--accent); }
+.ctl-dots b:nth-child(3) { background: #f25f5c; }

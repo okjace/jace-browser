@@ -14,6 +14,9 @@ pref("svg.context-properties.content.enabled", true);
 pref("jace.theme.compact", false);          // hide the sidebar until you hover the window edge
 pref("jace.theme.floatingContent", true);   // rounded, inset web content with a shadow
 pref("jace.theme.accent", "#3ddc84");       // Jace green
+pref("jace.tabs.verticalStyle", "full");    // "full", "icons" (icons only), or "hover" (icons, expand on hover)
+pref("jace.windowControls.style", "jace");  // "jace" (colored dots), "minimal", or "native" (Windows/Linux)
+pref("jace.profiles.showButton", true);     // the profiles button in the toolbar
 
 // ---------- Jace account & sync ----------
 pref("jace.account.server", "https://jaceo.vercel.app");
@@ -60,3 +63,7 @@ pref("jace.update.auto", true);
 
 // Mozilla's tracking is switched off and locked in jace.cfg (see
 // src/jace/README.md, "Privacy"), and by distribution/policies.json.
+
+// ---------- Jace websites ----------
+// Keep the Jace website signed in, and sign in to Jace's own apps without the consent screen.
+pref("jace.account.autoSignIn", true);

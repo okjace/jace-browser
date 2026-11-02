@@ -443,3 +443,209 @@
 #jace-splash[reduced] {
   animation: jace-splash-out 300ms ease 500ms forwards !important;
 }
+
+/* ---------- Vertical tab styles (fallback for Firefox without native modes) ----------
+ * JaceWindow.sys.mjs uses Firefox's own collapsed / expand-on-hover sidebar
+ * when it has them; jace-tabs-fallback means it doesn't, so do it here. */
+
+:root[jace-vertical-tabs][jace-tabs-fallback]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main {
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  transition: width 180ms ease, max-width 180ms ease, margin 180ms ease;
+}
+
+:root[jace-vertical-tabs][jace-tabs-fallback]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main:not(:hover) :is(.tab-label-container, .tab-close-button, .tab-audio-button) {
+  display: none !important;
+}
+
+:root[jace-vertical-tabs][jace-tabs-fallback][jace-tabs-style="icons"] #sidebar-main :is(.tab-label-container, .tab-close-button) {
+  display: none !important;
+}
+
+/* Hover: grows over the page instead of pushing it aside. */
+:root[jace-vertical-tabs][jace-tabs-fallback][jace-tabs-style="hover"] #sidebar-main:hover {
+  width: 250px !important;
+  max-width: 250px !important;
+  margin-inline-end: -198px !important;
+  z-index: 10;
+  box-shadow: var(--jace-shadow) !important;
+  border-start-end-radius: var(--jace-radius);
+  border-end-end-radius: var(--jace-radius);
+}
+
+/* Icons-only tabs are centered squares, native or not. */
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main:not(:hover) .tabbrowser-tab .tab-content {
+  justify-content: center;
+}
+
+/* ---------- Window controls (Windows and Linux; macOS keeps its own) ----------
+ * jace-window-controls: "jace" (colored dots), "minimal" (soft icons), "native". */
+
+:root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-buttonbox {
+  appearance: none !important;
+  gap: 6px;
+  padding-inline: 8px 10px;
+  align-items: center;
+}
+
+:root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-button {
+  appearance: none !important;
+  padding: 0 !important;
+  border-radius: 50%;
+  background: none;
+  transition: background-color 120ms ease, transform 120ms ease;
+}
+
+:root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-button > .toolbarbutton-icon {
+  width: 12px !important;
+  height: 12px !important;
+  -moz-context-properties: fill, stroke;
+  fill: currentColor;
+  stroke: none;
+}
+
+:root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-min { list-style-image: url("chrome://jace/skin/win-min.svg") !important; }
+:root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-max { list-style-image: url("chrome://jace/skin/win-max.svg") !important; }
+:root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-restore { list-style-image: url("chrome://jace/skin/win-restore.svg") !important; }
+:root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-close { list-style-image: url("chrome://jace/skin/win-close.svg") !important; }
+
+/* Jace: three dots - amber, Jace green, red - whose icons show on hover. */
+:root[jace-window-controls="jace"] .titlebar-button {
+  width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  display: grid;
+  place-items: center;
+  color: transparent;
+}
+:root[jace-window-controls="jace"] .titlebar-min { background-color: #f5b83d !important; }
+:root[jace-window-controls="jace"] :is(.titlebar-max, .titlebar-restore) { background-color: var(--jace-accent) !important; }
+:root[jace-window-controls="jace"] .titlebar-close { background-color: #f25f5c !important; }
+:root[jace-window-controls="jace"] .titlebar-buttonbox:hover .titlebar-button { color: rgb(0 0 0 / 0.65); }
+:root[jace-window-controls="jace"] .titlebar-button:hover { transform: scale(1.12); }
+:root[jace-window-controls="jace"] .titlebar-button:active { transform: scale(0.94); filter: brightness(0.9); }
+:root[jace-window-controls="jace"]:-moz-window-inactive .titlebar-buttonbox:not(:hover) .titlebar-button {
+  background-color: color-mix(in srgb, var(--jace-text) 18%, transparent) !important;
+}
+
+/* Minimal: soft rounded squares; close turns red. */
+:root[jace-window-controls="minimal"] .titlebar-button {
+  width: 30px !important;
+  height: 26px !important;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--jace-text);
+}
+:root[jace-window-controls="minimal"] .titlebar-button:hover { background-color: var(--jace-hover) !important; }
+:root[jace-window-controls="minimal"] .titlebar-close:hover { background-color: #e5484d !important; color: #fff; }
+
+/* ---------- Tab close buttons, new tab button ---------- */
+
+.tab-close-button {
+  list-style-image: url("chrome://jace/skin/win-close.svg") !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  border-radius: 6px !important;
+  -moz-context-properties: fill !important;
+  fill: currentColor !important;
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.tabbrowser-tab:is(:hover, [selected]) .tab-close-button { opacity: 0.75; }
+.tab-close-button:hover {
+  opacity: 1 !important;
+  background-color: color-mix(in srgb, #e5484d 22%, transparent) !important;
+  color: #e5484d;
+}
+
+#tabs-newtab-button,
+#vertical-tabs-newtab-button,
+#new-tab-button {
+  border-radius: 8px !important;
+}
+
+#tabs-newtab-button:hover,
+#vertical-tabs-newtab-button:hover {
+  color: var(--jace-accent) !important;
+}
+
+/* ---------- Menus and panels in Jace style ---------- */
+
+menupopup,
+panel {
+  --panel-border-radius: 12px !important;
+  --panel-padding: 6px !important;
+  --panel-border-color: color-mix(in srgb, var(--jace-text) 10%, transparent) !important;
+  --panel-shadow: var(--jace-shadow) !important;
+}
+
+menupopup > menuitem,
+menupopup > menu {
+  border-radius: 7px !important;
+  padding-block: 5px !important;
+}
+
+menupopup > :is(menuitem, menu)[_moz-menuactive]:not([disabled="true"]) {
+  background-color: color-mix(in srgb, var(--jace-accent) 18%, transparent) !important;
+  color: inherit !important;
+}
+
+.urlbarView-row[selected] > .urlbarView-row-inner {
+  background-color: color-mix(in srgb, var(--jace-accent) 22%, transparent) !important;
+}
+
+.subviewbutton:not([disabled]):hover {
+  background-color: color-mix(in srgb, var(--jace-accent) 14%, transparent) !important;
+}
+
+/* ---------- Profiles panel ---------- */
+
+.jace-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.jace-profile-row:hover:not(:disabled) { background: var(--jace-hover); }
+.jace-profile-row:disabled { cursor: default; }
+.jace-profile-row.current { background: color-mix(in srgb, var(--jace-accent) 14%, transparent); }
+
+.jace-profile-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  color: #0c1410;
+}
+
+.jace-profile-name { flex: 1; font-weight: 600; }
+.jace-profile-note { font-size: 11px; color: var(--jace-muted); }
+
+.jace-profile-new { display: flex; gap: 6px; margin-top: 4px; }
+.jace-profile-new input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--jace-hover);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.jace-panel-link.muted { color: var(--jace-muted); }
+.jace-error { color: #e5484d !important; }

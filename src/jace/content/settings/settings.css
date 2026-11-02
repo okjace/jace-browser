@@ -167,3 +167,8 @@ a { color: var(--accent); }
 
 .checklist { list-style: none; padding: 0; display: grid; gap: 6px; }
 .checklist li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-inline-end: 8px; }
+
+.choice-group { border: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 6px; }
+.choice-group legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+.choice-group label { display: flex; gap: 8px; align-items: center; }
+.choice-group input { accent-color: var(--accent); }

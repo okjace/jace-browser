@@ -81,6 +81,24 @@ export const JaceSelfTest = {
       const { CustomizableUI } = ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs");
       return !!CustomizableUI.getWidget("jace-account-button")?.provider && !!CustomizableUI.getWidget("jace-vertical-tabs-button")?.provider;
     });
+    await check("profiles button can be hidden and shown", () => {
+      const { CustomizableUI } = ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs");
+      const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceProfiles.sys.mjs");
+      const shownAtStart = !!CustomizableUI.getPlacementOfWidget("jace-profiles-button");
+      JaceProfiles.showButton = false;
+      const hidden = !CustomizableUI.getPlacementOfWidget("jace-profiles-button");
+      JaceProfiles.showButton = true;
+      const shown = !!CustomizableUI.getPlacementOfWidget("jace-profiles-button");
+      return shownAtStart && hidden && shown && Array.isArray(JaceProfiles.list());
+    });
+    await check("vertical tab style and window buttons applied", () => {
+      const root = win.document.documentElement;
+      return root.getAttribute("jace-tabs-style") === "full" && root.getAttribute("jace-window-controls") === "jace";
+    });
+    await check("Jace website sign-in is set up", () => {
+      const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAccount.sys.mjs");
+      return typeof JaceAccount.signInToWebsite === "function" && JaceAccount.autoSignIn;
+    });
     await check("vertical tabs on by default", () => Services.prefs.getBoolPref("sidebar.verticalTabs"));
     await check("Jace sync modules load", () => {
       const { JaceSync } = ChromeUtils.importESModule("chrome://jace/content/sync/JaceSync.sys.mjs");

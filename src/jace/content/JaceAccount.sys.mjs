@@ -55,6 +55,44 @@ function notify() {
 /** One pending sign-in at a time. */
 let pending = null;
 
+/** The access token, kept in memory so the request observer (which must be synchronous) can use it. */
+let cachedToken = null;
+let websiteObserverOn = false;
+
+const PREF_AUTO_SIGN_IN = "jace.account.autoSignIn";
+
+/**
+ * Adds X-Jace-Browser-Token to top-level navigations to Jace's
+ * /oauth/authorize, so Jace's own apps sign you in without the consent
+ * screen. Only that one path on the configured Jace server, never in
+ * private windows or container tabs.
+ */
+const authorizeHeaderObserver = {
+  observe(subject) {
+    if (!cachedToken || !Services.prefs.getBoolPref(PREF_AUTO_SIGN_IN, true)) return;
+    let channel;
+    try {
+      channel = subject.QueryInterface(Ci.nsIHttpChannel);
+    } catch {
+      return;
+    }
+    const uri = channel.URI;
+    let server;
+    try {
+      server = Services.io.newURI(JaceAccount.server);
+    } catch {
+      return;
+    }
+    if (uri.prePath !== server.prePath || !uri.filePath.startsWith("/oauth/authorize")) return;
+    if (uri.scheme !== "https" && uri.host !== "localhost" && uri.host !== "127.0.0.1") return;
+    const info = channel.loadInfo;
+    if (info.externalContentPolicyType !== Ci.nsIContentPolicy.TYPE_DOCUMENT) return;
+    const oa = info.originAttributes;
+    if (oa.privateBrowsingId || oa.userContextId) return;
+    channel.setRequestHeader("X-Jace-Browser-Token", cachedToken, false);
+  },
+};
+
 export class JaceAccountError extends Error {
   constructor(code, message) {
     super(message);
@@ -240,11 +278,58 @@ export const JaceAccount = {
       console.warn("Jace: token has no sync scope:", body.scope);
     }
     await JaceSecrets.set(TOKEN_SECRET, body.access_token);
+    cachedToken = body.access_token;
     const profile = await this.refreshProfile();
     if (!profile) {
       throw new JaceAccountError("userinfo_failed", "Couldn't read your Jace profile.");
     }
+    this.signInToWebsite().catch((e) => console.warn("Jace: website sign-in", e));
     return profile;
+  },
+
+  get autoSignIn() {
+    return Services.prefs.getBoolPref(PREF_AUTO_SIGN_IN, true);
+  },
+
+  /**
+   * Called once at startup: signs this browser in to Jace websites (if
+   * you're signed in to Jace Browser and haven't turned that off).
+   */
+  async startWebsiteSignIn() {
+    if (!websiteObserverOn) {
+      websiteObserverOn = true;
+      Services.obs.addObserver(authorizeHeaderObserver, "http-on-modify-request");
+    }
+    if (!this.signedIn) return;
+    cachedToken = await this.getToken();
+    await this.signInToWebsite();
+  },
+
+  /**
+   * Signs this browser in to the Jace website with the Jace Browser account,
+   * unless the website already has someone signed in (so choosing another
+   * account on the website still sticks). Returns true if it signed in.
+   */
+  async signInToWebsite() {
+    if (!this.autoSignIn || !this.signedIn) return false;
+    const token = cachedToken ?? (await this.getToken());
+    if (!token) return false;
+    // credentials: "include" so the site's session cookie lands in the
+    // normal cookie jar, exactly as if you'd signed in on the page.
+    const sessionResponse = await fetch(`${this.server}/api/auth/session`, { credentials: "include", cache: "no-store" });
+    const existing = sessionResponse.ok ? await sessionResponse.json().catch(() => null) : null;
+    if (existing?.user) return false;
+    const response = await fetch(`${this.server}/api/oauth/browser-session`, {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${token}`, "X-Jace-Browser": "1", Accept: "application/json" },
+    });
+    if (!response.ok) {
+      console.warn("Jace: website sign-in answered", response.status);
+      return false;
+    }
+    return !!(await response.json()).changed;
   },
 
   async getToken() {
@@ -289,6 +374,7 @@ export const JaceAccount = {
   },
 
   async signOut({ reason = "user" } = {}) {
+    cachedToken = null;
     await JaceSecrets.remove(TOKEN_SECRET);
     Services.prefs.clearUserPref(PREF_PROFILE);
     Services.obs.notifyObservers(null, "jace-account-signed-out", reason);

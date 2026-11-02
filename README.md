@@ -19,7 +19,15 @@
 - **Mozilla's tracking removed**: telemetry and Glean, studies and remote experiments, crash reports, sponsored content, ad measurement, recommendations and background pings are switched off **and locked** (`src/jace/autoconfig/jace.cfg` and `src/jace/policies/policies.json`), so nothing can turn them back on. Safe Browsing, security blocklists and the Widevine download stay on, because removing them makes you less safe or breaks DRM. The full list is in **about:jace → Privacy**.
 - **Zen-style look**: the window is one soft surface, web pages float on it as a rounded card, tabs are pills, and the accent is Jace green (change it in about:jace).
 - **Vertical tabs you can turn off**: on by default. Turn them off or on with the tabs button in the toolbar, **Ctrl+Alt+V** (**Cmd+Opt+V** on macOS), or **about:jace → Look**. Compact mode hides the sidebar until you hover the left edge.
+- **Vertical tab styles**: names and icons, **only icons**, or **only icons that grow over the page when you hover**. Pick in the setup or **about:jace → Look**.
+- **Profiles button**: shows which profile this window is (a colored letter) and switches between them, e.g. Personal, Work, School, each with its own tabs, passwords, add-ons and Jace account. Other profiles open in their own window. Hide it with **Hide this button** in its panel, Customize Toolbar, or **about:jace → Look**; profiles stay in **about:jace → Profiles**.
+- **Custom window buttons and browser pieces**: minimize, maximize and close in Jace style (colored dots, or minimal) on Windows and Linux, or the system's own; macOS keeps its traffic lights. Tab close buttons, menus, panels and the address bar's suggestions are restyled to match, in your accent color.
+
+![Mockup of the three vertical tab styles and the two window button styles](docs/tabs-and-window-buttons-mockup.png)
+
+*Mockup; the real browser draws these with Firefox.*
 - **Jace account**: the account button signs you in with your [Jace](https://jaceo.vercel.app) account (okjace/Jace), the same way Jace OS does.
+- **Signed in to Jace websites automatically**: once Jace Browser is signed in, so is the Jace website. Jace's own apps (Jace Social, Jace Store, …) sign you in without the "Sign in with Jace" consent screen, and apps that use `prompt=none` sign you in without a click. Not in private windows or container tabs. Turn it off in **about:jace → Jace account**.
 - **Jace sync**: bookmarks, history (90 days), passwords, open tabs, settings, your add-on list, and **site sign-ins** (cookies).
   - Sign in to Jace on a new computer, enter your sync passphrase once, and you're signed in to the sites you were signed in to on your other devices.
   - Everything is encrypted on your device (AES-256-GCM, with a key made from your sync passphrase) before it goes to Jace, so Jace can't read it.

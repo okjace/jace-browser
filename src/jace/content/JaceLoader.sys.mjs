@@ -16,9 +16,11 @@
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
+  JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceSelfTest: "chrome://jace/content/JaceSelfTest.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceWindow: "chrome://jace/content/JaceWindow.sys.mjs",
+  JaceProfiles: "chrome://jace/content/JaceProfiles.sys.mjs",
 });
 
 const ABOUT_JACE_URL = "chrome://jace/content/settings/settings.html";
@@ -106,6 +108,23 @@ function createWidgets() {
   });
 
   CustomizableUI.createWidget({
+    id: "jace-profiles-button",
+    type: "button",
+    label: "Profiles",
+    tooltiptext: "Switch profiles",
+    defaultArea: CustomizableUI.AREA_NAVBAR,
+    removable: true,
+    onCreated(node) {
+      lazy.JaceWindow.updateProfilesButton(node);
+    },
+    onCommand(event) {
+      lazy.JaceWindow.openProfilesPanel(event.target.ownerGlobal, event.target);
+    },
+  });
+  lazy.JaceProfiles.syncButtonPlacement();
+  lazy.JaceProfiles.watchPref();
+
+  CustomizableUI.createWidget({
     id: "jace-vertical-tabs-button",
     type: "button",
     label: "Vertical tabs",
@@ -138,6 +157,7 @@ function onBrowserWindow(win) {
   }
   if (!syncStarted) {
     syncStarted = true;
+    lazy.JaceAccount.startWebsiteSignIn().catch((e) => console.warn("Jace: website sign-in", e));
     // Give startup a moment before the first sync.
     lazy.JaceSync.start({ firstSyncDelayMs: 15_000 });
   }
