@@ -1,6 +1,8 @@
 # Windows x64, cross-compiled on Linux like Mozilla's own builds.
 # scripts/build.py vs-sdk unpacks Visual Studio's headers and libraries
-# (downloaded from Microsoft by Firefox's build/vs/pack_vs.py) to WINSYSROOT.
+# (downloaded from Microsoft by Firefox's pack_vs.py) to WINSYSROOT. If this
+# Firefox has no pack_vs.py, that line is dropped and --enable-bootstrap
+# downloads Mozilla's packaged Windows SDK instead.
 ac_add_options --target=x86_64-pc-windows-msvc
 ac_add_options --disable-maintenance-service
 ac_add_options --disable-default-browser-agent

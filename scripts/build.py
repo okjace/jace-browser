@@ -220,10 +220,25 @@ def make_branding():
     conf.write_text(text.strip() + '\nMOZ_APP_DISPLAYNAME="Jace Browser"\nMOZ_MACBUNDLE_ID=jace\n')
 
 
+def jace_commit():
+    """This repo's commit, which Firefox records as the source changeset (MOZ_SOURCE_CHANGESET)."""
+    sha = os.environ.get("GITHUB_SHA")
+    if not sha:
+        res = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True)
+        sha = res.stdout.strip() if res.returncode == 0 else ""
+    return sha or "unknown"
+
+
 def write_mozconfig(target):
     text = (ROOT / "configs" / "mozconfig.common").read_text()
     text += "\n" + (ROOT / "configs" / f"mozconfig.{target}").read_text()
-    text = text.replace("@WINSYSROOT@", str(Path.home() / "win-cross" / "vs"))
+    text = text.replace("@JACE_COMMIT@", jace_commit())
+    winsysroot = Path.home() / "win-cross" / "vs"
+    if winsysroot.exists():
+        text = text.replace("@WINSYSROOT@", str(winsysroot))
+    else:
+        # No packed SDK: --enable-bootstrap downloads Mozilla's Windows SDK toolchain instead.
+        text = "\n".join(line for line in text.splitlines() if "@WINSYSROOT@" not in line) + "\n"
     if target == "macos" and "@MACOS_SDK@" in text:
         sdk = subprocess.run(["xcrun", "--show-sdk-path"], capture_output=True, text=True).stdout.strip()
         text = text.replace("@MACOS_SDK@", sdk)
@@ -283,16 +298,26 @@ def vs_sdk(args):
     if (out / "vs").exists():
         log("Visual Studio SDK already unpacked")
         return
+    # Newer Firefox moved (or dropped) pack_vs.py; then --enable-bootstrap
+    # downloads Mozilla's own packaged Windows SDK during the build instead.
+    scripts = sorted(p for p in ENGINE.rglob("pack_vs.py") if "obj-" not in str(p))
+    yamls = sorted((ENGINE / "build" / "vs").glob("vs20*.yaml"))
+    if not scripts or not yamls:
+        log("No pack_vs.py in this Firefox: the build's bootstrap will download the Windows SDK itself")
+        return
     out.mkdir(exist_ok=True)
     archive = out / "vs.tar.zst"
-    yaml = sorted((ENGINE / "build" / "vs").glob("vs20*.yaml"))[-1]
-    log(f"Packing the Windows SDK and MSVC ({yaml.name}); this downloads from Microsoft")
-    run(["./mach", "python", "--virtualenv", "build", "build/vs/pack_vs.py", yaml.relative_to(ENGINE), "-o", archive], cwd=ENGINE)
+    yaml = yamls[-1]
+    script = scripts[0].relative_to(ENGINE)
+    log(f"Packing the Windows SDK and MSVC ({yaml.name} with {script}); this downloads from Microsoft")
+    run(["./mach", "python", "--virtualenv", "build", script, yaml.relative_to(ENGINE), "-o", archive], cwd=ENGINE)
     run(["tar", "--zstd", "-xf", archive, "-C", out])
     archive.unlink()
 
 
 def build(args):
+    # Written again here, so a Windows SDK unpacked after "prepare" is picked up.
+    write_mozconfig(args.platform)
     env = {**os.environ, "MOZBUILD_STATE_PATH": str(Path.home() / ".mozbuild"), "MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE": "pip"}
     if args.bootstrap:
         log("Installing build tools (mach bootstrap)")

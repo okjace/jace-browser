@@ -22,5 +22,7 @@ ac_add_options --with-unsigned-addon-scopes=app,system
 ac_add_options --allow-addon-sideload
 
 export MOZ_TELEMETRY_REPORTING=
+# Firefox records where it was built from; it needs the commit when the repo is set.
 export MOZ_SOURCE_REPO=https://github.com/okjace/jace-browser
+export MOZ_SOURCE_CHANGESET=@JACE_COMMIT@
 mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-jace
