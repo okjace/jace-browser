@@ -68,7 +68,7 @@ function previewApi() {
   const listeners = [];
   return {
     logo: globalThis.JACE_PREVIEW_LOGO ?? null,
-    os: "WINNT",
+    os: "Linux",
     getBool: (p, d) => prefs[p] ?? d,
     setBool: (p, v) => (prefs[p] = v),
     getString: (p, d) => prefs[p] ?? d,
@@ -172,7 +172,8 @@ function segmented(id, attr, pref, fallback) {
   render();
 }
 segmented("tab-style", "style", "jace.tabs.verticalStyle", "full");
-segmented("window-controls", "controls", "jace.windowControls.style", "jace");
+segmented("window-controls", "controls", "jace.windowControls.style", "system");
+$("controls-system").textContent = api.os === "Linux" ? "GNOME" : api.os === "WINNT" ? "Windows" : "Match my system";
 // macOS keeps its own window buttons.
 $("window-controls-row").hidden = api.os === "Darwin";
 

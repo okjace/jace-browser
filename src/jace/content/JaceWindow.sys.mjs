@@ -29,7 +29,18 @@ const LOOK_PREFS = {
   "jace.theme.floatingContent": "jace-floating",
 };
 const TAB_STYLE_PREF = "jace.tabs.verticalStyle"; // "full" | "icons" | "hover"
-const CONTROLS_PREF = "jace.windowControls.style"; // "jace" | "minimal" | "native"
+const CONTROLS_PREF = "jace.windowControls.style"; // "system" | "jace" | "minimal"
+
+/**
+ * The window button style actually drawn. "system" (the default) means
+ * GNOME/Adwaita-style buttons on Linux (skin/jace.css), and the real system
+ * buttons on Windows and macOS ("native": nothing restyled).
+ */
+export function windowControlsStyle() {
+  const style = Services.prefs.getStringPref(CONTROLS_PREF, "system");
+  if (style === "jace" || style === "minimal") return style;
+  return Services.appinfo.OS === "Linux" ? "gnome" : "native";
+}
 export const TAB_STYLES = ["full", "icons", "hover"];
 
 function tabStyle() {
@@ -80,8 +91,7 @@ function applyLook(win) {
   for (const [pref, attr] of Object.entries(LOOK_PREFS)) {
     root.toggleAttribute(attr, Services.prefs.getBoolPref(pref, false));
   }
-  const controls = Services.prefs.getStringPref(CONTROLS_PREF, "jace");
-  root.setAttribute("jace-window-controls", ["jace", "minimal", "native"].includes(controls) ? controls : "jace");
+  root.setAttribute("jace-window-controls", windowControlsStyle());
   const accent = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84");
   if (/^#[0-9a-f]{3,8}$/i.test(accent)) {
     root.style.setProperty("--jace-accent", accent);

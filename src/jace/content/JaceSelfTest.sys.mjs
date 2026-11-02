@@ -93,11 +93,15 @@ export const JaceSelfTest = {
     });
     await check("vertical tab style and window buttons applied", () => {
       const root = win.document.documentElement;
-      return root.getAttribute("jace-tabs-style") === "full" && root.getAttribute("jace-window-controls") === "jace";
+      const expected = Services.appinfo.OS === "Linux" ? "gnome" : "native";
+      return root.getAttribute("jace-tabs-style") === "full" && root.getAttribute("jace-window-controls") === expected;
     });
     await check("Jace website sign-in is set up", () => {
       const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAccount.sys.mjs");
       return typeof JaceAccount.signInToWebsite === "function" && JaceAccount.autoSignIn;
+    });
+    await check("Mozilla's terms-of-use screen is off", () => {
+      return !Services.prefs.getBoolPref("browser.preonboarding.enabled", true) && Services.prefs.prefIsLocked("browser.preonboarding.enabled");
     });
     await check("vertical tabs on by default", () => Services.prefs.getBoolPref("sidebar.verticalTabs"));
     await check("Jace sync modules load", () => {

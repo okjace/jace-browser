@@ -231,7 +231,7 @@ $("accent-reset").addEventListener("click", () => {
 
 for (const [group, pref, fallback] of [
   ["tab-style", "jace.tabs.verticalStyle", "full"],
-  ["window-controls", "jace.windowControls.style", "jace"],
+  ["window-controls", "jace.windowControls.style", "system"],
 ]) {
   const radios = document.querySelectorAll(`input[name="${group}"]`);
   const read = () => {

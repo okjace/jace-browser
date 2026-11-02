@@ -27,6 +27,8 @@
       "SkipOnboarding": true,
       "MoreFromMozilla": false,
       "Locked": true
-    }
+    },
+    "SkipTermsOfUse": true,
+    "DisableAppUpdate": true
   }
 }

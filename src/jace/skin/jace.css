@@ -479,8 +479,60 @@
   justify-content: center;
 }
 
-/* ---------- Window controls (Windows and Linux; macOS keeps its own) ----------
- * jace-window-controls: "jace" (colored dots), "minimal" (soft icons), "native". */
+/* ---------- Window controls ----------
+ * jace-window-controls (set by JaceWindow.sys.mjs):
+ *   "gnome"   - "Match my system" on Linux: libadwaita-style round buttons
+ *   "native"  - "Match my system" on Windows and macOS: untouched system buttons
+ *   "jace"    - colored dots (Windows and Linux)
+ *   "minimal" - soft icons (Windows and Linux)
+ * macOS always keeps its traffic lights. */
+
+/* GNOME (Adwaita): round, lightly shaded buttons with symbolic icons. */
+:root[jace-window-controls="gnome"] .titlebar-buttonbox {
+  appearance: none !important;
+  gap: 10px;
+  padding-inline: 6px 8px;
+  align-items: center;
+}
+
+:root[jace-window-controls="gnome"] .titlebar-button {
+  appearance: none !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 4px !important;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--jace-text);
+  background-color: color-mix(in srgb, currentColor 10%, transparent) !important;
+  transition: background-color 120ms ease;
+}
+
+:root[jace-window-controls="gnome"] .titlebar-button:hover {
+  background-color: color-mix(in srgb, currentColor 15%, transparent) !important;
+}
+
+:root[jace-window-controls="gnome"] .titlebar-button:hover:active {
+  background-color: color-mix(in srgb, currentColor 30%, transparent) !important;
+}
+
+:root[jace-window-controls="gnome"] .titlebar-button > .toolbarbutton-icon {
+  width: 16px !important;
+  height: 16px !important;
+  -moz-context-properties: fill, stroke;
+  fill: currentColor;
+  stroke: none;
+}
+
+:root[jace-window-controls="gnome"] .titlebar-min { list-style-image: url("chrome://jace/skin/gnome-min.svg") !important; }
+:root[jace-window-controls="gnome"] .titlebar-max { list-style-image: url("chrome://jace/skin/gnome-max.svg") !important; }
+:root[jace-window-controls="gnome"] .titlebar-restore { list-style-image: url("chrome://jace/skin/gnome-restore.svg") !important; }
+:root[jace-window-controls="gnome"] .titlebar-close { list-style-image: url("chrome://jace/skin/gnome-close.svg") !important; }
+
+:root[jace-window-controls="gnome"]:-moz-window-inactive .titlebar-button {
+  color: color-mix(in srgb, var(--jace-text) 55%, transparent);
+}
 
 :root:is([jace-window-controls="jace"], [jace-window-controls="minimal"]) .titlebar-buttonbox {
   appearance: none !important;

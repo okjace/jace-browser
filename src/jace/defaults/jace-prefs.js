@@ -15,7 +15,7 @@ pref("jace.theme.compact", false);          // hide the sidebar until you hover 
 pref("jace.theme.floatingContent", true);   // rounded, inset web content with a shadow
 pref("jace.theme.accent", "#3ddc84");       // Jace green
 pref("jace.tabs.verticalStyle", "full");    // "full", "icons" (icons only), or "hover" (icons, expand on hover)
-pref("jace.windowControls.style", "jace");  // "jace" (colored dots), "minimal", or "native" (Windows/Linux)
+pref("jace.windowControls.style", "system"); // "system" (GNOME look on Linux, the real buttons on Windows and macOS), "jace" (colored dots), or "minimal"
 pref("jace.profiles.showButton", true);     // the profiles button in the toolbar
 
 // ---------- Jace account & sync ----------
@@ -54,6 +54,14 @@ pref("browser.shell.checkDefaultBrowser", false);
 pref("browser.aboutwelcome.enabled", false);
 pref("browser.startup.homepage_override.mstone", "ignore");
 pref("jace.setup.done", false);
+// No Mozilla terms-of-use / privacy-notice screens: Jace Browser has its own setup.
+pref("browser.preonboarding.enabled", false);
+pref("termsofuse.bypassNotification", true);
+pref("termsofuse.acceptedVersion", 999);
+pref("termsofuse.acceptedDate", "1735689600000");
+pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+pref("datareporting.policy.firstRunURL", "");
+pref("browser.rights.3.shown", true);
 pref("jace.startup.animation", true);
 
 // ---------- Updates ----------

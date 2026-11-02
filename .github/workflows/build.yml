@@ -14,6 +14,12 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+    # Docs and the dev-only script don't change the browser: no multi-hour rebuild.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - "scripts/dev-install.py"
   pull_request:
   workflow_dispatch:
 

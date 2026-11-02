@@ -21,7 +21,9 @@
 - **Vertical tabs you can turn off**: on by default. Turn them off or on with the tabs button in the toolbar, **Ctrl+Alt+V** (**Cmd+Opt+V** on macOS), or **about:jace → Look**. Compact mode hides the sidebar until you hover the left edge.
 - **Vertical tab styles**: names and icons, **only icons**, or **only icons that grow over the page when you hover**. Pick in the setup or **about:jace → Look**.
 - **Profiles button**: shows which profile this window is (a colored letter) and switches between them, e.g. Personal, Work, School, each with its own tabs, passwords, add-ons and Jace account. Other profiles open in their own window. Hide it with **Hide this button** in its panel, Customize Toolbar, or **about:jace → Look**; profiles stay in **about:jace → Profiles**.
-- **Custom window buttons and browser pieces**: minimize, maximize and close in Jace style (colored dots, or minimal) on Windows and Linux, or the system's own; macOS keeps its traffic lights. Tab close buttons, menus, panels and the address bar's suggestions are restyled to match, in your accent color.
+- **Window buttons that match your system**: GNOME-style (Adwaita) buttons on Linux, the real Windows buttons on Windows, and the traffic lights on macOS. On Windows and Linux you can pick Jace colored dots or Minimal instead.
+- **No Mozilla terms-of-use screen**: Jace Browser starts with its own setup, not Mozilla's terms and data notices.
+- **Custom browser pieces**: Tab close buttons, menus, panels and the address bar's suggestions are restyled to match, in your accent color.
 
 ![Mockup of the three vertical tab styles and the two window button styles](docs/tabs-and-window-buttons-mockup.png)
 
@@ -86,7 +88,7 @@ If every build and test passes, CI tags `v<version>`, publishes the GitHub Relea
 
 For Jace Store, add a `JACE_STORE_TOKEN` repository secret and create the `jace-browser` project once (`node packaging/jace-store.mjs create --type app --title "Jace Browser" --slug jace-browser --summary "..."`). Without the secret, that step is skipped.
 
-**Build time:** Firefox is big. Each platform takes 2–5 hours on GitHub's free runners, within the 6-hour job limit. Pull requests only run the quick tests.
+**Build time:** Firefox is big. The first build of each Firefox version takes 2–5 hours per platform on GitHub's free runners, within the 6-hour job limit. Builds keep a compiler cache (sccache, in GitHub's cache), so rebuilds of the same Firefox version only recompile what changed, and skip debug symbols. Pull requests only run the quick tests, and pushes that only change docs don't rebuild.
 
 **Unsigned builds:** the apps aren't signed with paid Apple or Microsoft certificates, so:
 - **macOS** says the app "can't be opened". Right-click it, choose **Open**, then **Open** again (only needed once). On macOS 15 and newer, go to **System Settings → Privacy & Security → Open Anyway** instead.
@@ -122,7 +124,7 @@ python3 scripts/build.py package
 
 Windows builds are cross-compiled on Linux (`--platform windows`), the way Mozilla builds Firefox. macOS builds run on a Mac.
 
-**Trying a change quickly:** everything Jace Browser adds loads through Firefox's autoconfig, so you can copy it into a regular Firefox and skip the build:
+**Trying it on your computer without building:** everything Jace Browser adds loads through Firefox's autoconfig, so you can copy it into a regular Firefox and skip the build:
 
 ```bash
 python3 scripts/dev-install.py "/Applications/Firefox.app"
