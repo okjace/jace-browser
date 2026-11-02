@@ -1,6 +1,6 @@
 {
   "name": "Jace Browser",
-  "version": "1.0.0",
-  "firefox": "144.0",
+  "version": "1.0.1",
+  "firefox": "159.0",
   "repo": "okjace/jace-browser"
 }

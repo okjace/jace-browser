@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+- **Firefox 159.0** (was 144.0): Mozilla's latest security fixes and improvements. Release notes: https://www.mozilla.org/firefox/159.0/releasenotes/
+- Updated automatically: installed copies of Jace Browser download and install this version on their own.
+
 ## 1.0.0
 - **Signed in to Jace websites automatically**: signing in to Jace Browser signs you in to the Jace website, and Jace's own apps skip the sign-in screen. Turn it off in about:jace.
 - **Vertical tab styles**: names and icons, only icons, or only icons that grow when you hover.
