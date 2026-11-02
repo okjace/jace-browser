@@ -1,0 +1,9 @@
+/engine/
+/.engine-unpack/
+/.cache/
+/.pkg/
+/dist/
+usb-helper/target/
+__pycache__/
+*.pyc
+node_modules/

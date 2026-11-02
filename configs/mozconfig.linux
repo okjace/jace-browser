@@ -1,0 +1,2 @@
+# Linux x86_64 (native build).
+ac_add_options --target=x86_64-pc-linux-gnu

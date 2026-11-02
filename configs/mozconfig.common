@@ -1,0 +1,26 @@
+# Jace Browser build options (all platforms). scripts/build.py writes
+# engine/mozconfig from this file plus the platform's file.
+ac_add_options --enable-application=browser
+ac_add_options --enable-release
+ac_add_options --enable-optimize
+ac_add_options --disable-debug
+ac_add_options --disable-tests
+ac_add_options --disable-crashreporter
+ac_add_options --disable-updater
+ac_add_options --enable-bootstrap
+
+ac_add_options --with-branding=browser/branding/jace
+ac_add_options --with-app-name=jace
+ac_add_options --with-app-basename=Jace
+ac_add_options --with-distribution-id=io.github.okjace
+
+# DRM: build in Widevine support (the CDM itself downloads on first use).
+ac_add_options --enable-eme=widevine
+
+# Add-ons: AMO add-ons work as in Firefox; signing stays required.
+ac_add_options --with-unsigned-addon-scopes=app,system
+ac_add_options --allow-addon-sideload
+
+export MOZ_TELEMETRY_REPORTING=
+export MOZ_SOURCE_REPO=https://github.com/okjace/jace-browser
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-jace

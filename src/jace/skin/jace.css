@@ -1,0 +1,317 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*
+ * Jace Browser's look, in the spirit of Zen: the window is one soft tinted
+ * surface, tabs and toolbars sit on it without borders, and web pages float
+ * on top as a rounded card. Works with vertical tabs on or off.
+ *
+ * <html> attributes set by JaceWindow.sys.mjs:
+ *   jace-vertical-tabs   sidebar.verticalTabs is on
+ *   jace-floating        jace.theme.floatingContent (rounded inset pages)
+ *   jace-compact         jace.theme.compact (sidebar hides until you hover the edge)
+ */
+
+:root {
+  --jace-accent: #3ddc84;
+  --jace-radius: 10px;
+  --jace-gap: 8px;
+  --jace-surface: color-mix(in srgb, var(--jace-accent) 7%, #f4f5f7);
+  --jace-surface-2: color-mix(in srgb, var(--jace-accent) 4%, #ffffff);
+  --jace-text: #16181d;
+  --jace-muted: #5b6270;
+  --jace-hover: color-mix(in srgb, var(--jace-text) 7%, transparent);
+  --jace-selected: #ffffff;
+  --jace-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 4px 16px rgb(0 0 0 / 0.08);
+
+  /* Feed Firefox's own theme variables so built-in pieces match. */
+  --toolbar-bgcolor: transparent;
+  --toolbar-color: var(--jace-text);
+  --toolbox-bgcolor: var(--jace-surface);
+  --toolbox-bgcolor-inactive: var(--jace-surface);
+  --tab-selected-bgcolor: var(--jace-selected);
+  --tab-border-radius: 8px;
+  --toolbarbutton-border-radius: 8px;
+  --urlbar-box-bgcolor: var(--jace-surface-2);
+  --focus-outline-color: var(--jace-accent);
+  --chrome-content-separator-color: transparent;
+  --sidebar-background-color: transparent;
+  --sidebar-border-color: transparent;
+  accent-color: var(--jace-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --jace-surface: color-mix(in srgb, var(--jace-accent) 6%, #111317);
+    --jace-surface-2: color-mix(in srgb, var(--jace-accent) 5%, #1b1e24);
+    --jace-text: #e6e8eb;
+    --jace-muted: #9aa1ad;
+    --jace-hover: color-mix(in srgb, #ffffff 8%, transparent);
+    --jace-selected: color-mix(in srgb, #ffffff 11%, transparent);
+    --jace-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px rgb(0 0 0 / 0.35);
+  }
+}
+
+/* ---------- One surface for the whole window ---------- */
+
+#navigator-toolbox,
+#browser,
+#sidebar-main,
+#sidebar-box,
+#tabbrowser-tabbox,
+#TabsToolbar,
+#nav-bar,
+#PersonalToolbar {
+  background: var(--jace-surface) !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--jace-text);
+}
+
+#navigator-toolbox {
+  border-bottom: none !important;
+}
+
+#nav-bar {
+  padding-block: 4px !important;
+}
+
+/* ---------- Pages float as a rounded card ---------- */
+
+:root[jace-floating] #tabbrowser-tabbox {
+  margin: 0 var(--jace-gap) var(--jace-gap) var(--jace-gap) !important;
+  border-radius: var(--jace-radius) !important;
+  overflow: clip !important;
+  box-shadow: var(--jace-shadow) !important;
+  background: transparent !important;
+}
+
+:root[jace-floating][jace-vertical-tabs] #tabbrowser-tabbox {
+  margin-inline-start: 0 !important;
+}
+
+:root[jace-floating] .browserStack > browser,
+:root[jace-floating] #tabbrowser-tabpanels {
+  border-radius: var(--jace-radius);
+  background: transparent !important;
+}
+
+:root[jace-floating] #tabbrowser-tabpanels {
+  background: var(--jace-surface) !important;
+}
+
+/* Fullscreen video and DOM fullscreen use the whole screen. */
+:root[inDOMFullscreen] #tabbrowser-tabbox,
+:root[sizemode="fullscreen"] #tabbrowser-tabbox {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ---------- Tabs: soft pills ---------- */
+
+.tabbrowser-tab {
+  padding-inline: 2px !important;
+}
+
+.tab-background {
+  border-radius: var(--tab-border-radius) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  margin-block: 3px !important;
+}
+
+.tabbrowser-tab:not([selected]):hover > .tab-stack > .tab-background {
+  background: var(--jace-hover) !important;
+}
+
+.tabbrowser-tab[selected] > .tab-stack > .tab-background {
+  background: var(--jace-selected) !important;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1) !important;
+}
+
+.tabbrowser-tab[selected] .tab-label {
+  font-weight: 600;
+}
+
+/* Vertical tabs: roomy list, like Zen */
+:root[jace-vertical-tabs] #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
+  min-height: 36px !important;
+}
+
+:root[jace-vertical-tabs] #sidebar-main {
+  padding-inline: 4px 0 !important;
+}
+
+/* No separators between tabs. */
+.tabbrowser-tab::after,
+.tabbrowser-tab::before,
+#tabbrowser-tabs[orient="vertical"] #vertical-tabs-newtab-button {
+  border: none !important;
+}
+
+/* ---------- Compact mode: sidebar slides in from the edge ---------- */
+
+:root[jace-compact][jace-vertical-tabs] #sidebar-main {
+  position: fixed !important;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 10;
+  transform: translateX(calc(-100% + 6px));
+  transition: transform 160ms ease;
+  box-shadow: var(--jace-shadow) !important;
+  border-start-end-radius: var(--jace-radius);
+  border-end-end-radius: var(--jace-radius);
+}
+
+:root[jace-compact][jace-vertical-tabs] #sidebar-main:hover,
+:root[jace-compact][jace-vertical-tabs] #sidebar-main:focus-within {
+  transform: none;
+}
+
+:root[jace-compact][jace-vertical-tabs] #tabbrowser-tabbox {
+  margin-inline-start: var(--jace-gap) !important;
+}
+
+/* ---------- Address bar ---------- */
+
+#urlbar-background {
+  border-radius: 10px !important;
+  border: 1px solid transparent !important;
+  background: var(--jace-surface-2) !important;
+}
+
+#urlbar[focused] > #urlbar-background {
+  border-color: var(--jace-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--jace-accent) 25%, transparent) !important;
+}
+
+/* ---------- Jace buttons ---------- */
+
+#jace-account-button {
+  list-style-image: url("chrome://jace/skin/account.svg");
+}
+
+#jace-account-button[signed-in] .toolbarbutton-icon {
+  border-radius: 50%;
+}
+
+#jace-account-button[sync-state="needs-passphrase"] .toolbarbutton-badge-stack::after,
+#jace-account-button[sync-state="error"] .toolbarbutton-badge-stack::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+#jace-vertical-tabs-button {
+  list-style-image: url("chrome://jace/skin/tabs-horizontal.svg");
+}
+
+#jace-vertical-tabs-button[checked] {
+  list-style-image: url("chrome://jace/skin/tabs-vertical.svg");
+}
+
+/* ---------- Account panel ---------- */
+
+#jace-account-panel {
+  --panel-padding: 0;
+}
+
+.jace-panel {
+  width: 300px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font: menu;
+  font-size: 13px;
+}
+
+.jace-panel-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.jace-panel-text {
+  margin: 0;
+  color: var(--jace-muted);
+  line-height: 1.4;
+}
+
+.jace-panel-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jace-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.jace-panel-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.jace-panel-handle {
+  color: var(--jace-muted);
+}
+
+.jace-panel-section {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--jace-muted);
+}
+
+.jace-panel-button,
+.jace-panel-link {
+  appearance: none;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 10px;
+  text-align: start;
+  font: inherit;
+  color: inherit;
+  background: var(--jace-hover);
+  cursor: pointer;
+}
+
+.jace-panel-button.primary {
+  background: var(--jace-accent);
+  color: #0c1410;
+  font-weight: 600;
+  text-align: center;
+}
+
+.jace-panel-link {
+  background: transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jace-panel-button:hover {
+  filter: brightness(0.95);
+}
+
+.jace-panel-link:hover {
+  background: var(--jace-hover);
+}
+
+.jace-panel hr {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--jace-hover);
+  margin: 4px 0;
+}

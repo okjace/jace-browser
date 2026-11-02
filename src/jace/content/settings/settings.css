@@ -1,0 +1,166 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:root {
+  --accent: #3ddc84;
+  --on-accent: #0c1410;
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --fg: #16181d;
+  --muted: #5b6270;
+  --line: #e2e5ea;
+  --danger: #dc2626;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111317;
+    --card: #1b1e24;
+    --fg: #e6e8eb;
+    --muted: #9aa1ad;
+    --line: #2a2e36;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 system-ui, sans-serif;
+}
+
+.side {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 220px;
+  padding: 24px 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 0 10px 16px;
+}
+
+.brand img { width: 28px; height: 28px; }
+
+.side a {
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.side a:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+
+main {
+  flex: 1;
+  max-width: 760px;
+  padding: 24px 16px 64px;
+}
+
+section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+h2 { margin: 0 0 10px; font-size: 18px; }
+h3 { margin: 18px 0 8px; font-size: 14px; }
+
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+.strong { font-weight: 600; }
+
+button {
+  font: inherit;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
+button:disabled { opacity: 0.6; cursor: default; }
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+button.primary:hover { filter: brightness(0.95); }
+button.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.field { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; max-width: 360px; }
+.field.inline { flex-direction: row; align-items: center; gap: 10px; display: inline-flex; }
+
+input:not([type="checkbox"], [type="color"]) {
+  font: inherit;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: inherit;
+}
+
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.toggles { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.toggle { display: flex; gap: 10px; align-items: flex-start; }
+.toggle input { margin-top: 3px; accent-color: var(--accent); }
+
+.profile { display: flex; align-items: center; gap: 12px; }
+.profile img { width: 48px; height: 48px; border-radius: 50%; }
+.profile img:not([src]) { display: none; }
+
+.list { display: flex; flex-direction: column; gap: 4px; }
+.list .item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.list .item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list .device { margin-top: 8px; font-weight: 600; }
+
+.notice {
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: color-mix(in srgb, var(--accent) 18%, var(--card));
+}
+
+.notice.error { background: color-mix(in srgb, var(--danger) 18%, var(--card)); }
+
+a { color: var(--accent); }
+
+@media (max-width: 720px) {
+  body { flex-direction: column; }
+  .side { position: static; width: auto; flex-direction: row; flex-wrap: wrap; padding: 12px 16px 0; }
+  .brand { width: 100%; padding-bottom: 8px; }
+}

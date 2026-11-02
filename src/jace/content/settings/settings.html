@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome:; img-src chrome: https: data:; style-src chrome: 'unsafe-inline'">
+  <meta name="color-scheme" content="light dark">
+  <title>Jace settings</title>
+  <link rel="icon" href="chrome://branding/content/icon32.png">
+  <link rel="stylesheet" href="chrome://jace/content/settings/settings.css">
+  <script type="module" src="chrome://jace/content/settings/settings.mjs"></script>
+</head>
+<body>
+  <nav class="side">
+    <div class="brand"><img src="chrome://branding/content/icon64.png" alt=""> Jace Browser</div>
+    <a href="#account">Jace account</a>
+    <a href="#sync">Sync</a>
+    <a href="#look">Look</a>
+    <a href="#usb">WebUSB</a>
+    <a href="#drm">DRM</a>
+    <a href="#about">About</a>
+  </nav>
+
+  <main>
+    <div id="notice" class="notice" hidden></div>
+
+    <section id="account">
+      <h2>Jace account</h2>
+      <div id="account-signed-out">
+        <p class="muted">Sign in with your Jace account to sync bookmarks, passwords, history, open tabs, settings, and the sites you're signed in to between all your Jace Browsers.</p>
+        <button id="sign-in" class="primary">Sign in with Jace</button>
+      </div>
+      <div id="account-signed-in" hidden>
+        <div class="profile">
+          <img id="avatar" alt="">
+          <div>
+            <div id="profile-name" class="strong"></div>
+            <div id="profile-handle" class="muted"></div>
+          </div>
+        </div>
+        <label class="field">This device's name
+          <input id="device-name" maxlength="80">
+        </label>
+        <div class="row">
+          <button id="refresh-profile">Refresh profile</button>
+          <button id="sign-out">Sign out</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="sync">
+      <h2>Sync</h2>
+      <p id="sync-status" class="muted"></p>
+
+      <form id="passphrase-form" hidden>
+        <p id="passphrase-help"></p>
+        <label class="field">Sync passphrase
+          <input id="passphrase" type="password" autocomplete="new-password" minlength="8" required>
+        </label>
+        <label class="field" id="passphrase-confirm-row">Type it again
+          <input id="passphrase-confirm" type="password" autocomplete="new-password" minlength="8">
+        </label>
+        <p class="muted small">Your data is encrypted on this device with a key made from this passphrase before it goes to Jace, so Jace can't read it. Jace can't recover it either: if you forget it, you can only start sync over.</p>
+        <button class="primary" type="submit">Turn on sync</button>
+      </form>
+
+      <div id="sync-on" hidden>
+        <div class="row">
+          <button id="sync-now" class="primary">Sync now</button>
+        </div>
+        <h3>What to sync</h3>
+        <div id="engines" class="toggles"></div>
+        <p class="muted small"><strong>Site sign-ins</strong> syncs cookies, so when you sign in to Jace on another computer you're also signed in to the sites you use. Some sites tie a sign-in to one device and will still ask you to sign in.</p>
+
+        <h3>Tabs on your other devices</h3>
+        <div id="remote-tabs" class="list"><p class="muted">None yet.</p></div>
+
+        <h3>Add-ons on your other devices</h3>
+        <div id="remote-addons" class="list"><p class="muted">None yet.</p></div>
+
+        <h3>Start over</h3>
+        <div class="row">
+          <button id="forget-device">Turn off sync on this device</button>
+          <button id="reset-sync" class="danger">Delete my synced data from Jace</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="look">
+      <h2>Look</h2>
+      <div class="toggles">
+        <label class="toggle"><input type="checkbox" data-pref="sidebar.verticalTabs"> <span>Vertical tabs <span class="muted">(Ctrl+Alt+V, or the tabs button in the toolbar)</span></span></label>
+        <label class="toggle"><input type="checkbox" data-pref="jace.theme.compact"> <span>Compact mode <span class="muted">(the sidebar slides in when you hover the left edge)</span></span></label>
+        <label class="toggle"><input type="checkbox" data-pref="jace.theme.floatingContent"> <span>Floating pages <span class="muted">(rounded web pages with a shadow)</span></span></label>
+      </div>
+      <label class="field inline">Accent color <input type="color" id="accent"></label>
+      <button id="accent-reset">Jace green</button>
+    </section>
+
+    <section id="usb">
+      <h2>WebUSB</h2>
+      <label class="toggle"><input type="checkbox" data-pref="jace.usb.enabled"> <span>Let sites ask to connect to USB devices (<code>navigator.usb</code>)</span></label>
+      <p id="usb-helper" class="muted small"></p>
+      <p class="muted small">A site only gets a device after you pick it. Keyboards, mice, USB sticks, webcams, and other protected kinds of interface can't be used with WebUSB.</p>
+      <h3>Sites with USB access</h3>
+      <div id="usb-permissions" class="list"><p class="muted">None.</p></div>
+    </section>
+
+    <section id="drm">
+      <h2>DRM (protected video)</h2>
+      <label class="toggle"><input type="checkbox" data-pref="media.eme.enabled"> <span>Play DRM-controlled content (Netflix, Disney+, Spotify, …)</span></label>
+      <p id="widevine" class="muted"></p>
+      <p class="muted small">Jace Browser uses Google's Widevine, which it downloads the first time a site needs it, on Windows, macOS, and Linux. Some services limit browsers they don't recognize to lower resolutions.</p>
+      <button id="widevine-check">Check for Widevine now</button>
+    </section>
+
+    <section id="about">
+      <h2>About</h2>
+      <p id="versions"></p>
+      <div class="row">
+        <button id="check-updates">Check for updates</button>
+        <a href="https://github.com/okjace/jace-browser" target="_blank">Source code</a>
+      </div>
+      <p id="update-result" class="muted"></p>
+    </section>
+  </main>
+</body>
+</html>

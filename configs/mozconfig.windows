@@ -1,0 +1,7 @@
+# Windows x64, cross-compiled on Linux like Mozilla's own builds.
+# scripts/build.py vs-sdk unpacks Visual Studio's headers and libraries
+# (downloaded from Microsoft by Firefox's build/vs/pack_vs.py) to WINSYSROOT.
+ac_add_options --target=x86_64-pc-windows-msvc
+ac_add_options --disable-maintenance-service
+ac_add_options --disable-default-browser-agent
+export WINSYSROOT="@WINSYSROOT@"

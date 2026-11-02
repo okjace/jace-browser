@@ -1,0 +1,2 @@
+# macOS (native build on a Mac; the CPU is the machine's own: arm64 or x86_64).
+ac_add_options --with-macos-sdk="@MACOS_SDK@"

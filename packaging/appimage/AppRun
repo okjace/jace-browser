@@ -1,0 +1,5 @@
+#!/bin/sh
+# Jace Browser AppImage entry point.
+HERE="$(dirname "$(readlink -f "$0")")"
+export MOZ_APP_LAUNCHER="${APPIMAGE:-$HERE/AppRun}"
+exec "$HERE/usr/lib/jace/jace" "$@"

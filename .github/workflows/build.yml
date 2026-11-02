@@ -1,0 +1,310 @@
+# Builds Jace Browser for Windows, macOS and Linux on GitHub's runners, the
+# same way Jace Launcher does:
+# - every push / PR runs the tests; pushes to main (and manual runs) also build
+#   every platform, test the installers, and upload them as workflow artifacts
+# - raising "version" in jace.json releases it automatically once every build
+#   and installer test passes (no tag needed); pushing a v* tag also works
+# - the release is then listed on Jace Store (needs the JACE_STORE_TOKEN secret)
+#
+# Firefox is big: a build takes 2-5 hours per platform on GitHub's free
+# runners, so jobs get the 6-hour maximum.
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    # Is this push a new version? (version in jace.json with no release yet)
+    # Then a green build on main releases it automatically - no tag needed.
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      publish: ${{ steps.v.outputs.publish }}
+      build: ${{ steps.v.outputs.build }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(python3 scripts/build.py version)
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"; echo "publish=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == push ]] && ! gh release view "v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "New version v$V: will be released if every build passes"
+            echo "tag=v$V" >> "$GITHUB_OUTPUT"; echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "v$V is already released (or this isn't a push to main): build and test only"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+          # Pull requests only run the quick tests; Firefox builds are for main, tags and manual runs.
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then echo "build=false" >> "$GITHUB_OUTPUT"; else echo "build=true" >> "$GITHUB_OUTPUT"; fi
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Sync merge and encryption tests
+        run: node --test tests/*.test.mjs
+      - name: Syntax-check the browser code
+        run: for f in $(find src -name '*.mjs' -o -name '*.js'); do node --check "$f"; done
+      - name: USB helper builds and answers
+        working-directory: usb-helper
+        run: |
+          cargo build --release
+          printf '{"id":1,"cmd":"hello"}\n{"id":2,"cmd":"list"}\n' | timeout 10 ./target/release/jace-usb-helper | tee out.txt
+          grep -q '"id":1,"ok":true' out.txt
+
+  usb-helper-windows:
+    needs: version
+    if: needs.version.outputs.build == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build jace-usb-helper.exe
+        working-directory: usb-helper
+        run: cargo build --release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: usb-helper-windows
+          path: usb-helper/target/release/jace-usb-helper.exe
+
+  linux:
+    needs: [version, tests]
+    if: needs.version.outputs.build == 'true'
+    # older Ubuntu = older glibc = the AppImage runs on more distros
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - name: Make room for Firefox (needs ~40 GB)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune --all --force || true
+          df -h /
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Get Firefox's source
+        run: python3 scripts/build.py download
+      - name: Add Jace Browser to it
+        run: python3 scripts/build.py prepare --platform linux
+      - name: Build
+        run: python3 scripts/build.py build --platform linux
+      - name: Package (tar.xz and AppImage)
+        run: |
+          sudo apt-get install -y libfuse2 desktop-file-utils
+          python3 scripts/build.py package --platform linux
+      - name: Self-test the AppImage (headless)
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          JACE_SELF_TEST_OUT: ${{ runner.temp }}/selftest.txt
+          MOZ_HEADLESS: "1"
+        run: |
+          mkdir -p "$RUNNER_TEMP/profile"
+          timeout 300 ./dist/JaceBrowser-*-x86_64.AppImage --headless -no-remote -profile "$RUNNER_TEMP/profile" || true
+          cat "$JACE_SELF_TEST_OUT"
+          grep -q "SELF-TEST OK" "$JACE_SELF_TEST_OUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: |
+            dist/*.AppImage
+            dist/*.tar.xz
+
+  windows:
+    # Cross-compiled on Linux, like Mozilla builds Firefox for Windows.
+    needs: [version, tests, usb-helper-windows]
+    if: needs.version.outputs.build == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Make room for Firefox (needs ~40 GB)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          sudo docker image prune --all --force || true
+          df -h /
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - uses: actions/download-artifact@v8
+        with:
+          name: usb-helper-windows
+          path: usb-helper-windows
+      - name: Get Firefox's source
+        run: python3 scripts/build.py download
+      - name: Add Jace Browser to it
+        run: python3 scripts/build.py prepare --platform windows --usb-helper usb-helper-windows/jace-usb-helper.exe
+      - name: Install build tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y zstd
+          cd engine && ./mach --no-interactive bootstrap --application-choice browser
+      - name: Get the Windows SDK and MSVC libraries
+        run: python3 scripts/build.py vs-sdk --platform windows
+      - name: Build
+        run: python3 scripts/build.py build --platform windows --no-bootstrap
+      - name: Package (setup .exe and portable .zip)
+        run: python3 scripts/build.py package --platform windows
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: |
+            dist/*.exe
+            dist/*.zip
+
+  windows-installer-test:
+    # Install the setup .exe on real Windows, self-test, uninstall.
+    needs: windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows
+          path: win
+      - name: Test the Windows installer, self-test and uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $setup = (Get-ChildItem win\*-setup.exe)[0].FullName
+          # 1. silent install, like an admin deploying it
+          $p = Start-Process -FilePath $setup -ArgumentList "/S" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
+          $dir = "$env:ProgramFiles\Jace Browser"
+          $exe = "$dir\jace.exe"
+          if (!(Test-Path $exe)) { throw "not installed" }
+          if (!(Test-Path "$dir\jace\bin\jace-usb-helper.exe")) { throw "USB helper missing" }
+          if (!(Test-Path "$dir\jace.cfg")) { throw "jace.cfg missing" }
+          $lnk = Get-ChildItem "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Filter "Jace Browser*.lnk" -Recurse
+          if (!$lnk) { throw "Start menu shortcut missing" }
+          $key = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall" | Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like "Jace Browser*" }
+          if (!$key) { throw "Installed apps entry missing" }
+          Get-ItemProperty $key.PSPath | Select-Object DisplayName, DisplayVersion, UninstallString | Format-List
+          # 2. the installed browser starts, loads Jace Browser's parts, and quits
+          $env:JACE_SELF_TEST_OUT = "$env:RUNNER_TEMP\selftest.txt"
+          $profile = "$env:RUNNER_TEMP\profile"; New-Item -ItemType Directory $profile | Out-Null
+          Start-Process -FilePath $exe -ArgumentList "--headless","-no-remote","-profile",$profile -Wait
+          Get-Content $env:JACE_SELF_TEST_OUT
+          if (-not (Select-String -Path $env:JACE_SELF_TEST_OUT -Pattern "SELF-TEST OK" -Quiet)) { throw "self-test failed" }
+          # 3. uninstall removes it
+          Start-Process -FilePath "$dir\uninstall\helper.exe" -ArgumentList "/S" -Wait
+          Start-Sleep -Seconds 10
+          if (Test-Path $exe) { throw "jace.exe left behind" }
+          "WINDOWS INSTALLER OK"
+
+  macos:
+    needs: [version, tests]
+    if: needs.version.outputs.build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest       # Apple Silicon (arm64)
+            arch: arm64
+          - runner: macos-15-intel     # Intel (x86_64)
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Build the USB helper
+        working-directory: usb-helper
+        run: cargo build --release
+      - name: Get Firefox's source
+        run: python3 scripts/build.py download
+      - name: Add Jace Browser to it
+        run: python3 scripts/build.py prepare --platform macos
+      - name: Build
+        run: python3 scripts/build.py build --platform macos
+      - name: Package (.dmg)
+        run: python3 scripts/build.py package --platform macos
+      - name: Test the Mac installer (install from a downloaded .dmg, self-test, remove)
+        env:
+          JACE_SELF_TEST_OUT: ${{ runner.temp }}/selftest.txt
+        run: |
+          set -x
+          DMG=$(ls dist/*.dmg)
+          # mark it as downloaded from the internet, like Safari does
+          xattr -w com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" "$DMG"
+          hdiutil attach -nobrowse -mountpoint /Volumes/JaceBrowser "$DMG"
+          test -L /Volumes/JaceBrowser/Applications
+          ditto "/Volumes/JaceBrowser/Jace Browser.app" "/Applications/Jace Browser.app"
+          hdiutil detach /Volumes/JaceBrowser
+          APP="/Applications/Jace Browser.app"
+          codesign --verify --deep --strict "$APP"
+          test -x "$APP/Contents/Resources/jace/bin/jace-usb-helper"
+          mkdir -p "$RUNNER_TEMP/profile"
+          timeout 300 "$APP/Contents/MacOS/jace" --headless -no-remote -profile "$RUNNER_TEMP/profile" || true
+          cat "$JACE_SELF_TEST_OUT"
+          grep -q "SELF-TEST OK" "$JACE_SELF_TEST_OUT"
+          rm -rf "$APP"
+          echo "MAC INSTALLER OK"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos-${{ matrix.arch }}
+          path: dist/*.dmg
+
+  release:
+    if: needs.version.outputs.publish == 'true'
+    needs: [version, linux, windows, windows-installer-test, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Keep only the downloads
+        run: rm -f artifacts/jace-usb-helper.exe && ls -la artifacts
+      - uses: actions/checkout@v7
+        with:
+          path: src
+      - name: Release notes from CHANGELOG.md
+        run: |
+          V="${{ needs.version.outputs.tag }}"; V="${V#v}"
+          awk -v v="$V" '$0 == "## "v {f=1; next} /^## / {f=0} f' src/CHANGELOG.md > notes.md
+          cat notes.md
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Jace Browser ${{ needs.version.outputs.tag }}
+          body_path: notes.md
+          files: artifacts/*
+
+  store:
+    # Publish the new release to Jace Store as links to the GitHub downloads.
+    # Needs the JACE_STORE_TOKEN repository secret; skipped if it isn't set.
+    if: needs.version.outputs.publish == 'true'
+    needs: [version, release]
+    runs-on: ubuntu-latest
+    env:
+      JACE_STORE_TOKEN: ${{ secrets.JACE_STORE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Publish to Jace Store
+        run: |
+          if [ -z "$JACE_STORE_TOKEN" ]; then
+            echo "::warning::JACE_STORE_TOKEN secret not set - skipping Jace Store"
+            exit 0
+          fi
+          python3 packaging/publish_store.py "${{ needs.version.outputs.tag }}"
