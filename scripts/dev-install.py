@@ -52,8 +52,10 @@ def main():
     shutil.copy(SRC / "policies" / "policies.json", gre / "distribution" / "policies.json")
     exe = "jace-usb-helper.exe" if sys.platform == "win32" else "jace-usb-helper"
     helper = ROOT / "usb-helper" / "target" / "release" / exe
-    if not helper.exists():
+    if not helper.exists() and shutil.which("cargo"):
         subprocess.run(["cargo", "build", "--release"], cwd=ROOT / "usb-helper", check=False)
+    if not helper.exists():
+        print("note: Rust (cargo) isn't installed, so WebUSB can't reach devices in this copy. Everything else works.")
     if helper.exists():
         (gre / "jace" / "bin").mkdir(exist_ok=True)
         shutil.copy(helper, gre / "jace" / "bin" / exe)
