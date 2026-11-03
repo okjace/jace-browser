@@ -1,7 +1,8 @@
-# Builds Jace Browser for Windows, macOS and Linux on GitHub's runners, the
-# same way Jace Launcher does:
-# - every push / PR runs the tests; pushes to main (and manual runs) also build
-#   every platform, test the installers, and upload them as workflow artifacts
+# Builds Jace Browser for Windows, macOS and Linux, the same way Jace Launcher
+# does (Linux and Windows on Ubicloud runners, macOS on GitHub's):
+# - every push / PR runs the tests; manual runs, v* tags and pushes that raise
+#   the version also build every platform, test the installers, and upload
+#   them as workflow artifacts
 # - raising "version" in jace.json releases it automatically once every build
 #   and installer test passes (no tag needed); pushing a v* tag also works
 # - the release is then listed on Jace Store (needs the JACE_STORE_TOKEN secret)
@@ -29,6 +30,11 @@ on:
 permissions:
   contents: read
 
+# A newer push replaces a build still waiting or running (no paying twice).
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   version:
     # Is this push a new version? (version in jace.json with no release yet)
@@ -40,6 +46,8 @@ jobs:
       build: ${{ steps.v.outputs.build }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - id: v
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,8 +62,18 @@ jobs:
             echo "v$V is already released (or this isn't a push to main): build and test only"
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
-          # Pull requests only run the quick tests; Firefox builds are for main, tags and manual runs.
-          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then echo "build=false" >> "$GITHUB_OUTPUT"; else echo "build=true" >> "$GITHUB_OUTPUT"; fi
+          # The Firefox builds cost money (Ubicloud runners), so they only run for:
+          # a manual run (Actions -> Build -> Run workflow), a v* tag, or a push
+          # that raises the version in jace.json. Other pushes run the quick tests.
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch || "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]] && [[ "$(git show "${{ github.event.before }}:jace.json" 2>/dev/null | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])' 2>/dev/null)" != "$V" ]]; then
+            echo "The version changed to $V in this push: building"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not a new version: tests only (start a build from Actions -> Build -> Run workflow)"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
 
   tests:
     runs-on: ubuntu-latest
