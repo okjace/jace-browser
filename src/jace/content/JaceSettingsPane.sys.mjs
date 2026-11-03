@@ -68,6 +68,103 @@ function fitFrame(frame) {
 }
 
 /** Firefox's settings page as this file knows it: a "Jace" entry in its sidebar. */
+const HTML = "http://www.w3.org/1999/xhtml";
+
+/**
+ * Firefox's own "Account" box (Mozilla accounts, which Jace Browser doesn't
+ * use: "Account settings are unavailable") becomes a Jace account box.
+ * Firefox draws its settings in stages, so keep looking for a few seconds.
+ */
+function replaceFirefoxAccountBox(win) {
+  const doc = win.document;
+  const tryReplace = () => {
+    if (doc.getElementById("jace-account-box")) return true;
+    const walker = doc.createTreeWalker(doc.body ?? doc.documentElement, 4 /* text */);
+    let firefoxBox = null;
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (/settings are unavailable|Mozilla account|Firefox account/i.test(node.nodeValue)) {
+        firefoxBox = node.parentElement?.closest("setting-group, moz-fieldset, groupbox, section, .setting-group, vbox") ?? node.parentElement;
+        break;
+      }
+    }
+    if (!firefoxBox) return false;
+    const box = jaceAccountBox(win);
+    firefoxBox.before(box);
+    firefoxBox.hidden = true;
+    firefoxBox.style.display = "none";
+    return true;
+  };
+  if (tryReplace()) return;
+  const observer = new win.MutationObserver(() => {
+    if (tryReplace()) observer.disconnect();
+  });
+  observer.observe(doc.documentElement, { childList: true, subtree: true });
+  win.setTimeout(() => observer.disconnect(), 10000);
+}
+
+function jaceAccountBox(win) {
+  const doc = win.document;
+  const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAccount.sys.mjs");
+  const el = (tag, attrs = {}, text = null) => {
+    const n = doc.createElementNS(HTML, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    if (text !== null) n.textContent = text;
+    return n;
+  };
+  const box = el("section", { id: "jace-account-box" });
+  const render = () => {
+    const profile = JaceAccount.profile;
+    box.replaceChildren();
+    const pic = el("img", { class: "jace-account-pic", alt: "" });
+    pic.src = profile?.picture && /^https:/.test(profile.picture) ? profile.picture : "chrome://branding/content/icon64.png";
+    const text = el("div", { class: "jace-account-text" });
+    text.append(
+      el("div", { class: "jace-account-title" }, profile ? profile.name : "Jace account"),
+      el(
+        "div",
+        { class: "jace-account-sub" },
+        profile ? `Signed in as @${profile.username}. Sync, profiles and more are in Jace below.` : "Sign in to sync your stuff and stay signed in to Jace sites.",
+      ),
+    );
+    const actions = el("div", { class: "jace-account-actions" });
+    const button = (label, primary, onclick) => {
+      const b = el("button", { class: primary ? "primary" : "" }, label);
+      b.addEventListener("click", onclick);
+      actions.append(b);
+    };
+    if (profile) {
+      button("Jace settings", true, () => (win.location.href = "about:preferences#jace"));
+      button("Sign out", false, () => JaceAccount.signOut());
+    } else {
+      button("Sign in with Jace", true, () =>
+        JaceAccount.signIn(win.browsingContext.topChromeWindow).catch((e) => {
+          if (e?.code !== "cancelled") Services.prompt.alert(win, "Sign in with Jace", e.message);
+        }),
+      );
+      button("Jace settings", false, () => (win.location.href = "about:preferences#jace"));
+    }
+    box.append(pic, text, actions);
+  };
+  render();
+  const observer = { observe: render };
+  Services.obs.addObserver(observer, "jace-account-changed");
+  win.addEventListener("unload", () => Services.obs.removeObserver(observer, "jace-account-changed"));
+  return box;
+}
+
+/** Jace's settings also at the top of the first settings page (General). */
+function addToGeneral(win, mainPane) {
+  const doc = win.document;
+  if (doc.getElementById("jace-settings-general")) return;
+  const frame = doc.createElementNS(HTML, "iframe");
+  frame.id = "jace-settings-general";
+  frame.className = "jace-settings-frame";
+  frame.setAttribute("data-category", "paneGeneral");
+  frame.setAttribute("src", `${SETTINGS_PAGE}?embedded=1`);
+  mainPane.prepend(frame);
+  fitFrame(frame);
+}
+
 /** The sidebar entry: a moz-page-nav button (Firefox 13x+) or an older richlistitem. */
 function makeNavEntry(doc, categories) {
   if (categories.localName === "moz-page-nav") {
@@ -116,6 +213,7 @@ function inject(win, wantJace) {
   mainPane.prepend(frame);
   win.register_module("paneJace", { init() {} });
   fitFrame(frame);
+  addToGeneral(win, mainPane);
 
   try {
     const entry = makeNavEntry(doc, categories);
@@ -154,6 +252,11 @@ function onSettingsDocument(doc) {
       }
     }
     Services.prefs.setBoolPref(WORKS_PREF, ok);
+    try {
+      replaceFirefoxAccountBox(win);
+    } catch (e) {
+      console.error("Jace: couldn't replace the account box", e);
+    }
     if (!ok && wantJace) {
       // Couldn't add Jace to this page at all: show Jace's own page.
       win.location.replace(`${SETTINGS_PAGE}?standalone=1`);

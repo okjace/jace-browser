@@ -50,6 +50,24 @@ function browserApi() {
         shell = getShellService();
       }
       await shell.setDefaultBrowser(false);
+      // The Linux test copy (scripts/try.sh) has its own app entry: point the
+      // system's default browser at it, not at Firefox's (fox icon).
+      if (Services.appinfo.OS === "Linux") {
+        try {
+          const entry = Services.dirsvc.get("Home", Ci.nsIFile);
+          for (const part of [".local", "share", "applications", "jace-browser-test.desktop"]) entry.append(part);
+          const tool = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+          tool.initWithPath("/usr/bin/xdg-settings");
+          if (entry.exists() && tool.exists()) {
+            const proc = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
+            proc.init(tool);
+            proc.runw(true, ["set", "default-web-browser", "jace-browser-test.desktop"]);
+            return true;
+          }
+        } catch (e) {
+          console.warn("Jace: couldn't set the test copy as default", e);
+        }
+      }
       return shell.isDefaultBrowser(false, false);
     },
     finish() {

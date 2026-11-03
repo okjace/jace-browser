@@ -165,14 +165,20 @@ function renderShortcuts() {
     box.append(a);
   });
   if (list.length < 16) {
-    const add = document.createElement("button");
+    // Same element and layout as the other tiles, so they all line up.
+    const add = document.createElement("a");
     add.className = "tile add";
-    add.style.border = "0";
-    add.style.background = "none";
-    add.style.font = "inherit";
-    add.style.color = "inherit";
-    add.innerHTML = '<div class="icon">+</div><span class="name">Add</span>';
-    add.addEventListener("click", () => {
+    add.href = "#";
+    add.setAttribute("role", "button");
+    const addIcon = document.createElement("div");
+    addIcon.className = "icon";
+    addIcon.textContent = "+";
+    const addName = document.createElement("span");
+    addName.className = "name";
+    addName.textContent = "Add";
+    add.append(addIcon, addName);
+    add.addEventListener("click", (e) => {
+      e.preventDefault();
       $("add-form").hidden = false;
       $("add-url").focus();
     });

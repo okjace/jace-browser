@@ -129,6 +129,32 @@ function css(accent) {
     height: 28px;
     background: url("chrome://branding/content/icon64.png") center / contain no-repeat;
   }
+  #jace-account-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    margin: 0 0 16px;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    background: var(--background-color-box);
+  }
+  #jace-account-box .jace-account-pic { width: 44px; height: 44px; border-radius: 50%; }
+  #jace-account-box .jace-account-text { flex: 1; min-width: 0; }
+  #jace-account-box .jace-account-title { font-weight: 600; font-size: 1.1em; }
+  #jace-account-box .jace-account-sub { opacity: 0.75; }
+  #jace-account-box .jace-account-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  #jace-account-box button {
+    padding: 7px 14px;
+    border-radius: 9px;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  #jace-account-box button.primary { background: var(--jace-accent); color: #0c1410; border-color: transparent; font-weight: 600; }
+  .jace-settings-frame,
   #jace-settings-frame {
     display: block;
     width: 100%;

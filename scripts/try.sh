@@ -31,7 +31,9 @@ python3 jace-browser/scripts/dev-install.py "$DIR/firefox" >/dev/null
 
 # Its own taskbar entry and icon: the window announces itself as
 # "jace-browser-test" (not "firefox"), and this app entry gives that name the
-# Jace icon. (The real build is named "jace" and ships its own entry.)
+# Jace icon. The entry opens the test copy (and links, if you make it your
+# default browser) with your current test data; run this script again to
+# update and start fresh. (The real build is named "jace" and ships its own entry.)
 APPS="$HOME/.local/share/applications"
 mkdir -p "$APPS"
 cat > "$APPS/jace-browser-test.desktop" <<DESKTOP
@@ -39,10 +41,11 @@ cat > "$APPS/jace-browser-test.desktop" <<DESKTOP
 Type=Application
 Name=Jace Browser (test)
 Comment=The latest Jace Browser code, with fresh data each launch
-Exec=bash $DIR/jace-browser/scripts/try.sh
+Exec=$DIR/firefox/firefox --name jace-browser-test --class jace-browser-test --profile $DIR/profile %u
 Icon=$DIR/jace-browser/branding/png/logo-256.png
 Terminal=false
 Categories=Network;WebBrowser;
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
 StartupWMClass=jace-browser-test
 DESKTOP
 command -v update-desktop-database >/dev/null && update-desktop-database "$APPS" >/dev/null 2>&1 || true
