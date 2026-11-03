@@ -17,6 +17,7 @@ import { getCustomizableUI, jacePageURL } from "chrome://jace/content/JaceCompat
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  JaceAddonOffer: "chrome://jace/content/sync/JaceAddonOffer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   JaceDownloadsButton: "chrome://jace/content/JaceDownloadsButton.sys.mjs",
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
@@ -288,6 +289,8 @@ function onBrowserWindow(win) {
     lazy.JaceAccount.startWebsiteSignIn().catch((e) => console.warn("Jace: website sign-in", e));
     // Give startup a moment before the first sync.
     lazy.JaceSync.start({ firstSyncDelayMs: 15_000 });
+    // Ask to install add-ons your other devices have.
+    lazy.JaceAddonOffer.start();
   }
 }
 

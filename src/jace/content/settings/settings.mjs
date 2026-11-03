@@ -12,6 +12,7 @@ const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceP
 const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
 const { JaceThemes, THEMES, customTheme } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
 const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
+const { JaceAddonOffer } = ChromeUtils.importESModule("chrome://jace/content/sync/JaceAddonOffer.sys.mjs");
 
 const $ = (id) => document.getElementById(id);
 
@@ -183,13 +184,29 @@ async function renderSync() {
     addonsBox.append(head);
     for (const a of missing) {
       addonsBox.append(
-        item(a.name, a.id, "Get it", () =>
-          browserWindow().openTrustedLinkIn(`https://addons.mozilla.org/firefox/addon/${encodeURIComponent(a.id)}/`, "tab"),
-        ),
+        item(a.name, a.id, "Install", async (e) => {
+          const button = e.target;
+          button.disabled = true;
+          button.textContent = "Installing…";
+          try {
+            await JaceAddonOffer.installFromAMO(a);
+            button.textContent = "Installed";
+          } catch (err) {
+            // Not on addons.mozilla.org (or offline): show its page instead.
+            button.textContent = "Install";
+            button.disabled = false;
+            notice(`Couldn't install ${a.name}: ${err.message}`, true);
+            browserWindow().openTrustedLinkIn(`https://addons.mozilla.org/firefox/addon/${encodeURIComponent(a.id)}/`, "tab");
+          }
+        }),
       );
     }
   }
-  if (!addonsBox.children.length) addonsBox.innerHTML = '<p class="muted">You have them all.</p>';
+  if (!addonsBox.children.length) {
+    addonsBox.innerHTML = remote.length
+      ? '<p class="muted">You have them all.</p>'
+      : '<p class="muted">No other device has shared its add-ons yet. Turn on "Add-on list" and press Sync now on that device.</p>';
+  }
 }
 
 $("passphrase-form").addEventListener("submit", async (e) => {
