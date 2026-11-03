@@ -31,6 +31,7 @@ const PREF = "jace.tabs.downloadsButton";
 const ID = "jace-tabs-downloads";
 const PANEL_ID = "jace-downloads-panel";
 const BACKUP_ID = "jace-tabs-downloads-backup";
+const ICON = "chrome://jace/skin/icons/downloads.svg";
 const HTML = "http://www.w3.org/1999/xhtml";
 const SHOWN = 8;
 
@@ -338,6 +339,8 @@ export const JaceDownloadsButton = {
   /** For the toolbar widget (JaceLoader createWidgets). */
   widgetCreated(node) {
     node.classList.add("jace-tabs-downloads");
+    // The picture itself (the stylesheet alone left the icon at 0 px here).
+    node.setAttribute("image", ICON);
     const bar = node.ownerDocument.createElementNS(HTML, "span");
     bar.className = "jace-downloads-progress";
     node.append(bar);
@@ -402,7 +405,7 @@ export const JaceDownloadsButton = {
       win.setTimeout(() => {
         if (Services.prefs.getBoolPref("sidebar.verticalTabs", false)) return;
         const real = doc.getElementById(ID);
-        const shown = real?.closest("#TabsToolbar") && real.getBoundingClientRect().width > 0;
+        const shown = real?.closest("#TabsToolbar") && real.getBoundingClientRect().width >= 16;
         let backup = doc.getElementById(BACKUP_ID);
         if (shown) {
           backup?.remove();
@@ -414,6 +417,7 @@ export const JaceDownloadsButton = {
           backup.id = BACKUP_ID;
           backup.className = "jace-tabs-downloads";
           backup.setAttribute("label", "Downloads");
+          backup.setAttribute("image", ICON);
           backup.setAttribute("horizontal", "true");
           const bar = doc.createElementNS(HTML, "span");
           bar.className = "jace-downloads-progress";

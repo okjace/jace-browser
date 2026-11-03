@@ -1385,8 +1385,15 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   align-self: center;
 }
 :is(#jace-tabs-downloads, #jace-tabs-downloads-backup) > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
-  width: 16px;
-  height: 16px;
+  display: flex !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  list-style-image: url("chrome://jace/skin/icons/downloads.svg") !important;
+  -moz-context-properties: fill, fill-opacity, stroke, stroke-opacity;
+  fill: currentColor;
+  stroke: currentColor;
   padding: 0 !important;
   margin: 0 !important;
   background: transparent !important;
