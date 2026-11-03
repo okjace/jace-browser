@@ -23,7 +23,7 @@ export const JaceSelfTest = {
     const check = async (name, fn) => {
       try {
         const result = await fn();
-        lines.push(`${result ? "ok  " : "FAIL"} ${name}`);
+        lines.push(`${result ? "ok  " : "FAIL"} ${name}${typeof result === "string" ? ` (${result})` : ""}`);
         ok &&= !!result;
       } catch (e) {
         lines.push(`FAIL ${name}: ${e}`);
@@ -214,7 +214,8 @@ export const JaceSelfTest = {
       }
       await new Promise((r) => win.setTimeout(r, 800));
       const d = browser.contentDocument;
-      const found = !!d?.getElementById("category-jace") || !!d?.getElementById("jace-settings-section");
+      const frames = d ? [...d.querySelectorAll(".jace-settings-frame")] : [];
+      const found = frames.length > 0 || !!d?.getElementById("jace-settings-section");
       const probe = d
         ? [
             `uri=${d.documentURI}`,
@@ -222,12 +223,13 @@ export const JaceSelfTest = {
             `mainPrefPane=${!!d.getElementById("mainPrefPane")}`,
             `register_module=${typeof d.defaultView?.register_module}`,
             `nav=${[...d.querySelectorAll("moz-page-nav, nav, [role=navigation], richlistbox")].map((e) => e.localName + (e.id ? "#" + e.id : "")).join(",") || "none"}`,
-            `jace=${d.getElementById("category-jace") ? "sidebar" : d.getElementById("jace-settings-section") ? "top" : "missing"}`,
+            `panes=${[...(d.getElementById("categories")?.querySelectorAll("[view], richlistitem[value]") ?? [])].map((n) => n.getAttribute("view") ?? n.getAttribute("value")).join(",")}`,
+            `jace=${frames.length ? frames.map((f) => f.dataset.category + ":" + new URL(f.src).searchParams.get("only")).join(" ") : d.getElementById("jace-settings-section") ? "top" : "missing"}`,
           ].join("; ")
         : "no document";
       win.gBrowser.removeTab(tab);
       if (!found) throw new Error(probe);
-      return true;
+      return probe;
     });
     await check("the account panel's Sign in with Jace button opens Jace's sign-in page", async () => {
       const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAccount.sys.mjs");

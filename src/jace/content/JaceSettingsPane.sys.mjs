@@ -3,13 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * One settings page: adds a "Jace" section at the top of the browser's own
- * settings (about:preferences) showing Jace Browser's settings
- * (settings/settings.html, embedded). Every "Jace settings" link opens
- * about:preferences#jace, and about:jace forwards there too.
+ * One settings page: Jace Browser's settings (settings/settings.html,
+ * embedded) are shown inside the browser's own settings categories:
+ * account and sync in Sync, look/profiles/DRM in General, privacy and
+ * WebUSB in Privacy, version and updates in About. Every "Jace settings"
+ * link opens about:preferences#jace (?jace=<section> picks the category),
+ * and about:jace forwards there too.
  *
- * If a Firefox version changes its settings page so the section can't be
- * added, that page forwards to the stand-alone Jace settings instead.
+ * If a Firefox version changes its settings page so this can't be done,
+ * the settings go at the top of the page, or the stand-alone page opens.
  */
 
 const SETTINGS_PAGE = "chrome://jace/content/settings/settings.html";
@@ -67,7 +69,6 @@ function fitFrame(frame) {
   });
 }
 
-/** Firefox's settings page as this file knows it: a "Jace" entry in its sidebar. */
 const HTML = "http://www.w3.org/1999/xhtml";
 
 /**
@@ -123,7 +124,7 @@ function jaceAccountBox(win) {
       el(
         "div",
         { class: "jace-account-sub" },
-        profile ? `Signed in as @${profile.username}. Sync, profiles and more are in Jace below.` : "Sign in to sync your stuff and stay signed in to Jace sites.",
+        profile ? `Signed in as @${profile.username}.` : "Sign in to sync your stuff and stay signed in to Jace sites.",
       ),
     );
     const actions = el("div", { class: "jace-account-actions" });
@@ -133,7 +134,7 @@ function jaceAccountBox(win) {
       actions.append(b);
     };
     if (profile) {
-      button("Jace settings", true, () => (win.location.href = "about:preferences#jace"));
+      button("Sync settings", true, () => (win.location.href = JaceSettingsPane.url("sync")));
       button("Sign out", false, () => JaceAccount.signOut());
     } else {
       button("Sign in with Jace", true, () =>
@@ -141,7 +142,7 @@ function jaceAccountBox(win) {
           if (e?.code !== "cancelled") Services.prompt.alert(win, "Sign in with Jace", e.message);
         }),
       );
-      button("Jace settings", false, () => (win.location.href = "about:preferences#jace"));
+      button("Sync settings", false, () => (win.location.href = JaceSettingsPane.url("sync")));
     }
     box.append(pic, text, actions);
   };
@@ -152,85 +153,121 @@ function jaceAccountBox(win) {
   return box;
 }
 
-/** Jace's settings also at the top of the first settings page (General). */
-function addToGeneral(win, mainPane) {
-  const doc = win.document;
-  if (doc.getElementById("jace-settings-general")) return;
-  const frame = doc.createElementNS(HTML, "iframe");
-  frame.id = "jace-settings-general";
-  frame.className = "jace-settings-frame";
-  frame.setAttribute("data-category", "paneGeneral");
-  frame.setAttribute("src", `${SETTINGS_PAGE}?embedded=1`);
-  mainPane.prepend(frame);
-  fitFrame(frame);
+/**
+ * Where each part of Jace's settings goes in the browser's own categories.
+ * Each entry: Jace sections, the Firefox panes to try (first that exists wins),
+ * an optional label match for panes whose name isn't known, and whether
+ * Jace replaces Firefox's own content there (Mozilla accounts sync, Firefox's
+ * own About/version box), so nothing shows twice.
+ */
+const PLACEMENT = [
+  { sections: ["account", "sync"], panes: ["paneSync"], label: /sync|account/i, replace: true },
+  { sections: ["about"], panes: ["paneAbout"], label: /^\s*about/i, replace: true },
+  { sections: ["look", "profiles", "drm"], panes: ["paneGeneral"], label: /general/i },
+  { sections: ["privacy", "usb"], panes: ["panePrivacy"], label: /privacy|security/i },
+];
+const ALL_SECTIONS = PLACEMENT.flatMap((p) => p.sections);
+
+/** The panes in the settings sidebar: [{ pane, label }]. */
+function sidebarPanes(categories) {
+  return [...categories.querySelectorAll("[view], richlistitem[value]")]
+    .map((n) => ({ pane: n.getAttribute("view") ?? n.getAttribute("value"), label: n.textContent || n.getAttribute("label") || "" }))
+    .filter((p) => p.pane);
 }
 
-/** The sidebar entry: a moz-page-nav button (Firefox 13x+) or an older richlistitem. */
-function makeNavEntry(doc, categories) {
-  if (categories.localName === "moz-page-nav") {
-    const button = doc.createElement("moz-page-nav-button");
-    button.id = "category-jace";
-    button.setAttribute("view", "paneJace");
-    button.setAttribute("iconsrc", "chrome://branding/content/icon32.png");
-    button.setAttribute("title", "Jace account, sync, look, profiles, WebUSB, DRM, privacy");
-    button.textContent = "Jace";
-    return button;
+/** Which pane each Jace section lands in; sections with no matching pane go to General. */
+function planPlacement(categories) {
+  const panes = sidebarPanes(categories);
+  const has = (name) => panes.some((p) => p.pane === name);
+  const general = has("paneGeneral") ? "paneGeneral" : panes[0]?.pane;
+  const plan = new Map(); // pane -> { sections, replace }
+  for (const place of PLACEMENT) {
+    let pane = place.panes.find(has) ?? panes.find((p) => place.label.test(p.label))?.pane;
+    let replace = place.replace && !!pane;
+    if (!pane) {
+      pane = general;
+      replace = false;
+    }
+    if (!pane) continue;
+    const entry = plan.get(pane) ?? { sections: [], replace: false };
+    entry.sections.push(...place.sections);
+    entry.replace ||= replace;
+    plan.set(pane, entry);
   }
-  const item = doc.createXULElement("richlistitem");
-  item.id = "category-jace";
-  item.className = "category";
-  item.setAttribute("value", "paneJace");
-  item.setAttribute("align", "center");
-  item.setAttribute("tooltiptext", "Jace account, sync, look, profiles, WebUSB, DRM, privacy");
-  const icon = doc.createXULElement("image");
-  icon.className = "category-icon";
-  const label = doc.createXULElement("label");
-  label.className = "category-name";
-  label.setAttribute("flex", "1");
-  label.textContent = "Jace";
-  item.append(icon, label);
-  return item;
+  return plan;
 }
 
-/** Firefox's settings page: a "Jace" entry at the top of its sidebar, with Jace's settings as its page. */
+function hideFirefoxContent(doc, pane) {
+  const style = doc.createElementNS(HTML, "style");
+  style.textContent = `#mainPrefPane > [data-category="${pane}"]:not(.jace-settings-frame) { display: none !important; }`;
+  (doc.head ?? doc.documentElement).append(style);
+}
+
+/** Firefox's settings page: Jace's settings inside its own categories (Sync, General, Privacy, About). */
 function inject(win, wantJace) {
   const doc = win.document;
-  if (doc.getElementById("category-jace") || doc.getElementById("jace-settings-section")) return true;
+  if (doc.querySelector(".jace-settings-frame") || doc.getElementById("jace-settings-section")) return true;
   const categories = doc.getElementById("categories");
   const mainPane = doc.getElementById("mainPrefPane");
-  if (!categories || !mainPane || typeof win.register_module !== "function" || typeof win.gotoPref !== "function") {
+  if (!categories || !mainPane || typeof win.gotoPref !== "function") {
     return injectAtTop(win);
   }
+  const plan = planPlacement(categories);
+  if (!plan.size) return injectAtTop(win);
 
-  // The pane: Jace's settings page, embedded.
-  const params = new URLSearchParams(win.location.search);
-  const hash = params.get("jace") ? `#${params.get("jace")}` : "";
-  const frame = doc.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
-  frame.id = "jace-settings-frame";
-  frame.setAttribute("data-category", "paneJace");
-  frame.setAttribute("hidden", "true");
-  frame.setAttribute("src", `${SETTINGS_PAGE}?embedded=1${hash}`);
-  mainPane.prepend(frame);
-  win.register_module("paneJace", { init() {} });
-  fitFrame(frame);
-  addToGeneral(win, mainPane);
+  // ?jace=<section> picks where to open; anything else (a notice such as
+  // "signed-in") is shown with the account.
+  const asked = new URLSearchParams(win.location.search).get("jace") ?? "";
+  const target = ALL_SECTIONS.includes(asked) ? asked : asked ? "account" : "";
 
-  try {
-    const entry = makeNavEntry(doc, categories);
-    categories.prepend(entry);
-    if (categories.localName === "moz-page-nav") {
-      // moz-page-nav reports clicks as "change-view"; Firefox only knows its own views.
-      entry.addEventListener("click", () => win.gotoPref("paneJace"));
+  let targetFrame = null;
+  let targetPane = null;
+  for (const [pane, { sections, replace }] of plan) {
+    const frame = doc.createElementNS(HTML, "iframe");
+    frame.id = `jace-settings-${pane}`;
+    frame.className = "jace-settings-frame";
+    frame.setAttribute("data-category", pane);
+    frame.setAttribute("hidden", "true");
+    const notice = sections.includes("account") && asked && !ALL_SECTIONS.includes(asked) ? `#${asked}` : "";
+    frame.setAttribute("src", `${SETTINGS_PAGE}?embedded=1&only=${sections.join(",")}${notice}`);
+    if (replace) {
+      // Firefox's own content for this category is Mozilla's (accounts, version): Jace's replaces it.
+      hideFirefoxContent(doc, pane);
+      mainPane.append(frame);
+    } else {
+      // Jace's parts come first in the category, then Firefox's own settings.
+      const firstOfPane = mainPane.querySelector(`[data-category="${pane}"]`);
+      if (firstOfPane) firstOfPane.before(frame);
+      else mainPane.prepend(frame);
     }
-  } catch (e) {
-    console.error("Jace: couldn't add the sidebar entry; using the top of the page", e);
-    frame.remove();
-    return injectAtTop(win);
+    fitFrame(frame);
+    if (target && sections.includes(target)) {
+      targetFrame = frame;
+      targetPane = pane;
+    }
+  }
+
+  // The category already on screen: show Jace's part of it now.
+  const shown = [...mainPane.children].find((n) => n.dataset?.category && !n.hidden && !n.classList.contains("jace-settings-frame"));
+  const shownPane = shown?.dataset.category;
+  for (const frame of mainPane.querySelectorAll(".jace-settings-frame")) {
+    if (frame.dataset.category === shownPane) frame.removeAttribute("hidden");
   }
 
   if (wantJace) {
-    win.gotoPref("paneJace");
-    win.history.replaceState(null, "", win.location.pathname + win.location.search + "#jace");
+    const pane = targetPane ?? (plan.has("paneGeneral") ? "paneGeneral" : plan.keys().next().value);
+    win.gotoPref(pane);
+    if (targetFrame && target) {
+      targetFrame.addEventListener(
+        "load",
+        () =>
+          win.setTimeout(() => {
+            const el = targetFrame.contentDocument?.getElementById(target);
+            if (el) win.scrollTo({ top: targetFrame.getBoundingClientRect().top + win.scrollY + el.offsetTop - 16 });
+          }, 50),
+        { once: true },
+      );
+    }
   }
   return true;
 }

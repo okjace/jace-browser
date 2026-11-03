@@ -18,6 +18,12 @@ const $ = (id) => document.getElementById(id);
 const embedded = new URLSearchParams(location.search).has("embedded");
 if (embedded) {
   document.documentElement.classList.add("embedded");
+  // Inside a settings category: only the sections that belong there.
+  const only = new URLSearchParams(location.search).get("only");
+  if (only) {
+    const keep = new Set(only.split(","));
+    for (const section of document.querySelectorAll("main > section")) section.hidden = !keep.has(section.id);
+  }
 } else if (!new URLSearchParams(location.search).has("standalone")) {
   const section = location.hash.slice(1);
   location.replace(section ? `about:preferences?jace=${encodeURIComponent(section)}#jace` : "about:preferences#jace");

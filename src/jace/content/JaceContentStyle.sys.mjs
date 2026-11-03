@@ -108,9 +108,6 @@ function css(accent) {
   }
 
   /* The Jace section added by JaceSettingsPane */
-  #category-jace .category-icon {
-    list-style-image: url("chrome://branding/content/icon32.png");
-  }
   #jace-settings-section {
     margin-bottom: 32px;
     padding-bottom: 16px;
@@ -154,11 +151,15 @@ function css(accent) {
     cursor: pointer;
   }
   #jace-account-box button.primary { background: var(--jace-accent); color: #0c1410; border-color: transparent; font-weight: 600; }
+  #jace-settings-frame {
+    min-height: calc(100vh - 120px);
+  }
+  .jace-settings-frame[hidden] { display: none; }
   .jace-settings-frame,
   #jace-settings-frame {
     display: block;
     width: 100%;
-    min-height: calc(100vh - 120px);
+    margin-bottom: 16px;
     border: 0;
     background: transparent;
   }

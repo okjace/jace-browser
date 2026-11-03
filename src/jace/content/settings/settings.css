@@ -178,3 +178,4 @@ a { color: var(--accent); }
 .embedded .side { display: none; }
 .embedded main { max-width: 760px; padding: 0 0 24px; }
 .embedded section { box-shadow: none; }
+.embedded main > section[hidden] { display: none !important; }
