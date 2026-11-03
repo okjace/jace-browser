@@ -524,7 +524,7 @@
   z-index: 10;
   overflow: hidden !important;
   background: var(--jace-surface) !important;
-  clip-path: inset(0 204px 0 0 round 0);
+  clip-path: inset(0 calc(100% - 56px) 0 0 round 0);
   box-shadow: 8px 0 32px rgb(0 0 0 / 0) !important;
   /* closing: a short pause, then a long soft glide */
   transition:
@@ -594,6 +594,17 @@
   }
   & .tabbrowser-tab :is(.tab-icon-stack, .tab-icon-image) {
     animation: jace-icon-bounce 360ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both;
+  }
+}
+
+/* Icon styles: JaceWindow measures the icons and nudges them to the
+   middle of the icon column (see alignIcons). */
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) :is(#sidebar-main, #sidebar-container) {
+  & .tabbrowser-tab :is(.tab-icon-stack, .tab-throbber, .tab-sharing-icon-overlay) {
+    translate: var(--jace-tab-nudge, 0px) 0;
+  }
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
+    translate: var(--jace-newtab-nudge, 0px) 0;
   }
 }
 

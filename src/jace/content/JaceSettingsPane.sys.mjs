@@ -162,9 +162,9 @@ function jaceAccountBox(win) {
  * own About/version box), so nothing shows twice.
  */
 const PLACEMENT = [
-  // Jace's own category, at the top of the sidebar.
-  { sections: ["account"], panes: [ACCOUNT_PANE], label: /^$/ },
-  { sections: ["sync"], panes: ["paneSync"], label: /sync/i, replace: true },
+  // Jace's own category, at the top of the sidebar: account and sync.
+  // (Firefox's own Sync category is for Mozilla accounts: it's hidden.)
+  { sections: ["account", "sync"], panes: [ACCOUNT_PANE], label: /^$/ },
   { sections: ["about"], panes: ["paneAbout"], label: /^\s*about/i, replace: true },
   { sections: ["look", "profiles", "drm"], panes: ["paneGeneral"], label: /general/i },
   { sections: ["privacy", "usb"], panes: ["panePrivacy"], label: /privacy|security/i },
@@ -199,6 +199,14 @@ function addAccountCategory(win, categories) {
   entry.setAttribute("title", "Your Jace account");
   win.register_module(ACCOUNT_PANE, { init() {} });
   categories.prepend(entry);
+  // Firefox's Sync category (Mozilla accounts) is replaced by this one.
+  const style = doc.createElementNS(HTML, "style");
+  style.textContent = `#category-sync, [view="paneSync"], richlistitem[value="paneSync"] { display: none !important; }`;
+  (doc.head ?? doc.documentElement).append(style);
+  const gotoPref = win.gotoPref;
+  win.gotoPref = function (category, ...rest) {
+    return gotoPref.call(this, category === "paneSync" ? ACCOUNT_PANE : category, ...rest);
+  };
   return true;
 }
 
@@ -291,6 +299,10 @@ function inject(win, wantJace) {
   const shownPane = shown?.dataset.category;
   for (const frame of mainPane.querySelectorAll(".jace-settings-frame")) {
     if (frame.dataset.category === shownPane) frame.removeAttribute("hidden");
+  }
+
+  if (!wantJace && /^#sync/.test(win.location.hash) && doc.getElementById("category-jace-account")) {
+    win.gotoPref(ACCOUNT_PANE);
   }
 
   if (wantJace) {

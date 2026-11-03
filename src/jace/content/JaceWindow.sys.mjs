@@ -84,6 +84,58 @@ function applyTabStyle(win) {
   expand();
   // Firefox restores its own sidebar state a moment after the window opens.
   win.setTimeout(expand, 1500);
+  alignIconsSoon(win);
+}
+
+const ICON_COLUMN = 56; // px: the icon column in the "icons" and "hover" styles
+
+/**
+ * In the icon styles, centers the tab icons and the + New Tab icon in the
+ * icon column by measuring where they really are (Firefox's own spacing
+ * changes between versions) and nudging them with the `translate` property.
+ */
+function alignIcons(win) {
+  const doc = win.document;
+  const root = doc.documentElement;
+  const style = root.getAttribute("jace-tabs-style");
+  if (!root.hasAttribute("jace-vertical-tabs") || (style !== "icons" && style !== "hover")) {
+    root.style.removeProperty("--jace-tab-nudge");
+    root.style.removeProperty("--jace-newtab-nudge");
+    return;
+  }
+  const container = doc.getElementById("sidebar-container") ?? doc.getElementById("sidebar-main");
+  if (!container) return;
+  const left = container.getBoundingClientRect().left;
+  const nudge = (el, prop) => {
+    const r = el?.getBoundingClientRect();
+    if (!r?.width) return;
+    const current = parseFloat(root.style.getPropertyValue(prop)) || 0;
+    const delta = ICON_COLUMN / 2 - (r.left + r.width / 2 - left);
+    if (Math.abs(delta) > 0.5) root.style.setProperty(prop, `${Math.round((current + delta) * 2) / 2}px`);
+  };
+  const tab = win.gBrowser?.selectedTab;
+  nudge(tab?.querySelector(".tab-icon-stack") ?? tab?.querySelector(".tab-icon-image"), "--jace-tab-nudge");
+  nudge(
+    doc.querySelector(":is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-icon"),
+    "--jace-newtab-nudge",
+  );
+}
+
+function alignIconsSoon(win) {
+  for (const ms of [0, 300, 1600, 3000]) {
+    win.setTimeout(() => {
+      try {
+        alignIcons(win);
+      } catch (e) {
+        console.warn("Jace: couldn't line up the tab icons", e);
+      }
+    }, ms);
+  }
+  if (!win.__jaceAlignHooked) {
+    win.__jaceAlignHooked = true;
+    win.addEventListener("resize", () => alignIconsSoon(win));
+    win.gBrowser?.tabContainer?.addEventListener("TabSelect", () => win.setTimeout(() => alignIcons(win), 50));
+  }
 }
 
 function applyLook(win) {
