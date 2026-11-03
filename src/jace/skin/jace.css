@@ -785,7 +785,16 @@
   transition: opacity 120ms ease, background-color 120ms ease;
 }
 
-.tabbrowser-tab:is(:hover, [selected]) .tab-close-button { opacity: 0.75; }
+/* Always there (Firefox hides it in some tab layouts and widths): faint on
+   every tab, clear on the current and hovered tab. The icon-only styles hide
+   it themselves. */
+.tabbrowser-tab:not([pinned]) .tab-close-button {
+  display: flex !important;
+  visibility: visible !important;
+  flex: none !important;
+  opacity: 0.45;
+}
+.tabbrowser-tab:not([pinned]):is(:hover, [selected], [visuallyselected]) .tab-close-button { opacity: 0.85; }
 .tab-close-button:hover {
   opacity: 1 !important;
   background-color: color-mix(in srgb, #e5484d 22%, transparent) !important;
