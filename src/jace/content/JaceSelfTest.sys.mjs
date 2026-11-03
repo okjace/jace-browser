@@ -20,16 +20,35 @@ export const JaceSelfTest = {
     const out = Services.env.get("JACE_SELF_TEST_OUT");
     const lines = [];
     let ok = true;
+    // The report so far is saved after every check, so a check that hangs
+    // still leaves a report saying where it stopped.
+    const save = (final = false) =>
+      IOUtils.writeUTF8(out, [...lines, final ? "" : "(still running…)"].join("\n") + "\n").catch(() => {});
+    const LIMIT_MS = 30000;
     const check = async (name, fn) => {
+      let timer;
       try {
-        const result = await fn();
+        const result = await Promise.race([
+          Promise.resolve().then(fn),
+          new Promise((_, no) => (timer = win.setTimeout(() => no(new Error(`timed out after ${LIMIT_MS / 1000} s`)), LIMIT_MS))),
+        ]);
         lines.push(`${result ? "ok  " : "FAIL"} ${name}${typeof result === "string" ? ` (${result})` : ""}`);
         ok &&= !!result;
       } catch (e) {
         lines.push(`FAIL ${name}: ${e}`);
         ok = false;
+      } finally {
+        win.clearTimeout(timer);
       }
+      await save();
     };
+    // Whatever happens, finish within 4 minutes (CI gives it 5).
+    win.setTimeout(async () => {
+      lines.push("FAIL the self-test didn't finish in 4 minutes", "SELF-TEST FAILED");
+      await save(true);
+      Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
+    }, 240000);
+    await save();
 
     lines.push(`Jace Browser ${Services.prefs.getStringPref("jace.version", "?")} on Firefox ${Services.appinfo.version} (${Services.appinfo.OS})`);
     await check("Zen skin loaded into the window", () => win.__jaceReady);
@@ -399,7 +418,7 @@ export const JaceSelfTest = {
       lines.push(`startup error: ${e}`);
     }
     lines.push(ok ? "SELF-TEST OK" : "SELF-TEST FAILED");
-    await IOUtils.writeUTF8(out, lines.join("\n") + "\n");
+    await save(true);
     Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
   },
 };

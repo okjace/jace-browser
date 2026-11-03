@@ -300,6 +300,12 @@ export const JaceLoader = {
     }
     initialized = true;
     logStartup(`Jace started (Firefox ${Services.appinfo.version})`);
+    // CI self-test: say straight away that Jace's code is running (if the
+    // report stops here, the browser window never finished opening).
+    const selfTestOut = Services.env.get("JACE_SELF_TEST_OUT");
+    if (selfTestOut) {
+      IOUtils.writeUTF8(selfTestOut, "Jace's code started; waiting for the browser window…\n").catch(() => {});
+    }
 
     for (const [what, fn] of [
       ["about:jace pages", registerAboutPages],
