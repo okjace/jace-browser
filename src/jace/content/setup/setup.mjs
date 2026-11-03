@@ -24,6 +24,9 @@ function browserApi() {
     setBool: (p, v) => Services.prefs.setBoolPref(p, v),
     getString: (p, d) => Services.prefs.getStringPref(p, d),
     setString: (p, v) => Services.prefs.setStringPref(p, v),
+    getInt: (p, d) => Services.prefs.getIntPref(p, d),
+    setInt: (p, v) => Services.prefs.setIntPref(p, v),
+    clearPref: (p) => Services.prefs.clearUserPref(p),
     get profile() {
       return JaceAccount.profile;
     },
@@ -70,9 +73,21 @@ function browserApi() {
       }
       return shell.isDefaultBrowser(false, false);
     },
+    themes() {
+      const { THEMES, JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
+      return { list: Object.entries(THEMES).filter(([id]) => id !== "custom"), current: JaceThemes.id };
+    },
+    async chooseTheme(id) {
+      const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
+      await JaceThemes.choose(id);
+    },
     finish() {
       Services.prefs.setBoolPref("jace.setup.done", true);
-      win().openTrustedLinkIn("about:home", "current");
+      // Show what you picked for startup (the Jace start page, your website,
+      // or about:home when restoring tabs - there's nothing to restore yet).
+      const page = Services.prefs.getIntPref("browser.startup.page", 1);
+      const home = Services.prefs.getStringPref("browser.startup.homepage", "about:home").split("|")[0];
+      win().openTrustedLinkIn(page === 1 && home ? home : "about:home", "current");
     },
   };
 }
@@ -88,6 +103,9 @@ function previewApi() {
     setBool: (p, v) => (prefs[p] = v),
     getString: (p, d) => prefs[p] ?? d,
     setString: (p, v) => (prefs[p] = v),
+    getInt: (p, d) => prefs[p] ?? d,
+    setInt: (p, v) => (prefs[p] = v),
+    clearPref: (p) => delete prefs[p],
     get profile() {
       return profile;
     },
@@ -101,6 +119,16 @@ function previewApi() {
     onAccountChange: (fn) => listeners.push(fn),
     importData: async () => {},
     makeDefault: async () => true,
+    themes: () => ({
+      list: [
+        ["jace", { name: "Jace", accent: "#3ddc84" }],
+        ["dark", { name: "Dark", bg: "#111317", accent: "#3ddc84" }],
+        ["midnight", { name: "Midnight", bg: "#0c1122", accent: "#818cf8" }],
+        ["rose", { name: "Rose", bg: "#fbf0f2", accent: "#e11d74" }],
+      ],
+      current: prefs["jace.theme.id"] ?? "jace",
+    }),
+    chooseTheme: async (id) => (prefs["jace.theme.id"] = id),
     finish: () => {},
   };
 }
@@ -215,6 +243,30 @@ function setAccent(color) {
   }
 }
 
+function renderThemes() {
+  const { list, current } = api.themes();
+  const box = $("themes");
+  box.replaceChildren();
+  for (const [id, theme] of list) {
+    const chip = document.createElement("button");
+    chip.className = "theme-chip";
+    chip.setAttribute("role", "radio");
+    chip.setAttribute("aria-checked", String(id === current));
+    const dot = document.createElement("i");
+    dot.className = `theme-dot${theme.bg ? "" : " system"}`;
+    if (theme.bg) dot.style.setProperty("--t-bg", theme.bg);
+    dot.style.setProperty("--t-accent", theme.accent);
+    chip.append(dot, theme.name);
+    chip.addEventListener("click", async () => {
+      await api.chooseTheme(id);
+      if (theme.accent) setAccent(theme.accent);
+      renderThemes();
+    });
+    box.append(chip);
+  }
+}
+renderThemes();
+
 for (const [name, color] of ACCENTS) {
   const b = document.createElement("button");
   b.className = "swatch";
@@ -236,6 +288,62 @@ for (const [id, pref, fallback] of [
   box.checked = api.getBool(pref, fallback);
   box.addEventListener("change", () => api.setBool(pref, box.checked));
 }
+
+// ------------------------------------------------------------------ startup
+
+const JACE_HOME = "chrome://jace/content/newtab/newtab.html";
+
+function startChoice() {
+  const page = api.getInt("browser.startup.page", 1);
+  if (page === 3) return "restore";
+  const home = api.getString("browser.startup.homepage", "");
+  return !home || home === "about:home" || home === JACE_HOME ? "jace" : "site";
+}
+
+function setStart(choice) {
+  if (choice === "restore") {
+    api.setInt("browser.startup.page", 3);
+  } else {
+    api.setInt("browser.startup.page", 1);
+    if (choice === "jace") api.clearPref("browser.startup.homepage");
+    else saveStartUrl();
+  }
+  renderStart(choice);
+}
+
+function saveStartUrl() {
+  let url = $("start-url").value.trim();
+  if (!url) return;
+  if (!/^[a-z]+:/i.test(url)) url = `https://${url}`;
+  try {
+    new URL(url);
+    api.setString("browser.startup.homepage", url);
+  } catch {}
+}
+
+function renderStart(choice = startChoice()) {
+  for (const b of document.querySelectorAll(".start-choice")) {
+    b.setAttribute("aria-pressed", String(b.dataset.start === choice));
+  }
+  $("start-url").hidden = choice !== "site";
+  if (choice === "site") {
+    const home = api.getString("browser.startup.homepage", "");
+    if (home && home !== "about:home" && home !== JACE_HOME && !$("start-url").value) $("start-url").value = home;
+    $("start-url").focus();
+  }
+}
+
+for (const b of document.querySelectorAll(".start-choice")) {
+  b.addEventListener("click", () => setStart(b.dataset.start));
+}
+$("start-url").addEventListener("change", saveStartUrl);
+$("start-url").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    saveStartUrl();
+    document.querySelector('[data-step="start"] [data-next]').click();
+  }
+});
+renderStart();
 
 // ------------------------------------------------------------------ import
 

@@ -18,6 +18,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceSettingsPane: "chrome://jace/content/JaceSettingsPane.sys.mjs",
   JaceAccountPanel: "chrome://jace/content/JaceAccountPanel.sys.mjs",
+  JaceThemes: "chrome://jace/content/JaceThemes.sys.mjs",
+  JaceQuickTab: "chrome://jace/content/JaceQuickTab.sys.mjs",
   JaceSplash: "chrome://jace/content/JaceSplash.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceUpdates: "chrome://jace/content/JaceUpdates.sys.mjs",
@@ -148,6 +150,31 @@ function applyLook(win) {
   if (/^#[0-9a-f]{3,8}$/i.test(accent)) {
     root.style.setProperty("--jace-accent", accent);
   }
+  applyTheme(win);
+}
+
+const THEME_VARS = ["--jace-surface", "--jace-surface-2", "--jace-text", "--jace-muted", "--jace-hover", "--jace-selected"];
+
+/** The Jace theme's colors (JaceThemes), or the add-on theme's. */
+function applyTheme(win) {
+  const root = win.document.documentElement;
+  const { JaceThemes } = lazy;
+  root.toggleAttribute("jace-addon-theme", JaceThemes.addonThemeActive);
+  root.setAttribute("jace-theme", JaceThemes.addonThemeActive ? "addon" : JaceThemes.id);
+  const p = JaceThemes.palette();
+  if (!p) {
+    for (const v of THEME_VARS) root.style.removeProperty(v);
+    root.removeAttribute("jace-theme-mode");
+    return;
+  }
+  const dark = p.mode === "dark";
+  root.setAttribute("jace-theme-mode", p.mode);
+  root.style.setProperty("--jace-surface", p.bg);
+  root.style.setProperty("--jace-surface-2", p.card);
+  root.style.setProperty("--jace-text", p.fg);
+  root.style.setProperty("--jace-muted", p.muted);
+  root.style.setProperty("--jace-hover", `color-mix(in srgb, ${p.fg} ${dark ? 9 : 7}%, transparent)`);
+  root.style.setProperty("--jace-selected", dark ? `color-mix(in srgb, ${p.fg} 12%, transparent)` : p.card);
 }
 
 function allWindows() {
@@ -188,6 +215,11 @@ export const JaceWindow = {
     if (win.__jaceReady) return;
     this.early(win);
     win.__jaceReady = true;
+    try {
+      lazy.JaceQuickTab.install(win);
+    } catch (e) {
+      console.error("Jace: new tab box", e);
+    }
 
     if (!observing) {
       observing = true;
@@ -195,6 +227,11 @@ export const JaceWindow = {
       for (const pref of [...Object.keys(LOOK_PREFS), "jace.theme.accent", TAB_STYLE_PREF, CONTROLS_PREF]) {
         Services.prefs.addObserver(pref, prefObserver);
       }
+      lazy.JaceThemes.applyMode();
+      lazy.JaceThemes.observe(() => {
+        lazy.JaceThemes.applyMode();
+        for (const w of allWindows()) applyTheme(w);
+      });
       Services.obs.addObserver(() => this.refreshAccountButtons(), "jace-account-changed");
       Services.obs.addObserver(() => this.refreshAccountButtons(), "jace-sync-status");
     }

@@ -25,6 +25,9 @@ pref("browser.display.use_system_colors", false);
 pref("jace.theme.compact", false);          // hide the sidebar until you hover the window edge
 pref("jace.theme.floatingContent", true);   // rounded, inset web content with a shadow
 pref("jace.theme.accent", "#3ddc84");       // Jace green
+pref("jace.theme.id", "jace");              // JaceThemes.sys.mjs: "jace" follows the system's light/dark
+pref("jace.theme.custom", "{}");            // colors for the "custom" theme
+pref("jace.newtab.popup", true);            // Ctrl+T / + opens a small search box over the page
 pref("jace.tabs.verticalStyle", "full");    // "full", "icons" (icons only), or "hover" (icons, expand on hover)
 pref("jace.windowControls.style", "system"); // "system" (GNOME look on Linux, the real buttons on Windows and macOS), "jace" (colored dots), or "minimal"
 
@@ -126,3 +129,63 @@ pref("jace.update.auto", true);
 // ---------- Jace websites ----------
 // Keep the Jace website signed in, and sign in to Jace's own apps without the consent screen.
 pref("jace.account.autoSignIn", true);
+
+// ---- Smooth, fast, clean ----
+// Smooth scrolling that glides and settles naturally (mouse wheel and keys).
+pref("general.smoothScroll", true);
+pref("general.smoothScroll.msdPhysics.enabled", true);
+pref("general.smoothScroll.msdPhysics.continuousMotionMaxDeltaMS", 12);
+pref("general.smoothScroll.msdPhysics.motionBeginSpringConstant", 600);
+pref("general.smoothScroll.msdPhysics.regularSpringConstant", 650);
+pref("general.smoothScroll.msdPhysics.slowdownMinDeltaMS", 25);
+pref("general.smoothScroll.msdPhysics.slowdownSpringConstant", 250);
+pref("general.smoothScroll.currentVelocityWeighting", "1");
+pref("general.smoothScroll.stopDecelerationWeighting", "1");
+pref("mousewheel.default.delta_multiplier_y", 100);
+pref("apz.overscroll.enabled", true);           // a soft bounce at the ends of pages
+pref("widget.gtk.overlay-scrollbars.enabled", true);
+pref("widget.non-native-theme.scrollbar.style", 1);
+
+// Pages appear sooner, tabs switch faster.
+pref("nglayout.initialpaint.delay", 0);
+pref("nglayout.initialpaint.delay_in_oopif", 0);
+pref("content.notify.interval", 100000);
+pref("browser.tabs.animate", true);
+pref("browser.tabs.warmup.max", 8);
+pref("browser.tabs.min_inactive_duration_before_unload", 1800000);  // only unload tabs idle 30+ min when memory runs low
+pref("gfx.webrender.all", true);
+pref("gfx.canvas.accelerated", true);
+pref("layers.gpu-process.enabled", true);
+pref("media.hardware-video-decoding.enabled", true);
+pref("image.mem.decode_bytes_at_a_time", 32768);
+
+// Faster loading: look up and connect to links you're likely to open.
+pref("network.dns.disablePrefetch", false);
+pref("network.dns.disablePrefetchFromHTTPS", false);
+pref("network.prefetch-next", true);
+pref("network.predictor.enabled", true);
+pref("network.http.speculative-parallel-limit", 10);
+pref("browser.urlbar.speculativeConnect.enabled", true);
+pref("browser.places.speculativeConnect.enabled", true);
+pref("network.http.max-persistent-connections-per-server", 10);
+pref("network.http.pacing.requests.enabled", false);
+pref("browser.cache.memory.capacity", 262144);  // 256 MB memory cache for back/forward and images
+pref("browser.sessionhistory.max_total_viewers", 6);
+pref("browser.sessionstore.interval", 60000);   // save the session every minute, not every 15 s (less disk work)
+
+// Clean: no clutter.
+pref("browser.tabs.tabmanager.enabled", false);
+pref("browser.urlbar.trimHttps", true);
+pref("browser.urlbar.suggest.trending", false);
+pref("browser.urlbar.suggest.weather", false);
+pref("browser.urlbar.suggest.yelp", false);
+pref("browser.urlbar.suggest.mdn", false);
+pref("browser.urlbar.suggest.addons", false);
+pref("browser.urlbar.suggest.fakespot", false);
+pref("browser.urlbar.suggest.pocket", false);
+pref("browser.urlbar.showSearchTerms.enabled", true);
+pref("browser.download.autohideButton", true);
+pref("browser.aboutConfig.showWarning", false);
+pref("full-screen-api.transition-duration.enter", "0 0");
+pref("full-screen-api.transition-duration.leave", "0 0");
+pref("full-screen-api.warning.timeout", 0);

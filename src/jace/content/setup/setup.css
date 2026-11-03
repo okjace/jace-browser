@@ -384,3 +384,24 @@ button.big { padding: 13px 28px; font-size: 16px; border-radius: 12px; margin-to
 .ctl-dots b { width: 8px; height: 8px; border-radius: 50%; background: #f5b83d; }
 .ctl-dots b:nth-child(2) { background: var(--accent); }
 .ctl-dots b:nth-child(3) { background: #f25f5c; }
+
+/* Themes */
+.themes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 2px 0 10px; max-width: 560px; }
+.theme-chip {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px 6px 7px;
+  border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--fg);
+  font: inherit; font-size: 13px; cursor: pointer; transition: border-color 140ms ease, transform 140ms ease;
+}
+.theme-chip:hover { transform: translateY(-1px); }
+.theme-chip[aria-checked="true"] { border-color: var(--accent); font-weight: 600; }
+.theme-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--t-bg); border: 3px solid var(--t-accent); }
+.theme-dot.system { background: linear-gradient(135deg, #f4f5f7 50%, #111317 50%); }
+
+/* Startup choice */
+.start-choice { min-width: 170px; }
+.start-icon { font-size: 30px; line-height: 64px; height: 64px; color: var(--accent); }
+.start-url {
+  margin-top: 14px; width: min(420px, 90%); padding: 11px 14px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--card); color: var(--fg); font: inherit;
+}
+.start-url:focus { outline: none; border-color: var(--accent); }

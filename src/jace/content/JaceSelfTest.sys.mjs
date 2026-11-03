@@ -205,6 +205,31 @@ export const JaceSelfTest = {
       if (n(account) < 3 || n(profiles) < 2) throw new Error(`account ${n(account)} / profiles ${n(profiles)} buttons`);
       return true;
     });
+    await check("new tab (Ctrl+T) opens the search box over the page", async () => {
+      if (!win.BrowserCommands?.__jaceQuickTab) throw new Error(`BrowserCommands.openTab ${typeof win.BrowserCommands?.openTab}`);
+      const tabs = win.gBrowser.tabs.length;
+      win.BrowserCommands.openTab();
+      await new Promise((r) => win.setTimeout(r, 600));
+      const panel = win.document.getElementById("jace-quicktab");
+      const state = panel?.state;
+      panel?.hidePopup();
+      if (win.gBrowser.tabs.length !== tabs) throw new Error("an empty tab opened instead");
+      if (!panel) throw new Error("no box");
+      return `panel ${state}`;
+    });
+    await check("themes change the window's colors", async () => {
+      const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
+      const before = Services.prefs.getStringPref("jace.theme.id", "jace");
+      const accent = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84");
+      await JaceThemes.choose("midnight");
+      await new Promise((r) => win.setTimeout(r, 100));
+      const root = win.document.documentElement;
+      const got = `${root.getAttribute("jace-theme")}/${root.getAttribute("jace-theme-mode")}/${root.style.getPropertyValue("--jace-surface")}`;
+      await JaceThemes.choose(before);
+      Services.prefs.setStringPref("jace.theme.accent", accent);
+      if (!got.startsWith("midnight/dark/#0c1122")) throw new Error(got);
+      return true;
+    });
     await check("Jace settings are in about:preferences", async () => {
       // Also a probe: reports how this Firefox's settings page is built.
       const tab = win.gBrowser.addTrustedTab("about:preferences#jace", { inBackground: true });

@@ -55,7 +55,8 @@
     <!-- 3. Look -->
     <section class="step" data-step="look">
       <h2>Make it yours</h2>
-      <p class="lead">Pick an accent color.</p>
+      <p class="lead">Pick a theme and an accent color. You can make your own theme or get more in Settings.</p>
+      <div class="themes" id="themes" role="radiogroup" aria-label="Theme"></div>
       <div class="swatches" id="swatches"></div>
       <div class="labeled" id="window-controls-row">
         <span class="small">Window buttons</span>
@@ -70,6 +71,28 @@
         <label class="switch"><input type="checkbox" id="floating"><span class="track"></span> Floating pages <em>rounded web pages with a soft shadow</em></label>
         <label class="switch"><input type="checkbox" id="animation"><span class="track"></span> Startup animation</label>
       </div>
+      <div class="nav"><button data-back>Back</button><button class="primary" data-next>Continue</button></div>
+    </section>
+
+    <!-- 3b. Startup -->
+    <section class="step" data-step="start">
+      <h2>When Jace Browser starts</h2>
+      <p class="lead">Show this every time you open it.</p>
+      <div class="choices">
+        <button class="choice start-choice" data-start="jace">
+          <div class="start-icon" aria-hidden="true">✦</div>
+          <strong>Jace start page</strong><span>Clock, search and your shortcuts</span>
+        </button>
+        <button class="choice start-choice" data-start="restore">
+          <div class="start-icon" aria-hidden="true">↺</div>
+          <strong>My tabs from last time</strong><span>Pick up where you left off</span>
+        </button>
+        <button class="choice start-choice" data-start="site">
+          <div class="start-icon" aria-hidden="true">⌂</div>
+          <strong>A website</strong><span>Any page you like</span>
+        </button>
+      </div>
+      <input id="start-url" class="start-url" type="url" placeholder="Website address, e.g. youtube.com" hidden>
       <div class="nav"><button data-back>Back</button><button class="primary" data-next>Continue</button></div>
     </section>
 

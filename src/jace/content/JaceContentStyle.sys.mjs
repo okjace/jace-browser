@@ -166,13 +166,53 @@ function css(accent) {
 }`;
 }
 
+/** The theme's colors (JaceThemes) for the browser's pages and Jace's own pages. */
+function themeCss(p) {
+  if (!p) return "";
+  const firefoxPages = PAGES.map((x) => `url-prefix("${x}")`).join(", ");
+  return `
+@-moz-document ${firefoxPages} {
+  :root {
+    color-scheme: ${p.mode} !important;
+    --background-color-canvas: ${p.bg} !important;
+    --background-color-box: ${p.card} !important;
+    --in-content-page-background: ${p.bg} !important;
+    --in-content-box-background: ${p.card} !important;
+    --newtab-background-color: ${p.bg} !important;
+    --newtab-background-color-secondary: ${p.card} !important;
+    --text-color: ${p.fg} !important;
+    --in-content-page-color: ${p.fg} !important;
+    --text-color-deemphasized: ${p.muted} !important;
+    --border-color: ${p.line} !important;
+  }
+}
+@-moz-document url-prefix("chrome://jace/content/"), url-prefix("about:jace") {
+  :root {
+    color-scheme: ${p.mode} !important;
+    --bg: ${p.bg} !important;
+    --card: ${p.card} !important;
+    --tile: color-mix(in srgb, ${p.card} 80%, transparent) !important;
+    --fg: ${p.fg} !important;
+    --muted: ${p.muted} !important;
+    --line: ${p.line} !important;
+  }
+}`;
+}
+
 const sss = Cc["@mozilla.org/content/style-sheet-service;1"].getService(Ci.nsIStyleSheetService);
 let current = null;
 
 function apply() {
   const accent = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84");
   const safe = /^#[0-9a-f]{3,8}$/i.test(accent) ? accent : "#3ddc84";
-  const uri = Services.io.newURI(`data:text/css;charset=utf-8,${encodeURIComponent(css(safe))}`);
+  let palette = null;
+  try {
+    const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
+    palette = JaceThemes.palette();
+  } catch (e) {
+    console.warn("Jace: theme colors for pages", e);
+  }
+  const uri = Services.io.newURI(`data:text/css;charset=utf-8,${encodeURIComponent(css(safe) + themeCss(palette))}`);
   if (current && sss.sheetRegistered(current, sss.USER_SHEET)) {
     sss.unregisterSheet(current, sss.USER_SHEET);
   }
@@ -192,5 +232,7 @@ export const JaceContentStyle = {
     started = true;
     apply();
     Services.prefs.addObserver("jace.theme.accent", () => apply());
+    const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
+    JaceThemes.observe(() => apply());
   },
 };

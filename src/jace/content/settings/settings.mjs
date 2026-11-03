@@ -10,6 +10,7 @@ const { JaceUSBService } = ChromeUtils.importESModule("chrome://jace/content/usb
 const { JaceUpdates } = ChromeUtils.importESModule("chrome://jace/content/JaceUpdates.sys.mjs");
 const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceProfiles.sys.mjs");
 const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
+const { JaceThemes, THEMES, customTheme } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
 
 const $ = (id) => document.getElementById(id);
 
@@ -241,8 +242,57 @@ for (const box of document.querySelectorAll("input[data-pref]")) {
 $("accent").value = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84");
 $("accent").addEventListener("input", (e) => Services.prefs.setStringPref("jace.theme.accent", e.target.value));
 $("accent-reset").addEventListener("click", () => {
-  Services.prefs.clearUserPref("jace.theme.accent");
+  const id = JaceThemes.id;
+  const accent = id === "custom" ? customTheme().accent : THEMES[id].accent;
+  Services.prefs.setStringPref("jace.theme.accent", accent ?? "#3ddc84");
   $("accent").value = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84");
+});
+Services.prefs.addObserver("jace.theme.accent", () => ($("accent").value = Services.prefs.getStringPref("jace.theme.accent", "#3ddc84")));
+
+// Themes: Jace's own, a custom one, and add-on themes from addons.mozilla.org.
+function renderThemes() {
+  const box = $("themes");
+  box.replaceChildren();
+  const addon = JaceThemes.addonThemeActive;
+  for (const [id, theme] of Object.entries(THEMES)) {
+    const colors = id === "custom" ? customTheme() : theme;
+    const card = document.createElement("button");
+    card.className = "theme-card";
+    card.setAttribute("role", "radio");
+    card.setAttribute("aria-checked", String(!addon && JaceThemes.id === id));
+    card.title = theme.note ?? theme.name;
+    const preview = document.createElement("span");
+    preview.className = `theme-preview${colors.bg ? "" : " system"}`;
+    if (colors.bg) {
+      for (const [k, v] of Object.entries({ bg: colors.bg, card: colors.card, fg: colors.fg, accent: colors.accent })) {
+        preview.style.setProperty(`--t-${k}`, v);
+      }
+    } else {
+      preview.style.setProperty("--t-accent", colors.accent);
+      preview.style.setProperty("--t-fg", "#9aa1ad");
+    }
+    const name = document.createElement("span");
+    name.className = "theme-name";
+    name.textContent = theme.name;
+    card.append(preview, name);
+    card.addEventListener("click", () => JaceThemes.choose(id));
+    box.append(card);
+  }
+  const custom = customTheme();
+  $("custom-theme").hidden = addon || JaceThemes.id !== "custom";
+  $("custom-bg").value = custom.bg;
+  $("custom-fg").value = custom.fg;
+  $("custom-accent").value = custom.accent;
+  $("addon-theme-note").hidden = !addon;
+}
+renderThemes();
+const stopThemes = JaceThemes.observe(renderThemes);
+window.addEventListener("unload", stopThemes);
+for (const [id, key] of [["custom-bg", "bg"], ["custom-fg", "fg"], ["custom-accent", "accent"]]) {
+  $(id).addEventListener("input", (e) => JaceThemes.setCustom({ [key]: e.target.value }));
+}
+$("more-themes").addEventListener("click", () => {
+  window.browsingContext.topChromeWindow.openTrustedLinkIn("https://addons.mozilla.org/firefox/themes/", "tab");
 });
 
 for (const [group, pref, fallback] of [

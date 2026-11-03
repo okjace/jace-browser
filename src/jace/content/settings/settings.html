@@ -98,6 +98,7 @@
         <label class="toggle"><input type="checkbox" data-pref="jace.theme.compact"> <span>Compact mode <span class="muted">(the sidebar slides in when you hover the left edge)</span></span></label>
         <label class="toggle"><input type="checkbox" data-pref="jace.theme.floatingContent"> <span>Floating pages <span class="muted">(rounded web pages with a shadow)</span></span></label>
         <label class="toggle"><input type="checkbox" data-pref="jace.startup.animation"> <span>Startup animation</span></label>
+        <label class="toggle"><input type="checkbox" data-pref="jace.newtab.popup"> <span>New tab opens a search box over the page <span class="muted">(Ctrl+T or +; press Ctrl+T twice for an empty tab)</span></span></label>
         <label class="toggle"><input type="checkbox" data-pref="jace.newtab.enabled"> <span>Jace new tab page <span class="muted">(clock, search and shortcuts; also the home page)</span></span></label>
       </div>
       <fieldset class="choice-group" id="tab-style">
@@ -112,8 +113,19 @@
         <label><input type="radio" name="window-controls" value="jace"> Jace (colored dots; Windows and Linux)</label>
         <label><input type="radio" name="window-controls" value="minimal"> Minimal (Windows and Linux)</label>
       </fieldset>
-      <label class="field inline">Accent color <input type="color" id="accent"></label>
-      <button id="accent-reset">Jace green</button>
+      <h3>Theme</h3>
+      <div class="themes" id="themes" role="radiogroup" aria-label="Theme"></div>
+      <div id="custom-theme" class="custom-theme" hidden>
+        <label class="field inline">Background <input type="color" id="custom-bg"></label>
+        <label class="field inline">Text <input type="color" id="custom-fg"></label>
+        <label class="field inline">Accent <input type="color" id="custom-accent"></label>
+      </div>
+      <p class="muted small" id="addon-theme-note" hidden>An add-on theme is on, so it colors the browser. Pick one of the themes above to go back to Jace's.</p>
+      <div class="row">
+        <label class="field inline">Accent color <input type="color" id="accent"></label>
+        <button id="accent-reset">Theme's accent</button>
+        <button id="more-themes">Get add-on themes…</button>
+      </div>
     </section>
 
     <section id="profiles">

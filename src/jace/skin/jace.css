@@ -53,6 +53,22 @@
   }
 }
 
+/* Firefox add-on themes (addons.mozilla.org): their colors and header image
+   replace Jace's surface; Jace keeps its shapes and spacing. */
+:root[jace-addon-theme] {
+  --jace-surface: var(--lwt-accent-color, #1b1e24);
+  --jace-surface-2: var(--lwt-toolbar-field-background-color, color-mix(in srgb, var(--jace-text) 8%, var(--jace-surface)));
+  --jace-text: var(--lwt-text-color, CanvasText);
+  --jace-hover: color-mix(in srgb, var(--jace-text) 9%, transparent);
+  --jace-selected: color-mix(in srgb, var(--jace-text) 13%, transparent);
+}
+:root[jace-addon-theme][lwtheme-image] :is(#navigator-toolbox, #TabsToolbar, #nav-bar, #PersonalToolbar) {
+  background: transparent !important;
+}
+:root[jace-addon-theme][lwtheme-image] #navigator-toolbox {
+  background: var(--lwt-header-image, none) right top no-repeat, var(--lwt-additional-images, none) !important;
+}
+
 /* ---------- One surface for the whole window ---------- */
 
 #navigator-toolbox,
@@ -1106,4 +1122,161 @@ panel::part(content) {
 menupopup > :is(menuitem, menu) {
   appearance: none !important;
   color: var(--jace-text) !important;
+}
+
+/* ---------- New tab box (JaceQuickTab.sys.mjs) ---------- */
+
+#jace-quicktab {
+  appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  --panel-background: transparent;
+  --panel-border-color: transparent;
+  --panel-shadow: none;
+  --panel-padding: 0;
+}
+#jace-quicktab .qt-box {
+  display: flex;
+  flex-direction: column;
+  margin: 12px;
+  padding: 8px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--jace-surface-2) 94%, transparent);
+  color: var(--jace-text);
+  border: 1px solid color-mix(in srgb, var(--jace-text) 10%, transparent);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12), 0 24px 64px rgb(0 0 0 / 0.32);
+  backdrop-filter: blur(18px) saturate(1.4);
+}
+#jace-quicktab[jace-open] .qt-box {
+  animation: jace-qt-in 200ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes jace-qt-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+#jace-quicktab .qt-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 12px;
+}
+#jace-quicktab .qt-search-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background: url("chrome://global/skin/icons/search-glass.svg") center / 16px no-repeat;
+  -moz-context-properties: fill;
+  fill: var(--jace-accent);
+}
+#jace-quicktab .qt-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 18px;
+  padding: 8px 0;
+}
+#jace-quicktab .qt-input::placeholder { color: var(--jace-muted); }
+#jace-quicktab .qt-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px solid color-mix(in srgb, var(--jace-text) 8%, transparent);
+}
+#jace-quicktab .qt-results[hidden] { display: none; }
+#jace-quicktab .qt-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 11px;
+  cursor: default;
+  transition: background-color 90ms ease;
+}
+#jace-quicktab .qt-item[selected] {
+  background: color-mix(in srgb, var(--jace-accent) 18%, transparent);
+}
+#jace-quicktab .qt-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 4px;
+}
+#jace-quicktab .qt-item:is([data-kind="search"], [data-kind="go"]) .qt-icon {
+  background: url("chrome://global/skin/icons/search-glass.svg") center / 14px no-repeat;
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+#jace-quicktab .qt-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+#jace-quicktab .qt-title { overflow: hidden; text-overflow: ellipsis; }
+#jace-quicktab .qt-sub { color: var(--jace-muted); font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; flex: none; max-width: 40%; }
+#jace-quicktab .qt-badge {
+  flex: none;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--jace-muted);
+  border: 1px solid color-mix(in srgb, var(--jace-text) 14%, transparent);
+}
+#jace-quicktab .qt-item[selected] .qt-badge { color: var(--jace-text); border-color: color-mix(in srgb, var(--jace-accent) 60%, transparent); }
+#jace-quicktab .qt-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 2px;
+  font-size: 11.5px;
+  color: var(--jace-muted);
+}
+#jace-quicktab .qt-empty {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--jace-text) 14%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 3px 10px;
+  border-radius: 8px;
+}
+#jace-quicktab .qt-empty:hover { background: var(--jace-hover); color: var(--jace-text); }
+@media (prefers-reduced-motion: reduce) {
+  #jace-quicktab[jace-open] .qt-box { animation: none; }
+}
+
+/* ---------- Smooth little touches ---------- */
+
+toolbarbutton > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack),
+.tabbrowser-tab .tab-background,
+#urlbar-background {
+  transition: background-color 120ms ease, transform 140ms cubic-bezier(0.2, 0.9, 0.25, 1), box-shadow 160ms ease;
+}
+toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+  transform: scale(0.9);
+}
+.tabbrowser-tab:not([pinned])[fadein] .tab-content {
+  animation: jace-tab-in 220ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes jace-tab-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+#urlbar[focused] > #urlbar-background {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--jace-accent) 45%, transparent), var(--jace-shadow) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tabbrowser-tab[fadein] .tab-content { animation: none; }
+  toolbarbutton:active > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) { transform: none; }
 }
