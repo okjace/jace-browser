@@ -239,42 +239,143 @@ function make(win) {
   bar.className = "jace-downloads-progress";
   button.append(bar);
   button.addEventListener("command", () => openDownloads(win, button));
+  track(win, button);
+  return button;
+}
+
+const TOOL_ID = "jace-sidebar-downloads-tool";
+
+/** Keeps a button's look (badge, progress, tooltip) in step with the downloads. */
+function track(win, node) {
   const update = () => {
     const { active, progress } = summary;
-    button.toggleAttribute("downloading", active > 0);
-    if (active) button.setAttribute("badge", String(active));
-    else button.removeAttribute("badge");
-    button.setAttribute("tooltiptext", active ? `Downloads (${active} in progress${progress >= 0 ? `, ${Math.round(progress * 100)}%` : ""})` : "Downloads");
-    button.style.setProperty("--jace-dl-progress", progress >= 0 ? String(progress) : "0");
-    button.toggleAttribute("indeterminate", active > 0 && progress < 0);
+    node.toggleAttribute("downloading", active > 0);
+    if (active) node.setAttribute("badge", String(active));
+    else node.removeAttribute("badge");
+    const tip = active ? `Downloads (${active} in progress${progress >= 0 ? `, ${Math.round(progress * 100)}%` : ""})` : "Downloads";
+    node.setAttribute(node.localName === "toolbarbutton" ? "tooltiptext" : "title", tip);
+    node.toggleAttribute("indeterminate", active > 0 && progress < 0);
+    node.style.setProperty("--jace-dl-progress", progress >= 0 ? String(progress) : "0");
   };
   watchers.add(update);
   win.addEventListener("unload", () => watchers.delete(update));
   update();
   listen().catch((e) => console.warn("Jace: downloads button", e));
-  return button;
+}
+
+/** Styles for the button inside the sidebar's own (shadow) part. */
+const TOOL_CSS = `
+#${TOOL_ID} { position: relative; }
+#${TOOL_ID}[downloading]::part(button) { color: var(--jace-accent, AccentColor); }
+#${TOOL_ID}[badge]::after {
+  content: attr(badge);
+  position: absolute; top: 0; inset-inline-end: 0;
+  min-width: 14px; height: 14px; padding: 0 3px; box-sizing: border-box;
+  border-radius: 7px; background: var(--jace-accent, AccentColor); color: #0c1410;
+  font-size: 9.5px; font-weight: 700; line-height: 14px; text-align: center; pointer-events: none;
+}
+#${TOOL_ID}[downloading]::before {
+  content: ""; position: absolute; left: 6px; right: 6px; bottom: 1px; height: 2px; border-radius: 1px;
+  background: linear-gradient(var(--jace-accent, AccentColor), var(--jace-accent, AccentColor)) 0 0 / calc(var(--jace-dl-progress, 0) * 100%) 100% no-repeat,
+    color-mix(in srgb, var(--jace-accent, AccentColor) 25%, transparent);
+  pointer-events: none;
+}
+`;
+
+/**
+ * The sidebar's bottom row of icons (bookmarks, history, passwords,
+ * settings) lives inside <sidebar-main>'s shadow DOM. Adds a Downloads icon
+ * there, made the same way as Firefox's own (a moz-button), so it matches.
+ */
+function addSidebarTool(win) {
+  const main = win.document.querySelector("sidebar-main");
+  const root = main?.shadowRoot;
+  if (!root) return null;
+  let tool = root.getElementById(TOOL_ID);
+  if (tool) return tool;
+  // The row: the group holding the tool buttons (falls back to the bottom actions).
+  const firstTool = root.querySelector(".tools-and-extensions moz-button, .actions-list moz-button, button-group moz-button");
+  const row = firstTool?.parentNode ?? root.querySelector(".tools-and-extensions, .bottom-actions, button-group");
+  if (!row) return null;
+  const doc = win.document;
+  tool = doc.createElement("moz-button");
+  tool.id = TOOL_ID;
+  tool.setAttribute("type", "icon ghost");
+  tool.setAttribute("iconsrc", "chrome://jace/skin/icons/downloads.svg");
+  tool.setAttribute("title", "Downloads");
+  tool.setAttribute("aria-label", "Downloads");
+  // Copy the look/size Firefox gives its own tool buttons.
+  for (const attr of ["size", "class", "view"]) {
+    if (firstTool?.hasAttribute(attr) && attr !== "view") tool.setAttribute(attr, firstTool.getAttribute(attr));
+  }
+  tool.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openDownloads(win, tool);
+  });
+  // Before Firefox's own buttons (outside the part its renderer manages).
+  if (firstTool) row.insertBefore(tool, row.firstChild);
+  else row.append(tool);
+  if (!root.getElementById("jace-sidebar-tool-style")) {
+    const style = doc.createElementNS(HTML, "style");
+    style.id = "jace-sidebar-tool-style";
+    style.textContent = TOOL_CSS;
+    root.append(style);
+  }
+  track(win, tool);
+  // If the sidebar redraws its row, put it back.
+  if (!main.__jaceToolObserver) {
+    main.__jaceToolObserver = new win.MutationObserver(() => {
+      if (Services.prefs.getBoolPref(PREF, true) && Services.prefs.getBoolPref("sidebar.verticalTabs", false) && !root.getElementById(TOOL_ID)) {
+        win.setTimeout(() => addSidebarTool(win), 0);
+      }
+    });
+    main.__jaceToolObserver.observe(root, { childList: true, subtree: true });
+  }
+  return tool;
 }
 
 export const JaceDownloadsButton = {
-  /** Puts the button where the tabs are (or removes it when turned off). */
+  /**
+   * Vertical tabs: a Downloads icon in the sidebar's bottom row of icons.
+   * Tabs across the top: at the end of the tab strip.
+   */
   place(win) {
     const doc = win.document;
     let button = doc.getElementById(ID);
+    const tool = doc.querySelector("sidebar-main")?.shadowRoot?.getElementById(TOOL_ID);
     if (!Services.prefs.getBoolPref(PREF, true)) {
       button?.remove();
+      tool?.remove();
       return;
     }
-    button ??= make(win);
     const vertical = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
     if (vertical) {
-      // Bottom of the sidebar's tab area, under the (scrolling) tabs.
+      let added = null;
+      try {
+        added = addSidebarTool(win);
+      } catch (e) {
+        console.error("Jace: downloads icon in the sidebar", e);
+      }
+      if (added) {
+        button?.remove();
+        return;
+      }
+      // No icon row found: under the tabs instead.
+      button ??= make(win);
       const target = doc.getElementById("vertical-tabs");
       if (target && button.parentNode !== target) target.append(button);
     } else {
+      tool?.remove();
+      button ??= make(win);
       // End of the tab strip, outside the part the toolbar editor manages.
       const strip = doc.getElementById("TabsToolbar-customization-target");
       if (strip && button.previousSibling !== strip) strip.after(button);
     }
     button.toggleAttribute("vertical", vertical);
+  },
+
+  /** Where the Downloads icon is (for the self-test). */
+  find(win) {
+    return win.document.querySelector("sidebar-main")?.shadowRoot?.getElementById(TOOL_ID) ?? win.document.getElementById(ID);
   },
 };

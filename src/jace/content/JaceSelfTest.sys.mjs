@@ -258,10 +258,13 @@ export const JaceSelfTest = {
     });
     await check("Downloads button is with the tabs", async () => {
       await new Promise((r) => win.setTimeout(r, 500));
-      const button = win.document.getElementById("jace-tabs-downloads");
-      if (!button) throw new Error("no button");
+      const { JaceDownloadsButton } = ChromeUtils.importESModule("chrome://jace/content/JaceDownloadsButton.sys.mjs");
+      const button = JaceDownloadsButton.find(win);
+      const root = win.document.querySelector("sidebar-main")?.shadowRoot;
+      const rows = root ? [...root.querySelectorAll("button-group, .tools-and-extensions, .bottom-actions, .actions-list")].map((n) => n.localName + "." + n.className).join(",") : "no sidebar-main";
+      if (!button) throw new Error(`no button (sidebar rows: ${rows})`);
       const box = button.getBoundingClientRect();
-      const where = button.parentNode?.id || button.parentNode?.className;
+      const where = button.parentNode?.id || button.parentNode?.className || button.parentNode?.localName;
       if (!box.width) throw new Error(`not visible (in ${where})`);
       return `in ${where}, ${Math.round(box.width)}x${Math.round(box.height)}`;
     });

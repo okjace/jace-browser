@@ -250,8 +250,8 @@ function watchLastTab(win) {
 }
 
 function placeDownloads(win) {
-  // After Firefox has moved its tab strip for the new layout.
-  for (const ms of [0, 400]) {
+  // After Firefox has moved its tab strip for the new layout (and drawn its sidebar).
+  for (const ms of [0, 400, 1500, 4000]) {
     win.setTimeout(() => {
       try {
         lazy.JaceDownloadsButton.place(win);
