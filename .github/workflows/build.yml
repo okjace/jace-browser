@@ -237,15 +237,31 @@ jobs:
           # 1. silent install, like an admin deploying it
           $p = Start-Process -FilePath $setup -ArgumentList "/S" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
-          $dir = "$env:ProgramFiles\Jace Browser"
+          # Where did it go? Ask Windows (the installed-apps entry), then look.
+          # (The setup stub can return before the real installer is done: wait up to 2 minutes.)
+          for ($i = 0; $i -lt 24; $i++) {
+            $key = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall", "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like "Jace*" } | Select-Object -First 1
+            if ($key -and -not (Get-Process -Name "setup" -ErrorAction SilentlyContinue)) { break }
+            Start-Sleep -Seconds 5
+          }
+          $key = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall", "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall" -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like "Jace*" } | Select-Object -First 1
+          $dir = if ($key) { (Get-ItemProperty $key.PSPath).InstallLocation } else { $null }
+          if (!$dir -or !(Test-Path "$dir\jace.exe")) {
+            $found = Get-ChildItem "$env:ProgramFiles", "${env:ProgramFiles(x86)}", "$env:LOCALAPPDATA" -Filter "jace.exe" -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) { $dir = $found.DirectoryName }
+          }
+          if (!$dir -or !(Test-Path "$dir\jace.exe")) {
+            "Installed apps entry: $($key.PSPath)"
+            Get-ChildItem "$env:ProgramFiles" | Select-Object Name
+            throw "not installed (no jace.exe found)"
+          }
+          "Installed in $dir"
           $exe = "$dir\jace.exe"
-          if (!(Test-Path $exe)) { throw "not installed" }
           if (!(Test-Path "$dir\jacebrowser\bin\jace-usb-helper.exe")) { throw "USB helper missing" }
           if (!(Test-Path "$dir\jace.cfg")) { throw "jace.cfg missing" }
           if (!(Test-Path "$dir\distribution\policies.json")) { throw "policies.json missing" }
-          $lnk = Get-ChildItem "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Filter "Jace Browser*.lnk" -Recurse
+          $lnk = Get-ChildItem "$env:ProgramData\Microsoft\Windows\Start Menu\Programs", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Filter "Jace*.lnk" -Recurse -ErrorAction SilentlyContinue
           if (!$lnk) { throw "Start menu shortcut missing" }
-          $key = Get-ChildItem "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall" | Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like "Jace Browser*" }
           if (!$key) { throw "Installed apps entry missing" }
           Get-ItemProperty $key.PSPath | Select-Object DisplayName, DisplayVersion, UninstallString | Format-List
           # 2. the installed browser starts, loads Jace Browser's parts, and quits
