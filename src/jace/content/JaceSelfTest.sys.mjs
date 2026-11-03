@@ -122,6 +122,33 @@ export const JaceSelfTest = {
     await check("Mozilla's terms-of-use screen is off", () => {
       return !Services.prefs.getBoolPref("browser.preonboarding.enabled", true) && Services.prefs.prefIsLocked("browser.preonboarding.enabled");
     });
+    await check("only-icons vertical tabs are narrow", async () => {
+      // Also a probe: reports how this Firefox builds its sidebar, to fix the CSS against.
+      const doc = win.document;
+      const describe = (el) =>
+        el ? `${el.localName}${el.id ? "#" + el.id : ""}${el.className && typeof el.className === "string" ? "." + el.className.trim().split(/\s+/).join(".") : ""}` : "none";
+      const before = Services.prefs.getStringPref("jace.tabs.verticalStyle", "full");
+      Services.prefs.setBoolPref("sidebar.verticalTabs", true);
+      Services.prefs.setStringPref("jace.tabs.verticalStyle", "icons");
+      await new Promise((r) => win.setTimeout(r, 800));
+      const tab = win.gBrowser.selectedTab;
+      const chain = [];
+      for (let el = tab; el && el !== doc.documentElement && chain.length < 14; el = el.parentElement ?? el.getRootNode()?.host) {
+        chain.push(`${describe(el)}=${Math.round(el.getBoundingClientRect?.().width ?? 0)}px`);
+      }
+      const label = tab.querySelector(".tab-label-container");
+      const labelShown = label ? win.getComputedStyle(label).display !== "none" : false;
+      const root = doc.documentElement;
+      const info = [
+        `attrs: vertical=${root.hasAttribute("jace-vertical-tabs")} style=${root.getAttribute("jace-tabs-style")}`,
+        `tab label shown: ${labelShown}`,
+        `tab -> root: ${chain.join(" < ")}`,
+      ].join("; ");
+      Services.prefs.setStringPref("jace.tabs.verticalStyle", before);
+      const tabWidth = tab.getBoundingClientRect().width;
+      if (labelShown || tabWidth > 60) throw new Error(`tab ${Math.round(tabWidth)}px wide; ${info}`);
+      return true;
+    });
     await check("vertical tabs on by default", () => Services.prefs.getBoolPref("sidebar.verticalTabs"));
     await check("Jace sync modules load", () => {
       const { JaceSync } = ChromeUtils.importESModule("chrome://jace/content/sync/JaceSync.sys.mjs");
