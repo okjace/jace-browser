@@ -566,7 +566,7 @@
   }
   /* icons sit centered in the visible 56px column, in both states */
   & .tabbrowser-tab .tab-content {
-    padding-inline: 14px 8px !important;
+    padding-inline: 14px 30px !important;
     justify-content: flex-start !important;
     overflow: hidden !important;
   }
@@ -794,17 +794,27 @@
 .tabbrowser-tab .tab-close-button {
   display: none !important;
 }
+.tabbrowser-tab .tab-stack {
+  position: relative;
+}
 .jace-tab-close {
   box-sizing: border-box;
+  position: absolute !important;
+  inset-inline-end: 7px;
+  top: 50%;
+  margin-top: -10px;
+  z-index: 3;
   width: 20px !important;
   height: 20px !important;
   min-width: 20px;
-  margin-inline-start: 4px;
   border-radius: 6px !important;
-  position: relative;
-  color: inherit;
+  color: var(--jace-text);
   opacity: 0;
   transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+/* Room for it at the end of the tab's name. */
+.tabbrowser-tab:not([pinned]) .tab-content {
+  padding-inline-end: 30px !important;
 }
 .jace-tab-close::before {
   content: "";
@@ -820,12 +830,11 @@
 /* Faint on every tab, clear on the current and hovered tab. The icon-only
    styles hide it themselves. */
 .tabbrowser-tab:not([pinned]) .jace-tab-close {
-  display: flex !important;
+  display: block !important;
   visibility: visible !important;
-  flex: none !important;
-  opacity: 0.45;
+  opacity: 0.55;
 }
-.tabbrowser-tab:not([pinned]):is(:hover, [selected], [visuallyselected]) .jace-tab-close { opacity: 0.85; }
+.tabbrowser-tab:not([pinned]):is(:hover, [selected], [visuallyselected]) .jace-tab-close { opacity: 0.9; }
 .jace-tab-close:hover {
   opacity: 1 !important;
   background-color: color-mix(in srgb, #e5484d 22%, transparent) !important;

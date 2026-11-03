@@ -156,8 +156,9 @@ function applyLook(win) {
 /** Jace's own close button on a tab (Firefox's hides itself in some sidebar layouts). */
 function addCloseButton(tab) {
   if (!tab || tab.querySelector(".jace-tab-close")) return;
-  const content = tab.querySelector(".tab-content");
-  if (!content) return;
+  // On top of the tab (its .tab-stack layers everything in one spot), not in
+  // the row of icon/label/buttons, where Firefox's layouts can squeeze it out.
+  const host = tab.querySelector(".tab-stack") ?? tab.querySelector(".tab-content") ?? tab;
   const doc = tab.ownerDocument;
   const button = doc.createElementNS("http://www.w3.org/1999/xhtml", "span");
   button.className = "jace-tab-close";
@@ -177,7 +178,7 @@ function addCloseButton(tab) {
     },
     true,
   );
-  content.append(button);
+  host.append(button);
 }
 
 function addCloseButtons(win) {
