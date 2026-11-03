@@ -63,7 +63,8 @@ function make(win) {
   const doc = win.document;
   const button = doc.createXULElement("toolbarbutton");
   button.id = ID;
-  button.className = "toolbarbutton-1 jace-tabs-downloads";
+  // Not "toolbarbutton-1": Firefox paints that kind gray on hover. Jace styles it.
+  button.className = "jace-tabs-downloads";
   button.setAttribute("label", "Downloads");
   button.setAttribute("tooltiptext", "Downloads");
   const bar = doc.createElementNS("http://www.w3.org/1999/xhtml", "span");

@@ -1366,7 +1366,33 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   gap: 8px;
   color: var(--jace-text);
 }
-#jace-tabs-downloads[vertical]:hover { background: var(--jace-hover); }
+#jace-tabs-downloads {
+  appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 8px !important;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+#jace-tabs-downloads:not([vertical]) {
+  margin: 4px 2px !important;
+  padding: 6px !important;
+  align-self: center;
+}
+#jace-tabs-downloads > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+  width: 16px;
+  height: 16px;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#jace-tabs-downloads:hover {
+  background: color-mix(in srgb, var(--jace-accent) 14%, transparent) !important;
+  color: var(--jace-accent) !important;
+}
+#jace-tabs-downloads:hover:active {
+  background: color-mix(in srgb, var(--jace-accent) 22%, transparent) !important;
+}
 #jace-tabs-downloads[vertical] > .toolbarbutton-text {
   display: flex !important;
   font-size: inherit;
