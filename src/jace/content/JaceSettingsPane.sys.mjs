@@ -70,6 +70,7 @@ function fitFrame(frame) {
 }
 
 const HTML = "http://www.w3.org/1999/xhtml";
+const ACCOUNT_PANE = "paneJaceAccount";
 
 /**
  * Firefox's own "Account" box (Mozilla accounts, which Jace Browser doesn't
@@ -161,12 +162,45 @@ function jaceAccountBox(win) {
  * own About/version box), so nothing shows twice.
  */
 const PLACEMENT = [
-  { sections: ["account", "sync"], panes: ["paneSync"], label: /sync|account/i, replace: true },
+  // Jace's own category, at the top of the sidebar.
+  { sections: ["account"], panes: [ACCOUNT_PANE], label: /^$/ },
+  { sections: ["sync"], panes: ["paneSync"], label: /sync/i, replace: true },
   { sections: ["about"], panes: ["paneAbout"], label: /^\s*about/i, replace: true },
   { sections: ["look", "profiles", "drm"], panes: ["paneGeneral"], label: /general/i },
   { sections: ["privacy", "usb"], panes: ["panePrivacy"], label: /privacy|security/i },
 ];
 const ALL_SECTIONS = PLACEMENT.flatMap((p) => p.sections);
+
+/** Adds the "Account" category to the top of the settings sidebar. */
+function addAccountCategory(win, categories) {
+  const doc = win.document;
+  if (doc.getElementById("category-jace-account")) return true;
+  if (typeof win.register_module !== "function") return false;
+  let entry;
+  if (categories.localName === "moz-page-nav") {
+    entry = doc.createElement("moz-page-nav-button");
+    entry.setAttribute("view", ACCOUNT_PANE);
+    entry.setAttribute("iconsrc", "chrome://jace/skin/icons/account.svg");
+    entry.textContent = "Account";
+    // moz-page-nav reports clicks as "change-view"; Firefox only knows its own views.
+    entry.addEventListener("click", () => win.gotoPref(ACCOUNT_PANE));
+  } else {
+    entry = doc.createXULElement("richlistitem");
+    entry.className = "category";
+    entry.setAttribute("value", ACCOUNT_PANE);
+    entry.setAttribute("align", "center");
+    const label = doc.createXULElement("label");
+    label.className = "category-name";
+    label.setAttribute("flex", "1");
+    label.textContent = "Account";
+    entry.append(label);
+  }
+  entry.id = "category-jace-account";
+  entry.setAttribute("title", "Your Jace account");
+  win.register_module(ACCOUNT_PANE, { init() {} });
+  categories.prepend(entry);
+  return true;
+}
 
 /** The panes in the settings sidebar: [{ pane, label }]. */
 function sidebarPanes(categories) {
@@ -211,6 +245,11 @@ function inject(win, wantJace) {
   const mainPane = doc.getElementById("mainPrefPane");
   if (!categories || !mainPane || typeof win.gotoPref !== "function") {
     return injectAtTop(win);
+  }
+  try {
+    addAccountCategory(win, categories);
+  } catch (e) {
+    console.error("Jace: couldn't add the Account category", e);
   }
   const plan = planPlacement(categories);
   if (!plan.size) return injectAtTop(win);
