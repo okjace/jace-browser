@@ -1,5 +1,13 @@
 /* Jace Browser default preferences. Installed to browser/defaults/preferences. */
 
+// ---------- Startup ----------
+// Run jace.cfg (next to the browser) at startup: it loads all of Jace
+// Browser's own features (see src/jace/README.md). These used to be in
+// defaults/pref/autoconfig.js; default prefs here are read just as early.
+pref("general.config.filename", "jace.cfg");
+pref("general.config.obscure_value", 0);
+pref("general.config.sandbox_enabled", false);
+
 // ---------- Look: Zen-style layout ----------
 // Vertical tabs are on by default; turn them off with the tabs button in the
 // toolbar, Ctrl+Alt+V (Cmd+Opt+V on macOS), or about:jace.
@@ -17,6 +25,27 @@ pref("jace.theme.accent", "#3ddc84");       // Jace green
 pref("jace.tabs.verticalStyle", "full");    // "full", "icons" (icons only), or "hover" (icons, expand on hover)
 pref("jace.windowControls.style", "system"); // "system" (GNOME look on Linux, the real buttons on Windows and macOS), "jace" (colored dots), or "minimal"
 pref("jace.profiles.showButton", true);     // the profiles button in the toolbar
+
+// ---------- No Firefox-branded features ----------
+// Jace Browser has its own account, sync, profiles and settings; these
+// Firefox/Mozilla features and promotions are turned off or hidden.
+pref("browser.tabs.firefox-view", false);              // Firefox View
+pref("browser.firefox-view.feature-tour", "{\"screen\":\"\",\"complete\":true}");
+pref("signon.firefoxRelay.feature", "disabled");       // Firefox Relay
+pref("browser.preferences.moreFromMozilla", false);    // "More from Mozilla"
+pref("browser.preferences.experimental.hidden", true); // Firefox Labs
+pref("browser.urlbar.quicksuggest.enabled", false);    // Firefox Suggest
+pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
+pref("browser.privatebrowsing.vpnpromourl", "");       // Mozilla VPN promo
+pref("browser.promo.focus.enabled", false);            // Firefox Focus promo
+pref("browser.promo.pin.enabled", false);
+pref("browser.profiles.enabled", false);               // Firefox's profiles UI (Jace has its own)
+pref("browser.messaging-system.whatsNewPanel.enabled", false);
+pref("browser.uitour.enabled", false);
+pref("browser.newtabpage.activity-stream.showWeather", false);
+pref("browser.newtabpage.activity-stream.feeds.section.highlights", false);
+pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
+pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
 
 // ---------- New tab ----------
 // Default shortcuts (instead of Firefox's, like "Add-ons for Firefox").

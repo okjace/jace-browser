@@ -11,12 +11,13 @@
  * - the Jace account panel (sign in, sync status, other devices' tabs)
  */
 
-import { getCustomizableUI, jacePageURL } from "chrome://jace/content/JaceCompat.sys.mjs";
+import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceProfiles: "chrome://jace/content/JaceProfiles.sys.mjs",
+  JaceSettingsPane: "chrome://jace/content/JaceSettingsPane.sys.mjs",
   JaceSplash: "chrome://jace/content/JaceSplash.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceUpdates: "chrome://jace/content/JaceUpdates.sys.mjs",
@@ -323,9 +324,12 @@ export const JaceWindow = {
       b.addEventListener("click", onclick);
       return b;
     };
-    const openSettings = (hash = "") => {
+    const openSettings = (section = "") => {
       close();
-      win.switchToTabHavingURI(`${jacePageURL("jace")}${hash}`, true, { ignoreFragment: "whenComparingAndReplace" });
+      win.switchToTabHavingURI(lazy.JaceSettingsPane.url(section), true, {
+        ignoreFragment: "whenComparingAndReplace",
+        ignoreQueryString: true,
+      });
     };
 
     if (!profile) {
@@ -380,7 +384,7 @@ export const JaceWindow = {
     box.append(html(doc, "p", { class: "jace-panel-text", text: line }));
 
     if (status.state === "needs-passphrase") {
-      box.append(button("Set up sync", () => openSettings("#sync"), "primary"));
+      box.append(button("Set up sync", () => openSettings("sync"), "primary"));
     } else {
       box.append(
         button("Sync now", async (e) => {

@@ -6,7 +6,7 @@
  * The parent-process side of Jace Browser's WebUSB.
  *
  * - Runs jace-usb-helper (usb-helper/ in the repo, installed next to the
- *   browser in jace/bin/) and talks to it with JSON lines.
+ *   browser in jacebrowser/bin/) and talks to it with JSON lines.
  * - Remembers which sites may use which devices (jace-usb-permissions.json
  *   in the profile), the same way Chrome does: a site gets a device only
  *   after the person picks it in the chooser that navigator.usb.requestDevice()
@@ -28,7 +28,7 @@ const PERMISSIONS_FILE = () => PathUtils.join(PathUtils.profileDir, "jace-usb-pe
 
 function helperPath() {
   const dir = Services.dirsvc.get("GreD", Ci.nsIFile);
-  dir.append("jace");
+  dir.append("jacebrowser");
   dir.append("bin");
   dir.append(Services.appinfo.OS === "WINNT" ? "jace-usb-helper.exe" : "jace-usb-helper");
   return dir;

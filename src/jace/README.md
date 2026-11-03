@@ -5,12 +5,12 @@ copies it to `engine/browser/jace` and installs it next to the browser:
 
 | Installed as | From | What it does |
 |---|---|---|
-| `defaults/pref/autoconfig.js` + `jace.cfg` | `autoconfig/` | Firefox's autoconfig runs `jace.cfg` at startup. It registers `chrome://jace/` and `resource://jace/` from the `jace/` folder and starts `JaceLoader`. |
+| `jace.cfg` | `autoconfig/` | Firefox's autoconfig runs `jace.cfg` at startup (switched on by the `general.config.*` prefs in `jace-prefs.js`). It registers `chrome://jace/` and `resource://jace/` from the `jacebrowser/` folder (not `jace/`: that is the program file's name on Linux and macOS) and starts `JaceLoader`. |
 | `browser/defaults/preferences/jace-prefs.js` | `defaults/` | Default settings: vertical tabs on, DRM on, Jace account server, updates. |
 | `distribution/policies.json` | `policies/` | Enterprise policies: telemetry, studies, Pocket, sponsored content and Mozilla's messaging off. |
-| `jace/content/` | `content/` | The features (below). |
-| `jace/skin/` | `skin/` | The Zen-style look and icons. |
-| `jace/bin/jace-usb-helper` | `../../usb-helper` | Native USB access for WebUSB. |
+| `jacebrowser/content/` | `content/` | The features (below). |
+| `jacebrowser/skin/` | `skin/` | The Zen-style look and icons. |
+| `jacebrowser/bin/jace-usb-helper` | `../../usb-helper` | Native USB access for WebUSB. |
 
 Because it's loaded this way, Firefox's own source needs only two one-line
 changes (a `DIRS` entry and the package manifest), so moving to a new Firefox

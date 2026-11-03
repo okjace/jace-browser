@@ -172,3 +172,9 @@ a { color: var(--accent); }
 .choice-group legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
 .choice-group label { display: flex; gap: 8px; align-items: center; }
 .choice-group input { accent-color: var(--accent); }
+
+/* Embedded in the browser's settings (about:preferences#jace) */
+.embedded body { display: block; min-height: 0; background: transparent; }
+.embedded .side { display: none; }
+.embedded main { max-width: 760px; padding: 0 0 24px; }
+.embedded section { box-shadow: none; }

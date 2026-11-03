@@ -14,7 +14,7 @@ means cross-compiling from Linux, the way Mozilla builds Firefox).
 
 What "prepare" does to the Firefox source, and nothing else:
   1. copies src/jace to engine/browser/jace and writes its moz.build, which
-     installs it next to the browser (jace/, jace.cfg, defaults/pref/autoconfig.js,
+     installs it next to the browser (jacebrowser/, jace.cfg,
      browser/defaults/preferences/jace-prefs.js, distribution/policies.json)
   2. adds "jace" to browser/moz.build's DIRS, and its files to the installer's
      package manifest
@@ -118,13 +118,11 @@ def write_jace_mozbuild(jace_dir: Path):
         'FINAL_TARGET = "dist/bin"',
         "",
         'FINAL_TARGET_FILES += ["autoconfig/jace.cfg"]',
-        'FINAL_TARGET_FILES.defaults.pref += ["autoconfig/autoconfig.js"]',
         'FINAL_TARGET_FILES.browser.defaults.preferences += ["defaults/jace-prefs.js"]',
         'FINAL_TARGET_FILES.distribution += ["policies/policies.json"]',
     ]
     packaged = [
         "@RESPATH@/jace.cfg",
-        "@RESPATH@/defaults/pref/autoconfig.js",
         "@RESPATH@/browser/defaults/preferences/jace-prefs.js",
         "@RESPATH@/distribution/policies.json",
     ]
@@ -134,9 +132,9 @@ def write_jace_mozbuild(jace_dir: Path):
         if rel.parts[0] in ("autoconfig", "defaults", "policies") or rel.name == "moz.build":
             continue
         groups.setdefault(rel.parent, []).append(rel)
-        packaged.append(f"@RESPATH@/jace/{rel.as_posix()}")
+        packaged.append(f"@RESPATH@/jacebrowser/{rel.as_posix()}")
     for parent, rels in sorted(groups.items()):
-        key = ".".join(["jace", *parent.parts])
+        key = ".".join(["jacebrowser", *parent.parts])
         lines.append(f"FINAL_TARGET_FILES.{key} += [")
         lines += [f'    "{r.as_posix()}",' for r in rels]
         lines.append("]")
@@ -239,6 +237,11 @@ def write_mozconfig(target):
     else:
         # No packed SDK: --enable-bootstrap downloads Mozilla's Windows SDK toolchain instead.
         text = "\n".join(line for line in text.splitlines() if "@WINSYSROOT@" not in line) + "\n"
+    mac_arch = os.environ.get("JACE_MAC_ARCH")
+    if target == "macos" and mac_arch:
+        # CI builds both Mac versions on Apple Silicon machines.
+        triple = {"x86_64": "x86_64-apple-darwin", "arm64": "aarch64-apple-darwin"}[mac_arch]
+        text += f"\nac_add_options --target={triple}\n"
     if target == "macos" and "@MACOS_SDK@" in text:
         sdk = subprocess.run(["xcrun", "--show-sdk-path"], capture_output=True, text=True).stdout.strip()
         text = text.replace("@MACOS_SDK@", sdk)
@@ -355,7 +358,7 @@ def package(args):
         (zipped,) = list((obj / "dist").glob("jace-*.zip"))
         shutil.copy(zipped, DIST / f"{stem}-windows-x64-portable.zip")
     elif args.platform == "macos":
-        arch = "arm64" if platform.machine() == "arm64" else "x86_64"
+        arch = os.environ.get("JACE_MAC_ARCH") or ("arm64" if platform.machine() == "arm64" else "x86_64")
         (dmg,) = list((obj / "dist").glob("jace-*.dmg"))
         make_dmg(dmg, DIST / f"{stem}-macos-{arch}.dmg")
     for f in sorted(DIST.iterdir()):
@@ -368,7 +371,7 @@ def repack_linux(tarball: Path, out: Path):
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir()
     run(["tar", "-xf", tarball, "-C", work])
-    helper = work / "jace" / "jace" / "bin" / "jace-usb-helper"
+    helper = work / "jace" / "jacebrowser" / "bin" / "jace-usb-helper"
     if helper.exists():
         helper.chmod(0o755)
     run(["tar", "-cJf", out, "-C", work, "jace"])
@@ -406,7 +409,7 @@ def make_dmg(source_dmg: Path, out: Path):
         run(["ditto", app, stage / "Jace Browser.app"])
     finally:
         run(["hdiutil", "detach", mnt])
-    helper = stage / "Jace Browser.app" / "Contents" / "Resources" / "jace" / "bin" / "jace-usb-helper"
+    helper = stage / "Jace Browser.app" / "Contents" / "Resources" / "jacebrowser" / "bin" / "jace-usb-helper"
     if helper.exists():
         helper.chmod(0o755)
     # Not notarized (no paid Apple certificate), but a valid ad-hoc signature is

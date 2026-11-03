@@ -210,18 +210,19 @@ def main():
     gre = gre_dir(Path(sys.argv[1]))
     if not (gre / "omni.ja").exists():
         sys.exit(f"{gre} doesn't look like a Firefox install (no omni.ja)")
-    targets = [gre / "jace", gre / "jace.cfg", gre / "defaults" / "pref" / "autoconfig.js", gre / "browser" / "defaults" / "preferences" / "jace-prefs.js", gre / "distribution" / "policies.json"]
+    targets = [gre / "jacebrowser", gre / "jace", gre / "jace.cfg", gre / "defaults" / "pref" / "autoconfig.js", gre / "browser" / "defaults" / "preferences" / "jace-prefs.js", gre / "distribution" / "policies.json"]
     if "--remove" in sys.argv:
         for t in targets:
             shutil.rmtree(t, ignore_errors=True) if t.is_dir() else t.unlink(missing_ok=True)
         unbrand(gre)
         print("Removed Jace Browser's files and put Firefox's branding back.")
         return
-    shutil.rmtree(gre / "jace", ignore_errors=True)
-    shutil.copytree(SRC, gre / "jace", ignore=shutil.ignore_patterns("autoconfig", "defaults", "policies", "README.md", "moz.build"))
+    shutil.rmtree(gre / "jace", ignore_errors=True)  # the folder's old name
+    shutil.rmtree(gre / "jacebrowser", ignore_errors=True)
+    shutil.copytree(SRC, gre / "jacebrowser", ignore=shutil.ignore_patterns("autoconfig", "defaults", "policies", "README.md", "moz.build"))
     shutil.copy(SRC / "autoconfig" / "jace.cfg", gre / "jace.cfg")
-    (gre / "defaults" / "pref").mkdir(parents=True, exist_ok=True)
-    shutil.copy(SRC / "autoconfig" / "autoconfig.js", gre / "defaults" / "pref" / "autoconfig.js")
+    # The autoconfig settings now live in jace-prefs.js, like in the real build.
+    (gre / "defaults" / "pref" / "autoconfig.js").unlink(missing_ok=True)
     (gre / "browser" / "defaults" / "preferences").mkdir(parents=True, exist_ok=True)
     shutil.copy(SRC / "defaults" / "jace-prefs.js", gre / "browser" / "defaults" / "preferences" / "jace-prefs.js")
     (gre / "distribution").mkdir(exist_ok=True)
@@ -235,8 +236,8 @@ def main():
     if not helper.exists():
         print("note: Rust (cargo) isn't installed, so WebUSB can't reach devices in this copy. Everything else works.")
     if helper.exists():
-        (gre / "jace" / "bin").mkdir(exist_ok=True)
-        shutil.copy(helper, gre / "jace" / "bin" / exe)
+        (gre / "jacebrowser" / "bin").mkdir(exist_ok=True)
+        shutil.copy(helper, gre / "jacebrowser" / "bin" / exe)
     if "--no-brand" not in sys.argv:
         rebrand(gre)
     print(f"Installed into {gre}. Start it with -purgecaches the first time after installing.")

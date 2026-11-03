@@ -12,6 +12,16 @@ const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceP
 const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
 
 const $ = (id) => document.getElementById(id);
+
+// One settings page: inside the browser's settings (about:preferences#jace)
+// this page is embedded; opened on its own, it forwards there.
+const embedded = new URLSearchParams(location.search).has("embedded");
+if (embedded) {
+  document.documentElement.classList.add("embedded");
+} else if (Services.prefs.getBoolPref("jace.settings.inPreferences", false)) {
+  const section = location.hash.slice(1);
+  location.replace(section ? `about:preferences?jace=${encodeURIComponent(section)}#jace` : "about:preferences#jace");
+}
 const browserWindow = () => window.browsingContext.topChromeWindow;
 
 const ENGINE_LABELS = {

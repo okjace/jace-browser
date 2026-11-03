@@ -22,6 +22,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceWindow: "chrome://jace/content/JaceWindow.sys.mjs",
   JaceProfiles: "chrome://jace/content/JaceProfiles.sys.mjs",
+  JaceContentStyle: "chrome://jace/content/JaceContentStyle.sys.mjs",
+  JaceSettingsPane: "chrome://jace/content/JaceSettingsPane.sys.mjs",
 });
 ChromeUtils.defineLazyGetter(lazy, "CustomizableUI", () => getCustomizableUI());
 
@@ -195,6 +197,8 @@ export const JaceLoader = {
     for (const [what, fn] of [
       ["about:jace pages", registerAboutPages],
       ["WebUSB", registerWebUSB],
+      ["the Jace look for built-in pages", () => lazy.JaceContentStyle.start()],
+      ["the Jace section in settings", () => lazy.JaceSettingsPane.start()],
     ]) {
       try {
         fn();

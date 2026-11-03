@@ -210,7 +210,7 @@ jobs:
           $dir = "$env:ProgramFiles\Jace Browser"
           $exe = "$dir\jace.exe"
           if (!(Test-Path $exe)) { throw "not installed" }
-          if (!(Test-Path "$dir\jace\bin\jace-usb-helper.exe")) { throw "USB helper missing" }
+          if (!(Test-Path "$dir\jacebrowser\bin\jace-usb-helper.exe")) { throw "USB helper missing" }
           if (!(Test-Path "$dir\jace.cfg")) { throw "jace.cfg missing" }
           if (!(Test-Path "$dir\distribution\policies.json")) { throw "policies.json missing" }
           $lnk = Get-ChildItem "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" -Filter "Jace Browser*.lnk" -Recurse
@@ -237,14 +237,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Both on Apple Silicon machines: GitHub's Intel Macs have an Apple SDK
+        # too old for current Firefox, so the Intel build is cross-compiled.
         include:
-          - runner: macos-latest       # Apple Silicon (arm64)
-            arch: arm64
-          - runner: macos-15-intel     # Intel (x86_64)
-            arch: x86_64
-    runs-on: ${{ matrix.runner }}
+          - arch: arm64
+            target: aarch64-apple-darwin
+          - arch: x86_64
+            target: x86_64-apple-darwin
+    runs-on: macos-latest
     timeout-minutes: 360
     env:
+      JACE_MAC_ARCH: ${{ matrix.arch }}
       # Compiler cache in GitHub's cache: rebuilds only recompile what changed.
       SCCACHE_GHA_ENABLED: "true"
     steps:
@@ -257,11 +260,13 @@ jobs:
       - run: pip install pillow
       - name: Build the USB helper
         working-directory: usb-helper
-        run: cargo build --release
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
       - name: Get Firefox's source
         run: python3 scripts/build.py download
       - name: Add Jace Browser to it
-        run: python3 scripts/build.py prepare --platform macos
+        run: python3 scripts/build.py prepare --platform macos --usb-helper usb-helper/target/${{ matrix.target }}/release/jace-usb-helper
       - name: Build
         run: python3 scripts/build.py build --platform macos
       - name: Package (.dmg)
@@ -272,6 +277,8 @@ jobs:
           JACE_SELF_TEST_UPDATE_KIND: macos-app
         run: |
           set -x
+          # The Intel build runs through Rosetta on this Apple Silicon machine.
+          if [ "$JACE_MAC_ARCH" = x86_64 ]; then softwareupdate --install-rosetta --agree-to-license || true; fi
           DMG=$(ls dist/*.dmg)
           # mark it as downloaded from the internet, like Safari does
           xattr -w com.apple.quarantine "0081;$(printf %x $(date +%s));Safari;" "$DMG"
@@ -281,10 +288,11 @@ jobs:
           hdiutil detach /Volumes/JaceBrowser
           APP="/Applications/Jace Browser.app"
           codesign --verify --deep --strict "$APP"
-          test -x "$APP/Contents/Resources/jace/bin/jace-usb-helper"
+          test -x "$APP/Contents/Resources/jacebrowser/bin/jace-usb-helper"
           test -f "$APP/Contents/Resources/distribution/policies.json"
           mkdir -p "$RUNNER_TEMP/profile"
-          timeout 300 "$APP/Contents/MacOS/jace" --headless -no-remote -profile "$RUNNER_TEMP/profile" || true
+          # (macOS has no `timeout` command; perl's alarm does the same)
+          perl -e 'alarm 300; exec @ARGV' "$APP/Contents/MacOS/jace" --headless -no-remote -profile "$RUNNER_TEMP/profile" || true
           cat "$JACE_SELF_TEST_OUT"
           grep -q "SELF-TEST OK" "$JACE_SELF_TEST_OUT"
           rm -rf "$APP"

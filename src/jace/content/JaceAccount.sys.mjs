@@ -17,7 +17,7 @@
  */
 
 import { JaceSecrets } from "chrome://jace/content/JaceSecrets.sys.mjs";
-import { jacePageURL } from "chrome://jace/content/JaceCompat.sys.mjs";
+import { JaceSettingsPane } from "chrome://jace/content/JaceSettingsPane.sys.mjs";
 
 const PREF_SERVER = "jace.account.server";
 const PREF_CLIENT_ID = "jace.account.clientId";
@@ -233,12 +233,12 @@ export const JaceAccount = {
           throw new JaceAccountError(error || "no_code", params.get("error_description") || "Sign-in was cancelled.");
         }
         const profile = await this._finishSignIn(code, verifier);
-        browser?.loadURI?.(Services.io.newURI(`${jacePageURL("jace")}#signed-in`), {
+        browser?.loadURI?.(Services.io.newURI(JaceSettingsPane.url("signed-in")), {
           triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
         });
         resolve(profile);
       } catch (e) {
-        browser?.loadURI?.(Services.io.newURI(`${jacePageURL("jace")}#sign-in-failed`), {
+        browser?.loadURI?.(Services.io.newURI(JaceSettingsPane.url("sign-in-failed")), {
           triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
         });
         reject(e instanceof JaceAccountError ? e : new JaceAccountError("sign_in_failed", String(e?.message ?? e)));

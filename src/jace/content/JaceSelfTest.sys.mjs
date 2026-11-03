@@ -43,6 +43,21 @@ export const JaceSelfTest = {
         return module.getChromeURI(Services.io.newURI(`about:${what}`)).spec.startsWith("chrome://jace/");
       });
     }
+    await check("Jace look for the built-in pages is on", () => {
+      const { JaceContentStyle } = ChromeUtils.importESModule("chrome://jace/content/JaceContentStyle.sys.mjs");
+      return JaceContentStyle.started;
+    });
+    await check("Jace settings open in the browser's settings", () => {
+      const { JaceSettingsPane } = ChromeUtils.importESModule("chrome://jace/content/JaceSettingsPane.sys.mjs");
+      return JaceSettingsPane.url().startsWith("about:preferences");
+    });
+    await check("Firefox View, Relay and Firefox Suggest are off", () => {
+      return (
+        !Services.prefs.getBoolPref("browser.tabs.firefox-view", true) &&
+        Services.prefs.getStringPref("signon.firefoxRelay.feature", "") === "disabled" &&
+        !Services.prefs.getBoolPref("browser.urlbar.quicksuggest.enabled", true)
+      );
+    });
     await check("startup animation module loads", () => {
       const { ANIMATED_LOGO_SVG } = ChromeUtils.importESModule("chrome://jace/content/JaceSplash.sys.mjs");
       return ANIMATED_LOGO_SVG.includes("jace-logo-j");
