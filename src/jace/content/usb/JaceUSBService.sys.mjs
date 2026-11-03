@@ -18,6 +18,7 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   Subprocess: "resource://gre/modules/Subprocess.sys.mjs",
 });
 
@@ -95,17 +96,36 @@ class Helper {
     this.proc = await lazy.Subprocess.call({
       command: file.path,
       arguments: [],
-      stderr: "ignore",
+      stderr: "pipe",
     });
-    this._readLoop(this.proc);
-    this.proc.wait().then(() => {
-      this.proc = null;
+    const proc = this.proc;
+    let stderr = "";
+    (async () => {
+      for (;;) {
+        const chunk = await proc.stderr.readString().catch(() => "");
+        if (!chunk) break;
+        stderr = (stderr + chunk).slice(-2000);
+      }
+    })();
+    this._readLoop(proc);
+    proc.wait().then(({ exitCode }) => {
+      // Why it stopped, for errors and the self-test.
+      this.lastExit = { exitCode, stderr: stderr.trim() };
+      if (this.proc === proc) this.proc = null;
+      const why = `The USB helper stopped (exit code ${exitCode}${stderr.trim() ? `: ${stderr.trim().slice(-300)}` : ""}).`;
       for (const [, { reject }] of this.waiting) {
-        reject(new DOMExceptionLike("NetworkError", "The USB helper stopped."));
+        reject(new DOMExceptionLike("NetworkError", why));
       }
       this.waiting.clear();
     });
-    await this.request("hello");
+    try {
+      await this.request("hello");
+    } catch (e) {
+      // Give the exit a moment to be noticed, then say why.
+      await new Promise((r) => lazy.setTimeout(r, 300));
+      const exit = this.lastExit;
+      throw new DOMExceptionLike("NetworkError", exit ? `The USB helper stopped (exit code ${exit.exitCode}${exit.stderr ? `: ${exit.stderr.slice(-300)}` : ""}).` : `${e.message ?? e}`);
+    }
   }
 
   async _readLoop(proc) {

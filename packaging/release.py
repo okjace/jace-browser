@@ -18,7 +18,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def gh(*args, check=True):
-    return subprocess.run(["gh", *args], check=check, capture_output=True, text=True)
+    res = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if check and res.returncode != 0:
+        sys.exit(f"gh {args[0]} {args[1]} failed ({res.returncode}): {res.stderr.strip() or res.stdout.strip()}")
+    return res
 
 
 def notes(version: str) -> str:

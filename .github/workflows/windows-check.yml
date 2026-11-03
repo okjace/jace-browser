@@ -1,0 +1,49 @@
+# Re-test a finished Windows build with the latest Jace code, for free (on
+# GitHub's own Windows runner, no rebuild): installs the "windows" artifact of
+# an earlier Build run, swaps in this commit's Jace files (they sit unpacked
+# in jacebrowser\), and runs the self-test. For fixing Jace's own code
+# without paying for a whole Firefox build.
+name: Windows check
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Build run whose Windows installer to test"
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  check:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows
+          path: win
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Install, update Jace's files, self-test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $setup = (Get-ChildItem win\*-setup.exe)[0].FullName
+          Start-Process -FilePath $setup -ArgumentList "/S" -Wait
+          for ($i = 0; $i -lt 24 -and !(Test-Path "$env:ProgramFiles\Jace Browser\jace.exe"); $i++) { Start-Sleep -Seconds 5 }
+          $dir = "$env:ProgramFiles\Jace Browser"
+          if (!(Test-Path "$dir\jace.exe")) { throw "not installed" }
+          # This commit's Jace code (not the build's).
+          Copy-Item -Recurse -Force src\jace\content\* "$dir\jacebrowser\content\"
+          Copy-Item -Force src\jace\autoconfig\jace.cfg "$dir\jace.cfg"
+          "Helper on its own:"
+          '{"id":1,"cmd":"hello"}' | & "$dir\jacebrowser\bin\jace-usb-helper.exe" | Select-Object -First 1
+          $env:JACE_SELF_TEST_OUT = "$env:RUNNER_TEMP\selftest.txt"
+          $profile = "$env:RUNNER_TEMP\profile"; New-Item -ItemType Directory $profile | Out-Null
+          $p = Start-Process -FilePath "$dir\jace.exe" -ArgumentList "--headless","-no-remote","-profile",$profile -PassThru
+          if (!$p.WaitForExit(300000)) { $p.Kill(); "self-test didn't finish in 5 minutes" }
+          Get-Content $env:JACE_SELF_TEST_OUT

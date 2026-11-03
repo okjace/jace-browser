@@ -437,7 +437,9 @@ export const JaceSelfTest = {
     });
     await check("WebUSB helper installed and answering", async () => {
       const { JaceUSBService } = ChromeUtils.importESModule("chrome://jace/content/usb/JaceUSBService.sys.mjs");
-      return JaceUSBService.helperInstalled() && Array.isArray(await JaceUSBService.listAll());
+      if (!JaceUSBService.helperInstalled()) throw new Error("not installed");
+      const list = await JaceUSBService.listAll();
+      return Array.isArray(list) ? `${list.length} device(s)` : false;
     });
     await check("DRM (EME + Widevine) enabled", () => {
       return Services.prefs.getBoolPref("media.eme.enabled") && Services.prefs.getBoolPref("media.gmp-widevinecdm.enabled");
