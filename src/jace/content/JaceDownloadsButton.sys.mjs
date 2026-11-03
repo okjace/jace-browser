@@ -7,12 +7,9 @@
  * sidebar, or at the end of the tab strip when tabs are across the top.
  * It shows how many downloads are running and their progress.
  *
- * Press it for your downloads as a list, Zen-style:
- *   - sidebar with names ("full" tab style): the list unfolds in the
- *     sidebar, right above the button
- *   - only icons / bigger on hover / tabs across the top: the list pops out
- *     from the button
- * Each download: open it (click), show it in its folder, cancel or retry.
+ * It's an icon; press it for your downloads as a list in a panel like the
+ * site security panel. Each download: open it (click), show it in its
+ * folder, cancel or retry.
  *
  * Off with jace.tabs.downloadsButton = false (Settings > Look).
  */
@@ -24,7 +21,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const PREF = "jace.tabs.downloadsButton";
 const ID = "jace-tabs-downloads";
-const LIST_ID = "jace-sidebar-downloads";
 const PANEL_ID = "jace-downloads-panel";
 const HTML = "http://www.w3.org/1999/xhtml";
 const SHOWN = 8;
@@ -130,14 +126,8 @@ function fillList(win, box, onDone) {
   const render = () => {
     box.replaceChildren();
     const header = el(doc, "div", { class: "jace-dl-header" });
-    header.append(el(doc, "span", { class: "jace-dl-title" }, "Downloads"));
-    const all = el(doc, "button", { class: "jace-dl-all" }, "Show all");
-    all.addEventListener("click", () => {
-      onDone?.();
-      win.switchToTabHavingURI("about:downloads", true);
-    });
-    header.append(all);
-    box.append(header);
+    header.append(el(doc, "h1", { class: "jace-dl-title" }, "Downloads"));
+    box.append(header, doc.createXULElement("toolbarseparator"));
     const list = el(doc, "div", { class: "jace-dl-items", role: "list" });
     if (!downloads.length) list.append(el(doc, "div", { class: "jace-dl-empty" }, "No downloads yet"));
     for (const d of downloads.slice(0, SHOWN)) {
@@ -169,7 +159,15 @@ function fillList(win, box, onDone) {
       });
       list.append(row);
     }
-    box.append(list);
+    box.append(list, doc.createXULElement("toolbarseparator"));
+    const all = doc.createXULElement("toolbarbutton");
+    all.className = "subviewbutton jace-dl-all";
+    all.setAttribute("label", "Show all downloads");
+    all.addEventListener("command", () => {
+      onDone?.();
+      win.switchToTabHavingURI("about:downloads", true);
+    });
+    box.append(all);
   };
   render();
   // Keep it current (progress) while shown; a little throttled.
@@ -188,36 +186,15 @@ function fillList(win, box, onDone) {
 
 // ------------------------------------------------------------ showing it
 
-/** The list in the sidebar, unfolding above the button. */
-function toggleSidebarList(win, button) {
-  const doc = win.document;
-  let wrap = doc.getElementById(LIST_ID);
-  if (!wrap) {
-    wrap = el(doc, "div", { id: LIST_ID });
-    wrap.append(el(doc, "div", { class: "jace-dl-inner" }));
-  }
-  if (wrap.nextSibling !== button) button.before(wrap);
-  const open = !wrap.hasAttribute("open");
-  if (open) {
-    wrap.__stop?.();
-    wrap.__stop = fillList(win, wrap.firstChild, () => toggleSidebarList(win, button));
-    // Next frame, so the unfolding animates.
-    win.requestAnimationFrame(() => wrap.setAttribute("open", "true"));
-  } else {
-    wrap.removeAttribute("open");
-    wrap.__stop?.();
-    wrap.__stop = null;
-  }
-  button.toggleAttribute("open", open);
-}
-
-/** The list popping out from the button. */
+/** The list in a panel from the icon, like the site security panel. */
 function togglePanel(win, button) {
   const doc = win.document;
   let panel = doc.getElementById(PANEL_ID);
   if (!panel) {
     panel = doc.createXULElement("panel");
     panel.id = PANEL_ID;
+    panel.setAttribute("type", "arrow");
+    panel.setAttribute("class", "panel-no-padding");
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-label", "Downloads");
     panel.append(el(doc, "div", { class: "jace-dl-box" }));
@@ -236,17 +213,12 @@ function togglePanel(win, button) {
   panel.__stop = fillList(win, panel.firstChild, () => panel.hidePopup());
   button.setAttribute("open", "true");
   const vertical = button.hasAttribute("vertical");
-  // In the sidebar: next to the icon (the rest of the button may be folded away).
-  const anchor = vertical ? (button.querySelector(".toolbarbutton-icon") ?? button) : button;
-  panel.openPopup(anchor, vertical ? "end_after" : "after_end", vertical ? 14 : 0, vertical ? 0 : 6);
+  panel.openPopup(button, vertical ? "end_after" : "bottomright topright");
 }
 
 function openDownloads(win, button) {
-  const root = win.document.documentElement;
-  const inSidebar = button.hasAttribute("vertical") && root.getAttribute("jace-tabs-style") === "full";
   try {
-    if (inSidebar) toggleSidebarList(win, button);
-    else togglePanel(win, button);
+    togglePanel(win, button);
   } catch (e) {
     console.error("Jace: downloads list", e);
     win.switchToTabHavingURI("about:downloads", true);
@@ -261,7 +233,7 @@ function make(win) {
   button.id = ID;
   // Not "toolbarbutton-1": Firefox paints that kind gray on hover. Jace styles it.
   button.className = "jace-tabs-downloads";
-  button.setAttribute("label", "Downloads");
+  button.setAttribute("label", "Downloads"); // for screen readers; only the icon shows
   button.setAttribute("tooltiptext", "Downloads");
   const bar = doc.createElementNS(HTML, "span");
   bar.className = "jace-downloads-progress";
@@ -290,7 +262,6 @@ export const JaceDownloadsButton = {
     let button = doc.getElementById(ID);
     if (!Services.prefs.getBoolPref(PREF, true)) {
       button?.remove();
-      doc.getElementById(LIST_ID)?.remove();
       return;
     }
     button ??= make(win);
@@ -303,7 +274,6 @@ export const JaceDownloadsButton = {
       // End of the tab strip, outside the part the toolbar editor manages.
       const strip = doc.getElementById("TabsToolbar-customization-target");
       if (strip && button.previousSibling !== strip) strip.after(button);
-      doc.getElementById(LIST_ID)?.removeAttribute("open");
     }
     button.toggleAttribute("vertical", vertical);
   },

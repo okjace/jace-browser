@@ -486,7 +486,7 @@
    is a 44px square centered in the 56px sidebar. */
 :root[jace-vertical-tabs][jace-tabs-style="icons"] :is(#sidebar-main, #sidebar-container) {
   & :is(.tab-label-container, .tab-audio-button, .tab-secondary-label, .tab-icon-overlay,
-        .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) .toolbarbutton-text) {
+        .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     display: none !important;
   }
   & :is(sidebar-main, #vertical-tabs, #tabbrowser-tabs, #tabbrowser-arrowscrollbox) {
@@ -510,7 +510,7 @@
     padding-inline: 0 !important;
     justify-content: center !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
     width: 44px !important;
     min-width: 44px !important;
     max-width: 44px !important;
@@ -519,7 +519,7 @@
     justify-content: center !important;
     align-items: center !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) > .toolbarbutton-icon {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
     margin-inline: 0 !important;
   }
 }
@@ -554,7 +554,7 @@
     margin-inline: 0 !important;
     padding-inline: 0 !important;
   }
-  & :is(.tabbrowser-tab, #vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) {
+  & :is(.tabbrowser-tab, #vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
     width: 248px !important;
     min-width: 0 !important;
     max-width: 248px !important;
@@ -574,15 +574,15 @@
     flex: 1 1 auto !important;
     min-width: 0 !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
     padding-inline: 6px 0 !important;
     justify-content: flex-start !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) > .toolbarbutton-icon {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
     margin-inline: 0 !important;
   }
   & :is(.tab-label-container, .tab-audio-button, .tab-secondary-label,
-        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) .toolbarbutton-text) {
+        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     opacity: 0 !important;
     transform: translateX(-12px);
     transition: opacity 220ms ease 160ms, transform 320ms var(--jace-close) 160ms !important;
@@ -600,7 +600,7 @@
     box-shadow 340ms ease 120ms !important;
 
   & :is(.tab-label-container,
-        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) .toolbarbutton-text) {
+        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     opacity: 1 !important;
     transform: none;
     transition: opacity 240ms ease 220ms, transform 340ms var(--jace-open) 180ms !important;
@@ -669,7 +669,7 @@
   & .tabbrowser-tab :is(.tab-icon-stack, .tab-throbber, .tab-sharing-icon-overlay) {
     translate: var(--jace-tab-nudge, 0px) 0;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) > .toolbarbutton-icon {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
     translate: var(--jace-newtab-nudge, 0px) 0;
   }
 }
@@ -1358,12 +1358,18 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   position: relative;
   flex: none;
 }
+/* Just the icon. In the sidebar it sits under the tabs, its icon in line
+   with the tab icons. */
+#jace-tabs-downloads > .toolbarbutton-text { display: none !important; }
 #jace-tabs-downloads[vertical] {
-  margin: 4px 6px 6px !important;
-  padding: 6px 8px;
-  border-radius: 8px !important;
-  justify-content: flex-start;
-  gap: 8px;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px;
+  margin: 4px 0 8px 12px !important;
+  padding: 8px !important;
+  justify-content: center;
+  align-self: flex-start;
   color: var(--jace-text);
 }
 #jace-tabs-downloads {
@@ -1393,14 +1399,6 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 #jace-tabs-downloads:hover:active {
   background: color-mix(in srgb, var(--jace-accent) 22%, transparent) !important;
 }
-#jace-tabs-downloads[vertical] > .toolbarbutton-text {
-  display: flex !important;
-  font-size: inherit;
-}
-:root[jace-vertical-tabs][jace-tabs-style="icons"] #jace-tabs-downloads > .toolbarbutton-text {
-  display: none !important;
-}
-#jace-tabs-downloads:not([vertical]) > .toolbarbutton-text { display: none; }
 #jace-tabs-downloads[downloading] { color: var(--jace-accent); }
 #jace-tabs-downloads[badge]::after {
   content: attr(badge);
@@ -1453,73 +1451,24 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 
 /* ---------- Downloads list (JaceDownloadsButton) ---------- */
 
-/* In the sidebar: unfolds above the button. */
-#jace-sidebar-downloads {
-  display: grid;
-  grid-template-rows: 0fr;
-  margin-inline: 6px;
-  opacity: 0;
-  transition: grid-template-rows 280ms cubic-bezier(0.2, 0.9, 0.25, 1), opacity 200ms ease, margin 280ms ease;
-  flex: none;
-}
-#jace-sidebar-downloads[open] {
-  grid-template-rows: 1fr;
-  opacity: 1;
-  margin-block: 6px 2px;
-}
-#jace-sidebar-downloads > .jace-dl-inner {
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--jace-text) 5%, transparent);
-}
 #jace-tabs-downloads[open] {
   background: color-mix(in srgb, var(--jace-accent) 14%, transparent) !important;
   color: var(--jace-accent) !important;
 }
-
-/* Popping out from the button. */
-#jace-downloads-panel {
-  appearance: none !important;
-  background: transparent !important;
-  border: none !important;
-  --panel-background: transparent;
-  --panel-border-color: transparent;
-  --panel-shadow: none;
-  --panel-padding: 0;
-}
 #jace-downloads-panel .jace-dl-box {
   width: 340px;
-  margin: 10px;
-  border-radius: 16px;
-  background: var(--jace-surface-2);
-  color: var(--jace-text);
-  border: 1px solid color-mix(in srgb, var(--jace-text) 10%, transparent);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12), 0 18px 48px rgb(0 0 0 / 0.3);
-  animation: jace-qt-in 180ms cubic-bezier(0.2, 0.9, 0.25, 1);
-  overflow: hidden;
+  padding: 0 0 4px;
 }
+#jace-downloads-panel toolbarseparator { margin: 2px 8px; }
+#jace-downloads-panel .jace-dl-all { margin: 0 4px; }
 
 /* The list itself (both places). */
 .jace-dl-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px 4px 12px;
+  justify-content: center;
+  padding: 12px 12px 8px;
 }
-.jace-dl-title { font-weight: 600; font-size: 12px; color: var(--jace-muted); }
-.jace-dl-all {
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--jace-accent);
-  font: inherit;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.jace-dl-all:hover { background: color-mix(in srgb, var(--jace-accent) 14%, transparent); }
+.jace-dl-title { margin: 0; font-size: 1em; font-weight: 600; }
 .jace-dl-items {
   display: flex;
   flex-direction: column;
@@ -1582,6 +1531,3 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 .jace-dl-cancel:hover { color: #e5484d; }
 .jace-dl-folder { --icon: url("chrome://jace/skin/dl-folder.svg"); }
 .jace-dl-retry { --icon: url("chrome://jace/skin/dl-retry.svg"); }
-@media (prefers-reduced-motion: reduce) {
-  #jace-sidebar-downloads { transition: none; }
-}
