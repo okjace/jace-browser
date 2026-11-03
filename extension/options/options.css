@@ -1,0 +1,9 @@
+main { max-width: 680px; margin: 0 auto; padding: 24px 16px 48px; }
+.top { margin-bottom: 16px; }
+.top img { width: 36px; height: 36px; }
+h2.sub { font-size: 14px; margin: 16px 0 6px; }
+form { display: flex; flex-direction: column; gap: 8px; max-width: 380px; }
+form p { margin: 0; }
+#account-in { display: flex; flex-direction: column; gap: 10px; }
+#account-in[hidden], #account-out[hidden], #sync-on[hidden], form[hidden], .card[hidden] { display: none; }
+a { color: var(--accent); }

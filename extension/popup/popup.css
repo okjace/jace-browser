@@ -1,0 +1,6 @@
+body { width: 300px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+p { margin: 0; }
+.wide { width: 100%; }
+#signed-in { display: flex; flex-direction: column; gap: 10px; }
+#signed-in[hidden], #signed-out[hidden] { display: none; }
+#signed-out { display: flex; flex-direction: column; gap: 10px; }

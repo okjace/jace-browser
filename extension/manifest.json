@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Jace",
+  "version": "1.0.0",
+  "description": "Your Jace account in Firefox: end-to-end encrypted sync with Jace Browser (bookmarks, history, tabs, site sign-ins) and automatic sign-in to Jace websites.",
+  "homepage_url": "https://github.com/okjace/jace-browser/tree/main/extension",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "jace@okjace.github.io",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": ["authenticationInfo", "bookmarksInfo", "browsingActivity", "websiteActivity"]
+      }
+    }
+  },
+  "icons": {
+    "16": "icons/jace-16.png",
+    "32": "icons/jace-32.png",
+    "48": "icons/jace-48.png",
+    "64": "icons/jace-64.png",
+    "128": "icons/jace-128.png"
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "alarms",
+    "bookmarks",
+    "history",
+    "cookies",
+    "tabs",
+    "webRequest",
+    "webRequestBlocking"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Jace",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/jace-16.png",
+      "32": "icons/jace-32.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  }
+}

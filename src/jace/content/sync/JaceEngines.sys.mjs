@@ -19,6 +19,13 @@
  */
 
 import { SECRETS_ORIGIN } from "chrome://jace/content/JaceSecrets.sys.mjs";
+import {
+  COOKIE_VALUE_MAX,
+  cookieKey,
+  fromGeckoCookie,
+  retainCookie,
+  toGeckoSameSite,
+} from "chrome://jace/content/sync/JaceCookies.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -27,7 +34,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
-const SEP = "\u001f";
+const SEP = "\u001f"; // same separator as JaceCookies.SEP
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------- bookmarks
@@ -228,32 +235,30 @@ const passwords = {
 };
 
 // ---------------------------------------------------------------- cookies
+// Records use the shared format in JaceCookies.sys.mjs, so the Jace
+// extension can sync site sign-ins with Jace Browser.
 
 const COOKIE_MAX = 20000;
-const COOKIE_VALUE_MAX = 4096;
-
-/** nsICookie.expiry switched from seconds to milliseconds in newer Firefox; accept both. */
-function expiryMs(expiry) {
-  return expiry > 1e11 ? expiry : expiry * 1000;
-}
-
-function cookieKey(c) {
-  return [c.host, c.path, c.name].join(SEP);
-}
 
 function isDefaultContext(oa) {
   return !oa.userContextId && !oa.privateBrowsingId && !oa.firstPartyDomain && !oa.partitionKey && !oa.geckoViewSessionContextId;
 }
 
+/** Whether this Firefox's cookie expiry is in milliseconds (newer) or seconds (older). */
+function geckoExpiryInMs() {
+  for (const c of Services.cookies.cookies) {
+    if (!c.isSession) return c.expiry > 1e11;
+  }
+  return Services.vc.compare(Services.appinfo.version, "138.0") >= 0;
+}
+
 const cookies = {
   name: "cookies",
-  retain(r) {
-    return r.isSession || expiryMs(r.expiry) > Date.now();
-  },
+  retain: (r) => retainCookie(r),
   // A session cookie vanishing because this device restarted isn't the person
   // signing out, so don't delete it from their other devices.
   localDeletionCounts(base) {
-    return !base.isSession;
+    return !base.session;
   },
   async collect() {
     const out = {};
@@ -265,41 +270,30 @@ const cookies = {
       if (++count > COOKIE_MAX) {
         break;
       }
-      out[cookieKey(c)] = {
-        host: c.host,
-        path: c.path,
-        name: c.name,
-        value: c.value,
-        isSecure: c.isSecure,
-        isHttpOnly: c.isHttpOnly,
-        isSession: c.isSession,
-        expiry: c.expiry,
-        sameSite: c.sameSite,
-        schemeMap: c.schemeMap,
-        // Cookies keep their creation time when their value changes, so this
-        // is only a tie-breaker; JaceMerge mostly decides by what changed.
-        modified: Math.floor((c.lastAccessed ?? c.creationTime ?? 0) / 1000),
-      };
+      const r = fromGeckoCookie(c);
+      out[cookieKey(r)] = r;
     }
     return out;
   },
   async apply({ toAdd, toUpdate, toRemove }) {
+    const inMs = geckoExpiryInMs();
     for (const r of [...toAdd, ...toUpdate.map((u) => u.remote)]) {
       try {
         // (host, path, name, value, isSecure, isHttpOnly, isSession, expiry,
         //  originAttributes, sameSite, schemeMap, isPartitioned)
+        const expiry = r.session ? Number.MAX_SAFE_INTEGER : inMs ? r.expires * 1000 : r.expires;
         Services.cookies.add(
           r.host,
           r.path,
           r.name,
           r.value,
-          r.isSecure,
-          r.isHttpOnly,
-          r.isSession,
-          r.expiry,
+          r.secure,
+          r.httpOnly,
+          r.session,
+          expiry,
           {},
-          r.sameSite,
-          r.schemeMap,
+          toGeckoSameSite(r.sameSite),
+          r.secure ? Ci.nsICookie.SCHEME_HTTPS : Ci.nsICookie.SCHEME_HTTP | Ci.nsICookie.SCHEME_HTTPS,
           false,
         );
       } catch (e) {

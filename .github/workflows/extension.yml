@@ -1,0 +1,85 @@
+# The Jace extension for Firefox (extension/). Separate from the browser
+# build, and quick (about a minute).
+# - every change: checks the shared sync code matches Jace Browser's, runs the
+#   tests and Mozilla's linter, and uploads the unsigned .xpi as an artifact
+# - with the AMO_JWT_ISSUER and AMO_JWT_SECRET repository secrets (a free
+#   addons.mozilla.org API key), it also gets the .xpi signed by Mozilla
+#   ("unlisted": not shown on the add-ons site) and, for a new version in
+#   extension/manifest.json, publishes it as a GitHub release
+name: Extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "extension/**"
+      - "src/jace/content/sync/JaceCrypto.sys.mjs"
+      - "src/jace/content/sync/JaceMerge.sys.mjs"
+      - "src/jace/content/sync/JaceCookies.sys.mjs"
+      - "tests/**"
+      - ".github/workflows/extension.yml"
+  pull_request:
+    paths:
+      - "extension/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Shared sync code matches Jace Browser's
+        run: python3 extension/tools/sync-shared.py --check
+      - name: Tests
+        run: node --test tests/*.test.mjs
+      - name: Mozilla's add-on linter
+        run: npx --yes web-ext@8 lint --source-dir extension --ignore-files "tools" "tools/**" --self-hosted
+      - name: Build the .xpi
+        id: build
+        run: |
+          V=$(python3 -c "import json;print(json.load(open('extension/manifest.json'))['version'])")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          npx --yes web-ext@8 build --source-dir extension --ignore-files "tools" "tools/**" --artifacts-dir dist --filename "jace-extension-$V-unsigned.xpi" --overwrite-dest
+      - name: Sign with Mozilla (needs AMO_JWT_ISSUER / AMO_JWT_SECRET)
+        id: sign
+        if: env.AMO_JWT_ISSUER != '' && github.event_name != 'pull_request'
+        run: |
+          V=${{ steps.build.outputs.version }}
+          if gh release view "extension-v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "extension v$V is already released; raise the version in extension/manifest.json to release again"
+            echo "release=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          npx --yes web-ext@8 sign --source-dir extension --ignore-files "tools" "tools/**" --artifacts-dir signed \
+            --channel unlisted --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
+          mv signed/*.xpi "dist/jace-extension-$V.xpi"
+          echo "release=true" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jace-extension
+          path: dist/*.xpi
+      - name: Publish the signed extension
+        if: steps.sign.outputs.release == 'true' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: extension-v${{ steps.build.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Jace extension ${{ steps.build.outputs.version }}
+          # Not "latest": Jace Browser's updater reads the latest release.
+          make_latest: false
+          files: dist/jace-extension-${{ steps.build.outputs.version }}.xpi
+          body: |
+            The Jace extension for Firefox, signed by Mozilla.
+            Download the .xpi below in Firefox and click **Add**.

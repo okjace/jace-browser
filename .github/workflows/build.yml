@@ -20,6 +20,8 @@ on:
       - "docs/**"
       - "LICENSE"
       - "scripts/dev-install.py"
+      - "extension/**"
+      - ".github/workflows/extension.yml"
   pull_request:
   workflow_dispatch:
 

@@ -44,6 +44,10 @@
 
 Everything Jace-specific is in **about:jace**.
 
+## Jace for Firefox (extension)
+
+Don't want a whole browser? [`extension/`](extension/README.md) is a Firefox extension with your Jace account, the same end-to-end encrypted sync (bookmarks, history, tabs and site sign-ins, compatible with Jace Browser), and automatic sign-in to Jace websites.
+
 ## Downloads for Windows, macOS and Linux
 
 GitHub Actions builds every platform. The workflow is in `.github/workflows/build.yml`.
@@ -140,7 +144,8 @@ Then start Firefox with a fresh profile and open about:jace. `--remove` undoes i
 - `usb-helper/`: the native WebUSB helper (Rust, [nusb](https://crates.io/crates/nusb)).
 - `branding/`: the logo; `scripts/build.py` turns it into every icon Firefox needs.
 - `configs/`: build options (`mozconfig`), including `--enable-eme=widevine`.
-- `tests/`: sync merge and encryption tests (`node --test tests/*.test.mjs`) and the Firefox auto-update script's tests (`python3 -m unittest discover -s tests -p "test_*.py"`).
+- `extension/`: the Jace extension for Firefox.
+- `tests/`: sync merge, encryption, and shared cookie format tests (`node --test tests/*.test.mjs`) and the Firefox auto-update script's tests (`python3 -m unittest discover -s tests -p "test_*.py"`).
 - The server side is in [okjace/Jace](https://github.com/okjace/jace): the `sync` scope, the Jace Browser sign-in client, and `/api/oauth/sync`.
 
 ### Jace sync, in detail

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../ui.css">
+  <link rel="stylesheet" href="popup.css">
+  <script type="module" src="popup.js"></script>
+</head>
+<body>
+  <div id="signed-out" hidden>
+    <div class="brand"><img src="../icons/jace-32.png" alt=""><strong>Jace</strong></div>
+    <p class="muted">Sign in to sync bookmarks, history, tabs and site sign-ins with your other devices, and stay signed in to Jace websites.</p>
+    <button class="primary wide" id="sign-in">Sign in with Jace</button>
+  </div>
+  <div id="signed-in" hidden>
+    <div class="profile"><img id="avatar" alt=""><div><strong id="name"></strong><div class="muted small" id="handle"></div></div></div>
+    <p class="muted small" id="status"></p>
+    <button class="primary wide" id="action"></button>
+    <div id="tabs" class="list"></div>
+  </div>
+  <button class="wide" id="settings">Settings</button>
+</body>
+</html>

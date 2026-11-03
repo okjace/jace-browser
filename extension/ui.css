@@ -1,0 +1,49 @@
+/* Shared look for the extension's pages (Jace colors, light and dark). */
+:root {
+  --accent: #3ddc84;
+  --on-accent: #0c1410;
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --fg: #16181d;
+  --muted: #5b6270;
+  --line: #e2e5ea;
+  --danger: #dc2626;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #111317; --card: #1b1e24; --fg: #e6e8eb; --muted: #9aa1ad; --line: #2a2e36; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 system-ui, sans-serif; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 0 0 8px; }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button {
+  font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line);
+  background: transparent; color: inherit; cursor: pointer;
+}
+button:hover { background: color-mix(in srgb, var(--fg) 6%, transparent); }
+button:disabled { opacity: 0.6; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+button.primary:hover { filter: brightness(0.96); }
+button.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+input:not([type="checkbox"]) {
+  font: inherit; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: inherit; width: 100%;
+}
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.toggle { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0; }
+.toggle input { margin-top: 3px; accent-color: var(--accent); }
+.profile { display: flex; gap: 10px; align-items: center; }
+.profile img { width: 40px; height: 40px; border-radius: 50%; }
+.profile img:not([src]) { display: none; }
+.notice { border-radius: 10px; padding: 9px 12px; margin-bottom: 12px; background: color-mix(in srgb, var(--accent) 18%, var(--card)); }
+.notice.error { background: color-mix(in srgb, var(--danger) 18%, var(--card)); }
+.list { display: flex; flex-direction: column; gap: 4px; }
+.list a { color: inherit; text-decoration: none; padding: 5px 8px; border-radius: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list a:hover { background: color-mix(in srgb, var(--fg) 7%, transparent); }
+.device { margin-top: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand img { width: 28px; height: 28px; }
