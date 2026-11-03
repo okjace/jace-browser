@@ -3,8 +3,9 @@
 # - every push / PR runs the tests; manual runs, v* tags and pushes that raise
 #   the version also build every platform, test the installers, and upload
 #   them as workflow artifacts
-# - raising "version" in jace.json releases it automatically once every build
-#   and installer test passes (no tag needed); pushing a v* tag also works
+# - raising "version" in jace.json (or a manual run of a new version) publishes
+#   each platform as soon as its build and installer test pass
+#   (no tag needed); pushing a v* tag also works
 # - the release is then listed on Jace Store (needs the JACE_STORE_TOKEN secret)
 #
 # Firefox is big: a build takes 2-5 hours per platform on GitHub's free
