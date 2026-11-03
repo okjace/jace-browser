@@ -164,3 +164,4 @@ Then start Firefox with a fresh profile and open about:jace. `--remove` undoes i
 [MPL 2.0](LICENSE), like Firefox. Firefox is a trademark of the Mozilla Foundation; Jace Browser is not made or endorsed by Mozilla.
 
 **Built by Claude, made by Anthropic.**
+1
