@@ -17,6 +17,7 @@ import { getCustomizableUI, jacePageURL } from "chrome://jace/content/JaceCompat
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   JaceDownloadsButton: "chrome://jace/content/JaceDownloadsButton.sys.mjs",
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceSelfTest: "chrome://jace/content/JaceSelfTest.sys.mjs",
@@ -72,8 +73,16 @@ function registerAboutPages() {
 /** First run: show Jace Browser's setup in the first window. */
 /** Lines for jace-startup.log in the profile (scripts/try.sh prints it). */
 const startupLog = [];
+let logTimer = null;
 export function logStartup(line) {
   startupLog.push(`${new Date().toISOString().slice(11, 23)} ${line}`);
+  // Saved a moment later (scripts/try.sh prints it).
+  if (!logTimer) {
+    logTimer = lazy.setTimeout(() => {
+      logTimer = null;
+      writeStartupLog();
+    }, 500);
+  }
 }
 
 async function writeStartupLog() {

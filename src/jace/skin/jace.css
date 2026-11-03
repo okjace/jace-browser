@@ -1351,7 +1351,7 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 
 /* ---------- Downloads button with the tabs (JaceDownloadsButton) ---------- */
 
-#jace-tabs-downloads {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) {
   list-style-image: url("chrome://jace/skin/icons/downloads.svg") !important;
   -moz-context-properties: fill, fill-opacity, stroke;
   fill: currentColor;
@@ -1360,8 +1360,8 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 }
 /* Just the icon. In the sidebar it sits under the tabs, its icon in line
    with the tab icons. */
-#jace-tabs-downloads > .toolbarbutton-text { display: none !important; }
-#jace-tabs-downloads[vertical] {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) > .toolbarbutton-text { display: none !important; }
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[vertical] {
   width: 32px !important;
   min-width: 32px !important;
   max-width: 32px !important;
@@ -1372,19 +1372,19 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   align-self: flex-start;
   color: var(--jace-text);
 }
-#jace-tabs-downloads {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) {
   appearance: none !important;
   background: transparent !important;
   border: none !important;
   border-radius: 8px !important;
   transition: background-color 120ms ease, color 120ms ease;
 }
-#jace-tabs-downloads:not([vertical]) {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup):not([vertical]) {
   margin: 4px 2px !important;
   padding: 6px !important;
   align-self: center;
 }
-#jace-tabs-downloads > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) {
   width: 16px;
   height: 16px;
   padding: 0 !important;
@@ -1392,15 +1392,15 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   background: transparent !important;
   box-shadow: none !important;
 }
-#jace-tabs-downloads:hover {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup):hover {
   background: color-mix(in srgb, var(--jace-accent) 14%, transparent) !important;
   color: var(--jace-accent) !important;
 }
-#jace-tabs-downloads:hover:active {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup):hover:active {
   background: color-mix(in srgb, var(--jace-accent) 22%, transparent) !important;
 }
-#jace-tabs-downloads[downloading] { color: var(--jace-accent); }
-#jace-tabs-downloads[badge]::after {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[downloading] { color: var(--jace-accent); }
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[badge]::after {
   content: attr(badge);
   position: absolute;
   top: 2px;
@@ -1418,7 +1418,7 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   text-align: center;
 }
 /* Progress: a thin bar along the bottom while something downloads. */
-#jace-tabs-downloads > .jace-downloads-progress {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) > .jace-downloads-progress {
   position: absolute;
   inset-inline: 8px;
   bottom: 2px;
@@ -1430,8 +1430,8 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   pointer-events: none;
   overflow: hidden;
 }
-#jace-tabs-downloads[downloading] > .jace-downloads-progress { opacity: 1; }
-#jace-tabs-downloads > .jace-downloads-progress::before {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[downloading] > .jace-downloads-progress { opacity: 1; }
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) > .jace-downloads-progress::before {
   content: "";
   position: absolute;
   inset-block: 0;
@@ -1440,7 +1440,7 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   background: var(--jace-accent);
   transition: width 300ms ease;
 }
-#jace-tabs-downloads[indeterminate] > .jace-downloads-progress::before {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[indeterminate] > .jace-downloads-progress::before {
   width: 35%;
   animation: jace-dl-slide 1.2s ease-in-out infinite;
 }
@@ -1451,7 +1451,7 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 
 /* ---------- Downloads list (JaceDownloadsButton) ---------- */
 
-#jace-tabs-downloads[open] {
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[open] {
   background: color-mix(in srgb, var(--jace-accent) 14%, transparent) !important;
   color: var(--jace-accent) !important;
 }

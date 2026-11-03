@@ -16,6 +16,12 @@
 
 import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
 
+function logStartup(line) {
+  try {
+    ChromeUtils.importESModule("chrome://jace/content/JaceLoader.sys.mjs").logStartup(line);
+  } catch {}
+}
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
@@ -24,6 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const PREF = "jace.tabs.downloadsButton";
 const ID = "jace-tabs-downloads";
 const PANEL_ID = "jace-downloads-panel";
+const BACKUP_ID = "jace-tabs-downloads-backup";
 const HTML = "http://www.w3.org/1999/xhtml";
 const SHOWN = 8;
 
@@ -350,6 +357,7 @@ export const JaceDownloadsButton = {
     const tool = doc.querySelector("sidebar-main")?.shadowRoot?.getElementById(TOOL_ID);
     if (!Services.prefs.getBoolPref(PREF, true)) {
       tool?.remove();
+      doc.getElementById(BACKUP_ID)?.remove();
       try {
         const CUI = getCustomizableUI();
         if (CUI.getPlacementOfWidget(ID)) CUI.removeWidgetFromArea(ID);
@@ -359,6 +367,7 @@ export const JaceDownloadsButton = {
     const vertical = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
     if (vertical) {
       // Off the (hidden) tab strip.
+      doc.getElementById(BACKUP_ID)?.remove();
       try {
         const CUI = getCustomizableUI();
         if (CUI.getPlacementOfWidget(ID)) CUI.removeWidgetFromArea(ID);
@@ -380,15 +389,53 @@ export const JaceDownloadsButton = {
       tool?.remove();
       // A real toolbar button at the end of the tab strip (Firefox's toolbar
       // system puts it there and draws it like its other buttons).
-      const CUI = getCustomizableUI();
-      const placement = CUI.getPlacementOfWidget(ID);
-      if (placement?.area !== CUI.AREA_TABSTRIP) CUI.addWidgetToArea(ID, CUI.AREA_TABSTRIP);
-      doc.getElementById(ID)?.setAttribute("horizontal", "true");
+      let error = null;
+      try {
+        const CUI = getCustomizableUI();
+        const placement = CUI.getPlacementOfWidget(ID);
+        if (placement?.area !== CUI.AREA_TABSTRIP) CUI.addWidgetToArea(ID, CUI.AREA_TABSTRIP);
+      } catch (e) {
+        error = e;
+        console.error("Jace: downloads button in the tab strip", e);
+      }
+      // If Firefox didn't put it there, put one there by hand.
+      win.setTimeout(() => {
+        if (Services.prefs.getBoolPref("sidebar.verticalTabs", false)) return;
+        const real = doc.getElementById(ID);
+        const shown = real?.closest("#TabsToolbar") && real.getBoundingClientRect().width > 0;
+        let backup = doc.getElementById(BACKUP_ID);
+        if (shown) {
+          backup?.remove();
+          real.setAttribute("horizontal", "true");
+          return;
+        }
+        if (!backup) {
+          backup = doc.createXULElement("toolbarbutton");
+          backup.id = BACKUP_ID;
+          backup.className = "jace-tabs-downloads";
+          backup.setAttribute("label", "Downloads");
+          backup.setAttribute("horizontal", "true");
+          const bar = doc.createElementNS(HTML, "span");
+          bar.className = "jace-downloads-progress";
+          backup.append(bar);
+          backup.addEventListener("command", () => openDownloads(win, backup));
+          track(win, backup);
+        }
+        const target = doc.getElementById("TabsToolbar-customization-target");
+        const items = doc.querySelector("#TabsToolbar .toolbar-items");
+        if (target?.parentNode) {
+          if (backup.previousSibling !== target) target.after(backup);
+        } else if (items && backup.parentNode !== items) {
+          items.append(backup);
+        }
+        logStartup(`downloads: tab strip button ${real ? `in ${real.parentNode?.id}` : "not made"}${error ? ` (${error})` : ""}; using the backup in ${backup.parentNode?.id || backup.parentNode?.className}`);
+      }, 600);
     }
   },
 
   /** Where the Downloads icon is (for the self-test). */
   find(win) {
-    return win.document.querySelector("sidebar-main")?.shadowRoot?.getElementById(TOOL_ID) ?? win.document.getElementById(ID);
+    const doc = win.document;
+    return doc.querySelector("sidebar-main")?.shadowRoot?.getElementById(TOOL_ID) ?? doc.getElementById(ID) ?? doc.getElementById(BACKUP_ID);
   },
 };
