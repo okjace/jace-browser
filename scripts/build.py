@@ -377,8 +377,14 @@ def package(args):
         repack_linux(tarball, out)
         make_appimage(out, DIST / f"{stem}-x86_64.AppImage")
     elif args.platform == "windows":
-        run(["./mach", "build", "installer"], cwd=ENGINE)
-        (setup,) = list((obj / "dist" / "install" / "sea").glob("*.exe"))
+        # Newer Firefox makes the setup .exe during `mach package`
+        # (dist/jace-*.installer.exe); older ones need the "installer" target
+        # (dist/install/sea/*.exe).
+        setups = list((obj / "dist").glob("jace-*.installer.exe")) or list((obj / "dist" / "install" / "sea").glob("*.exe"))
+        if not setups:
+            run(["./mach", "build", "installer"], cwd=ENGINE)
+            setups = list((obj / "dist" / "install" / "sea").glob("*.exe")) or list((obj / "dist").glob("jace-*.installer.exe"))
+        (setup,) = setups
         shutil.copy(setup, DIST / f"{stem}-windows-x64-setup.exe")
         (zipped,) = list((obj / "dist").glob("jace-*.zip"))
         shutil.copy(zipped, DIST / f"{stem}-windows-x64-portable.zip")
