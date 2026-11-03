@@ -581,7 +581,7 @@
   & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
     margin-inline: 0 !important;
   }
-  & :is(.tab-label-container, .jace-tab-close, .tab-audio-button, .tab-secondary-label,
+  & :is(.tab-label-container, .tab-audio-button, .tab-secondary-label,
         :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     opacity: 0 !important;
     transform: translateX(-12px);
@@ -605,18 +605,10 @@
     transform: none;
     transition: opacity 240ms ease 220ms, transform 340ms var(--jace-open) 180ms !important;
   }
-  & .tabbrowser-tab:not(:hover, [selected]) :is(.jace-tab-close, .tab-audio-button) {
+  & .tabbrowser-tab:not(:hover, [selected]) .tab-audio-button {
     opacity: 0 !important;
   }
-  /* Firefox only draws the close button in some sidebar states: always
-     draw it here (hovered or current tab), at the right end. */
-  & .tabbrowser-tab:not([pinned]):is(:hover, [selected]) .jace-tab-close {
-    display: flex !important;
-    visibility: visible !important;
-    flex: none !important;
-    margin-inline-start: auto !important;
-  }
-  & .tabbrowser-tab:is(:hover, [selected]) :is(.jace-tab-close, .tab-audio-button) {
+  & .tabbrowser-tab:is(:hover, [selected]) .tab-audio-button {
     opacity: 1 !important;
     transform: none;
     transition: opacity 200ms ease 300ms, transform 240ms var(--jace-open) 280ms !important;
@@ -624,6 +616,21 @@
   & .tabbrowser-tab :is(.tab-icon-stack, .tab-icon-image) {
     animation: jace-icon-bounce 360ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both;
   }
+}
+
+/* Hover style: the close button needs no hiding of its own - while the
+   sidebar is folded, it's in the clipped-off part. */
+:root[jace-vertical-tabs][jace-tabs-style="hover"] #tabbrowser-tabs .tabbrowser-tab:not([pinned]) .jace-tab-close {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 0.55 !important;
+  transform: none !important;
+}
+:root[jace-vertical-tabs][jace-tabs-style="hover"] #tabbrowser-tabs .tabbrowser-tab:not([pinned]):is(:hover, [selected], [visuallyselected]) .jace-tab-close {
+  opacity: 0.95 !important;
+}
+:root[jace-vertical-tabs][jace-tabs-style="hover"] #tabbrowser-tabs .tabbrowser-tab:not([pinned]) .jace-tab-close:hover {
+  opacity: 1 !important;
 }
 
 /* Icon styles: JaceWindow measures the icons and nudges them to the

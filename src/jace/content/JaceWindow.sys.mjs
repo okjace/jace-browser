@@ -187,7 +187,19 @@ function addCloseButtons(win) {
   for (const tab of gBrowser.tabs) addCloseButton(tab);
   if (win.__jaceCloseHooked) return;
   win.__jaceCloseHooked = true;
-  gBrowser.tabContainer.addEventListener("TabOpen", (e) => addCloseButton(e.target));
+  // New tabs (the event reaches the window whichever strip the tab is in),
+  // and anything else that adds or rebuilds a tab.
+  const sweep = () => {
+    for (const tab of gBrowser.tabs) addCloseButton(tab);
+  };
+  win.addEventListener("TabOpen", (e) => addCloseButton(e.target), true);
+  for (const type of ["TabSelect", "TabMove", "TabPinned", "TabUnpinned", "TabAttrModified"]) {
+    win.addEventListener(type, () => win.setTimeout(sweep, 0), true);
+  }
+  const strip = gBrowser.tabContainer ?? win.document.getElementById("tabbrowser-tabs");
+  if (strip) new win.MutationObserver(() => sweep()).observe(strip, { childList: true, subtree: true });
+  win.setTimeout(sweep, 1000);
+  win.setTimeout(sweep, 4000);
 }
 
 /**
