@@ -119,6 +119,8 @@ jobs:
     # variable JACE_LINUX_RUNNER to ubuntu-22.04.
     runs-on: ${{ vars.JACE_LINUX_RUNNER || 'ubicloud-standard-16-ubuntu-2204' }}
     timeout-minutes: 240
+    permissions:
+      contents: write   # only to attach a failed package to the ci-linux-debug pre-release
     env:
       # Compiler cache in GitHub's cache: rebuilds only recompile what changed.
       SCCACHE_GHA_ENABLED: "true"
@@ -147,6 +149,7 @@ jobs:
           python3 scripts/build.py package --platform linux
       - name: Self-test the AppImage (headless)
         env:
+          GH_TOKEN: ${{ github.token }}
           APPIMAGE_EXTRACT_AND_RUN: "1"
           JACE_SELF_TEST_OUT: ${{ runner.temp }}/selftest.txt
           JACE_SELF_TEST_UPDATE_KIND: appimage
@@ -167,6 +170,13 @@ jobs:
           printf 'user_pref("devtools.console.stdout.chrome", true);\nuser_pref("browser.dom.window.dump.enabled", true);\n' > "$RUNNER_TEMP/profile2/user.js"
           timeout 90 "$RUNNER_TEMP/pkg/jace/jace" --headless -no-remote -profile "$RUNNER_TEMP/profile2" 2>&1 | grep -v "^\s*$" | head -150 || true
           echo "::endgroup::"
+          # Attach the package to a "ci-linux-debug" pre-release, so it can be
+          # downloaded and run to find out why (never marked latest).
+          gh release delete ci-linux-debug -R "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+          gh release create ci-linux-debug -R "$GITHUB_REPOSITORY" --prerelease --latest=false --target "$GITHUB_SHA" \
+            --title "CI debug: Linux package that failed its self-test" \
+            --notes "Not a release. The Linux package from $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID, kept to look into a failed self-test." \
+            dist/JaceBrowser-*-linux-x86_64.tar.xz || true
           exit 1
       - uses: actions/upload-artifact@v7
         # Kept even when the self-test fails, to look into it.

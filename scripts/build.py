@@ -217,6 +217,34 @@ def make_branding():
     text = re.sub(r"^MOZ_MACBUNDLE_ID=.*$", "", text, flags=re.M)
     conf.write_text(text.strip() + '\nMOZ_APP_DISPLAYNAME="Jace Browser"\nMOZ_MACBUNDLE_ID=jace\n')
 
+    # The unofficial branding's name ("Mozilla Developer Preview", "Nightly")
+    # is also in the Windows installer's branding.nsi (install folder, the
+    # installed-apps entry, shortcuts) and a few other text files: Jace there too.
+    replacements = [
+        ("Mozilla Developer Preview", "Jace Browser"),
+        ("MozillaDeveloperPreview", "JaceBrowser"),
+        ('!define CompanyName "mozilla.org"', '!define CompanyName "Jace"'),
+        ('!define CompanyName "Mozilla Developer Preview"', '!define CompanyName "Jace"'),
+    ]
+    for f in files_under(dst):
+        if f.suffix.lower() not in (".nsi", ".nsh", ".dtd", ".properties", ".ftl", ".sh", ".ini", ".txt", ".json", ".mk", ".build", ".in"):
+            continue
+        try:
+            text = f.read_text()
+        except UnicodeDecodeError:
+            continue
+        new = text
+        for old, value in replacements:
+            new = new.replace(old, value)
+        if new != text:
+            f.write_text(new)
+    nsi = dst / "branding.nsi"
+    if nsi.exists():
+        text = nsi.read_text()
+        for key, value in [("BrandFullNameInternal", "Jace Browser"), ("BrandShortName", "Jace Browser"), ("BrandFullName", "Jace Browser")]:
+            text = re.sub(rf'^(!define {key}\s+)".*"', rf'\1"{value}"', text, flags=re.M)
+        nsi.write_text(text)
+
 
 def jace_commit():
     """This repo's commit, which Firefox records as the source changeset (MOZ_SOURCE_CHANGESET)."""
