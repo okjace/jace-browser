@@ -160,9 +160,17 @@ jobs:
           echo "::group::What's in the package"
           mkdir -p "$RUNNER_TEMP/pkg" && tar -xf dist/JaceBrowser-*-linux-x86_64.tar.xz -C "$RUNNER_TEMP/pkg"
           python3 scripts/check_package.py "$RUNNER_TEMP/pkg/jace" || true
+          echo "Firefox's start-up-file (autoconfig) support in libxul: $(grep -c "general.config.filename" "$RUNNER_TEMP/pkg/jace/libxul.so" || true) mention(s)"
+          echo "::endgroup::"
+          echo "::group::Browser console (second run, errors printed)"
+          rm -rf "$RUNNER_TEMP/profile2" && mkdir -p "$RUNNER_TEMP/profile2"
+          printf 'user_pref("devtools.console.stdout.chrome", true);\nuser_pref("browser.dom.window.dump.enabled", true);\n' > "$RUNNER_TEMP/profile2/user.js"
+          timeout 90 "$RUNNER_TEMP/pkg/jace/jace" --headless -no-remote -profile "$RUNNER_TEMP/profile2" 2>&1 | grep -v "^\s*$" | head -150 || true
           echo "::endgroup::"
           exit 1
       - uses: actions/upload-artifact@v7
+        # Kept even when the self-test fails, to look into it.
+        if: always()
         with:
           name: linux
           path: |
