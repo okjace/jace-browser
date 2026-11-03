@@ -5,8 +5,14 @@
 /**
  * A Downloads button with the tabs: at the bottom of the vertical tabs
  * sidebar, or at the end of the tab strip when tabs are across the top.
- * Shows how many downloads are running and their progress; click for the
- * downloads panel (or the Downloads page).
+ * It shows how many downloads are running and their progress.
+ *
+ * Press it for your downloads as a list, Zen-style:
+ *   - sidebar with names ("full" tab style): the list unfolds in the
+ *     sidebar, right above the button
+ *   - only icons / bigger on hover / tabs across the top: the list pops out
+ *     from the button
+ * Each download: open it (click), show it in its folder, cancel or retry.
  *
  * Off with jace.tabs.downloadsButton = false (Settings > Look).
  */
@@ -18,46 +24,236 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const PREF = "jace.tabs.downloadsButton";
 const ID = "jace-tabs-downloads";
+const LIST_ID = "jace-sidebar-downloads";
+const PANEL_ID = "jace-downloads-panel";
+const HTML = "http://www.w3.org/1999/xhtml";
+const SHOWN = 8;
 
-/** Download progress, shared by every window. */
+/** Every download (newest first), shared by every window. */
 const watchers = new Set();
+let downloads = [];
 let summary = { active: 0, progress: -1 };
 let listening = false;
+
+function notify() {
+  let active = 0;
+  let done = 0;
+  let total = 0;
+  for (const d of downloads) {
+    if (d.stopped) continue;
+    active++;
+    if (d.hasProgress && d.totalBytes > 0) {
+      done += d.currentBytes;
+      total += d.totalBytes;
+    }
+  }
+  summary = { active, progress: active && total ? Math.min(1, done / total) : -1 };
+  for (const fn of watchers) fn();
+}
 
 async function listen() {
   if (listening) return;
   listening = true;
   const list = await lazy.Downloads.getList(lazy.Downloads.ALL);
-  const all = new Set();
-  const recompute = () => {
-    let active = 0;
-    let done = 0;
-    let total = 0;
-    for (const d of all) {
-      if (d.stopped) continue;
-      active++;
-      if (d.hasProgress && d.totalBytes > 0) {
-        done += d.currentBytes;
-        total += d.totalBytes;
-      }
-    }
-    summary = { active, progress: active && total ? Math.min(1, done / total) : -1 };
-    for (const fn of watchers) fn();
-  };
+  const sort = () => downloads.sort((a, b) => (b.startTime?.getTime?.() ?? 0) - (a.startTime?.getTime?.() ?? 0));
   await list.addView({
     onDownloadAdded(d) {
-      all.add(d);
-      recompute();
+      downloads.push(d);
+      sort();
+      notify();
     },
     onDownloadChanged() {
-      recompute();
+      notify();
     },
     onDownloadRemoved(d) {
-      all.delete(d);
-      recompute();
+      downloads = downloads.filter((x) => x !== d);
+      notify();
     },
   });
 }
+
+// ------------------------------------------------------------ the list
+
+function bytes(n) {
+  if (!(n >= 0)) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i++;
+  }
+  return `${n >= 10 || i === 0 ? Math.round(n) : n.toFixed(1)} ${units[i]}`;
+}
+
+function fileName(d) {
+  const path = d.target?.path ?? "";
+  return path.split(/[\\/]/).pop() || d.source?.url || "Download";
+}
+
+function status(d) {
+  if (d.succeeded) {
+    const size = bytes(d.target?.size ?? d.totalBytes);
+    let host = "";
+    try {
+      host = new URL(d.source.url).hostname.replace(/^www\./, "");
+    } catch {}
+    return [size, host].filter(Boolean).join(" · ");
+  }
+  if (d.error) return d.error.becauseBlocked ? "Blocked" : "Failed";
+  if (d.canceled) return "Canceled";
+  if (d.hasProgress && d.totalBytes) {
+    const rate = d.speed > 0 ? ` · ${bytes(d.speed)}/s` : "";
+    return `${d.progress}% · ${bytes(d.currentBytes)} of ${bytes(d.totalBytes)}${rate}`;
+  }
+  return `${bytes(d.currentBytes)}…`;
+}
+
+function el(doc, tag, attrs = {}, text = null) {
+  const n = doc.createElementNS(HTML, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text !== null) n.textContent = text;
+  return n;
+}
+
+function iconButton(doc, kind, title, onClick) {
+  const b = el(doc, "button", { class: `jace-dl-action jace-dl-${kind}`, title, "aria-label": title });
+  b.addEventListener("click", (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return b;
+}
+
+/** Fills `box` with the downloads list (and keeps it current while it's on screen). */
+function fillList(win, box, onDone) {
+  const doc = win.document;
+  const render = () => {
+    box.replaceChildren();
+    const header = el(doc, "div", { class: "jace-dl-header" });
+    header.append(el(doc, "span", { class: "jace-dl-title" }, "Downloads"));
+    const all = el(doc, "button", { class: "jace-dl-all" }, "Show all");
+    all.addEventListener("click", () => {
+      onDone?.();
+      win.switchToTabHavingURI("about:downloads", true);
+    });
+    header.append(all);
+    box.append(header);
+    const list = el(doc, "div", { class: "jace-dl-items", role: "list" });
+    if (!downloads.length) list.append(el(doc, "div", { class: "jace-dl-empty" }, "No downloads yet"));
+    for (const d of downloads.slice(0, SHOWN)) {
+      const row = el(doc, "div", { class: "jace-dl-item", role: "listitem" });
+      row.toggleAttribute("active", !d.stopped);
+      row.toggleAttribute("failed", !!d.error || d.canceled);
+      if (d.succeeded) row.title = `Open ${fileName(d)}`;
+      const icon = el(doc, "img", { class: "jace-dl-icon", alt: "" });
+      icon.src = `moz-icon://${encodeURIComponent(fileName(d))}?size=16`;
+      const text = el(doc, "div", { class: "jace-dl-text" });
+      text.append(el(doc, "span", { class: "jace-dl-name" }, fileName(d)), el(doc, "span", { class: "jace-dl-status" }, status(d)));
+      if (!d.stopped) {
+        const bar = el(doc, "span", { class: "jace-dl-bar" });
+        bar.style.setProperty("--p", d.hasProgress ? String(d.progress / 100) : "0.3");
+        text.append(bar);
+      }
+      row.append(icon, text);
+      if (!d.stopped) {
+        row.append(iconButton(doc, "cancel", "Cancel", () => d.cancel().catch(() => {})));
+      } else if (d.error || d.canceled) {
+        row.append(iconButton(doc, "retry", "Try again", () => d.start().catch(() => {})));
+      } else if (d.succeeded) {
+        row.append(iconButton(doc, "folder", "Show in folder", () => d.showContainingDirectory().catch(() => {})));
+      }
+      row.addEventListener("click", () => {
+        if (!d.succeeded) return;
+        d.launch().catch((e) => console.warn("Jace: open download", e));
+        onDone?.();
+      });
+      list.append(row);
+    }
+    box.append(list);
+  };
+  render();
+  // Keep it current (progress) while shown; a little throttled.
+  let pending = false;
+  const update = () => {
+    if (!box.isConnected || pending) return;
+    pending = true;
+    win.setTimeout(() => {
+      pending = false;
+      if (box.isConnected) render();
+    }, 250);
+  };
+  watchers.add(update);
+  return () => watchers.delete(update);
+}
+
+// ------------------------------------------------------------ showing it
+
+/** The list in the sidebar, unfolding above the button. */
+function toggleSidebarList(win, button) {
+  const doc = win.document;
+  let wrap = doc.getElementById(LIST_ID);
+  if (!wrap) {
+    wrap = el(doc, "div", { id: LIST_ID });
+    wrap.append(el(doc, "div", { class: "jace-dl-inner" }));
+  }
+  if (wrap.nextSibling !== button) button.before(wrap);
+  const open = !wrap.hasAttribute("open");
+  if (open) {
+    wrap.__stop?.();
+    wrap.__stop = fillList(win, wrap.firstChild, () => toggleSidebarList(win, button));
+    // Next frame, so the unfolding animates.
+    win.requestAnimationFrame(() => wrap.setAttribute("open", "true"));
+  } else {
+    wrap.removeAttribute("open");
+    wrap.__stop?.();
+    wrap.__stop = null;
+  }
+  button.toggleAttribute("open", open);
+}
+
+/** The list popping out from the button. */
+function togglePanel(win, button) {
+  const doc = win.document;
+  let panel = doc.getElementById(PANEL_ID);
+  if (!panel) {
+    panel = doc.createXULElement("panel");
+    panel.id = PANEL_ID;
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Downloads");
+    panel.append(el(doc, "div", { class: "jace-dl-box" }));
+    (doc.getElementById("mainPopupSet") ?? doc.documentElement).append(panel);
+    panel.addEventListener("popuphidden", () => {
+      panel.__stop?.();
+      panel.__stop = null;
+      doc.getElementById(ID)?.removeAttribute("open");
+    });
+  }
+  if (panel.state === "open" || panel.state === "showing") {
+    panel.hidePopup();
+    return;
+  }
+  panel.__stop?.();
+  panel.__stop = fillList(win, panel.firstChild, () => panel.hidePopup());
+  button.setAttribute("open", "true");
+  const vertical = button.hasAttribute("vertical");
+  // In the sidebar: next to the icon (the rest of the button may be folded away).
+  const anchor = vertical ? (button.querySelector(".toolbarbutton-icon") ?? button) : button;
+  panel.openPopup(anchor, vertical ? "end_after" : "after_end", vertical ? 14 : 0, vertical ? 0 : 6);
+}
+
+function openDownloads(win, button) {
+  const root = win.document.documentElement;
+  const inSidebar = button.hasAttribute("vertical") && root.getAttribute("jace-tabs-style") === "full";
+  try {
+    if (inSidebar) toggleSidebarList(win, button);
+    else togglePanel(win, button);
+  } catch (e) {
+    console.error("Jace: downloads list", e);
+    win.switchToTabHavingURI("about:downloads", true);
+  }
+}
+
+// ------------------------------------------------------------ the button
 
 function make(win) {
   const doc = win.document;
@@ -67,7 +263,7 @@ function make(win) {
   button.className = "jace-tabs-downloads";
   button.setAttribute("label", "Downloads");
   button.setAttribute("tooltiptext", "Downloads");
-  const bar = doc.createElementNS("http://www.w3.org/1999/xhtml", "span");
+  const bar = doc.createElementNS(HTML, "span");
   bar.className = "jace-downloads-progress";
   button.append(bar);
   button.addEventListener("command", () => openDownloads(win, button));
@@ -87,26 +283,6 @@ function make(win) {
   return button;
 }
 
-/** The downloads panel, anchored to the toolbar; the Downloads page if there's no panel. */
-function openDownloads(win, button) {
-  try {
-    if (win.DownloadsPanel?.showPanel) {
-      win.DownloadsPanel.showPanel(true, false);
-      win.setTimeout(() => {
-        if (!win.DownloadsPanel.isPanelShowing) showPage(win);
-      }, 500);
-      return;
-    }
-  } catch (e) {
-    console.warn("Jace: downloads panel", e);
-  }
-  showPage(win);
-}
-
-function showPage(win) {
-  win.switchToTabHavingURI("about:downloads", true);
-}
-
 export const JaceDownloadsButton = {
   /** Puts the button where the tabs are (or removes it when turned off). */
   place(win) {
@@ -114,6 +290,7 @@ export const JaceDownloadsButton = {
     let button = doc.getElementById(ID);
     if (!Services.prefs.getBoolPref(PREF, true)) {
       button?.remove();
+      doc.getElementById(LIST_ID)?.remove();
       return;
     }
     button ??= make(win);
@@ -124,9 +301,9 @@ export const JaceDownloadsButton = {
       if (target && button.parentNode !== target) target.append(button);
     } else {
       // End of the tab strip, outside the part the toolbar editor manages.
-      const items = doc.querySelector("#TabsToolbar .toolbar-items");
       const strip = doc.getElementById("TabsToolbar-customization-target");
-      if (items && strip && button.previousSibling !== strip) strip.after(button);
+      if (strip && button.previousSibling !== strip) strip.after(button);
+      doc.getElementById(LIST_ID)?.removeAttribute("open");
     }
     button.toggleAttribute("vertical", vertical);
   },
