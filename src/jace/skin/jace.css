@@ -552,6 +552,11 @@
   & .tabbrowser-tab .tab-content {
     padding-inline: 14px 8px !important;
     justify-content: flex-start !important;
+    overflow: hidden !important;
+  }
+  & .tabbrowser-tab .tab-label-container {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
   }
   & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
     padding-inline: 6px 0 !important;
@@ -586,6 +591,14 @@
   }
   & .tabbrowser-tab:not(:hover, [selected]) :is(.tab-close-button, .tab-audio-button) {
     opacity: 0 !important;
+  }
+  /* Firefox only draws the close button in some sidebar states: always
+     draw it here (hovered or current tab), at the right end. */
+  & .tabbrowser-tab:not([pinned]):is(:hover, [selected]) .tab-close-button {
+    display: flex !important;
+    visibility: visible !important;
+    flex: none !important;
+    margin-inline-start: auto !important;
   }
   & .tabbrowser-tab:is(:hover, [selected]) :is(.tab-close-button, .tab-audio-button) {
     opacity: 1 !important;
