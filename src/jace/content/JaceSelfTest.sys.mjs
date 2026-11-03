@@ -277,6 +277,20 @@ export const JaceSelfTest = {
       if (!box.width) throw new Error(`not visible (in ${where})`);
       return `in ${where}, ${Math.round(box.width)}x${Math.round(box.height)}; rows: ${rows}`;
     });
+    await check("Downloads button with horizontal tabs", async () => {
+      const was = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
+      Services.prefs.setBoolPref("sidebar.verticalTabs", false);
+      await new Promise((r) => win.setTimeout(r, 1200));
+      const button = win.document.getElementById("jace-tabs-downloads");
+      const box = button?.getBoundingClientRect();
+      const where = button ? `${button.parentNode?.id || button.parentNode?.className || button.parentNode?.localName}` : "";
+      const strip = !!win.document.getElementById("TabsToolbar-customization-target");
+      Services.prefs.setBoolPref("sidebar.verticalTabs", was);
+      await new Promise((r) => win.setTimeout(r, 800));
+      if (!button) throw new Error(`no button (tab strip target ${strip})`);
+      if (!box?.width) throw new Error(`not visible, in ${where}`);
+      return `in ${where}, ${Math.round(box.width)}x${Math.round(box.height)}`;
+    });
     await check("no colored line at the sidebar's edge", async () => {
       const doc = win.document;
       const root = doc.querySelector("sidebar-main")?.shadowRoot;

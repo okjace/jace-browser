@@ -372,9 +372,21 @@ export const JaceDownloadsButton = {
     } else {
       tool?.remove();
       button ??= make(win);
-      // End of the tab strip, outside the part the toolbar editor manages.
+      // End of the tab strip, outside the part the toolbar editor manages
+      // (several places to try: Firefox reshuffles this toolbar now and then).
       const strip = doc.getElementById("TabsToolbar-customization-target");
-      if (strip && button.previousSibling !== strip) strip.after(button);
+      const tabs = doc.getElementById("tabbrowser-tabs");
+      const items = doc.querySelector("#TabsToolbar .toolbar-items");
+      const toolbar = doc.getElementById("TabsToolbar");
+      if (strip?.parentNode) {
+        if (button.previousSibling !== strip) strip.after(button);
+      } else if (items) {
+        if (button.parentNode !== items) items.append(button);
+      } else if (tabs?.parentNode) {
+        if (button.previousSibling !== tabs) tabs.after(button);
+      } else if (toolbar && button.parentNode !== toolbar) {
+        toolbar.append(button);
+      }
     }
     button.toggleAttribute("vertical", vertical);
   },
