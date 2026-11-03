@@ -47,6 +47,17 @@ pref("browser.newtabpage.activity-stream.feeds.section.highlights", false);
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
 pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
 
+// ---------- Help and feedback go to Jace Browser, not Mozilla ----------
+// (Firefox opens <support.baseURL><topic>; the topic lands as an anchor on the README.)
+pref("app.support.baseURL", "https://github.com/okjace/jace-browser#");
+pref("app.feedback.baseURL", "https://github.com/okjace/jace-browser/issues/new?title=");
+pref("app.releaseNotesURL", "https://github.com/okjace/jace-browser/releases");
+pref("app.releaseNotesURL.aboutDialog", "https://github.com/okjace/jace-browser/releases");
+pref("app.releaseNotesURL.prompt", "https://github.com/okjace/jace-browser/releases");
+pref("browser.contentblocking.report.manage_devices.url", "");
+pref("browser.contentblocking.report.lockwise.mobile-android.url", "");
+pref("browser.contentblocking.report.lockwise.mobile-ios.url", "");
+
 // ---------- New tab ----------
 // Default shortcuts (instead of Firefox's, like "Add-ons for Firefox").
 pref("browser.newtabpage.activity-stream.default.sites", "https://jaceo.vercel.app/,https://www.youtube.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://github.com/");

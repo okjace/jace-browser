@@ -27,6 +27,9 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import debrand  # noqa: E402  (scripts/debrand.py)
+
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "jace"
 
@@ -170,9 +173,8 @@ def rebrand_file(rel: str, path: Path, warn_icons):
     return False
 
 
-def rebrand(gre: Path):
-    """Jace Browser name and logos in browser/omni.ja, and the window icons."""
-    jar = gre / "browser" / "omni.ja"
+def rewrite_jar(jar: Path, branding: bool) -> int:
+    """Rebrands one omni.ja (from its untouched backup). Returns files changed."""
     original = jar.with_name(jar.name + BACKUP)
     if not original.exists():
         shutil.copy(jar, original)
@@ -182,12 +184,24 @@ def rebrand(gre: Path):
         tmp = Path(tmp)
         extract_jar(original, tmp)
         for f in sorted(p for p in tmp.rglob("*") if p.is_file()):
-            changed += rebrand_file(f.relative_to(tmp).as_posix(), f, warn_icons)
+            rel = f.relative_to(tmp).as_posix()
+            if branding and rebrand_file(rel, f, warn_icons):
+                changed += 1
+            elif "/branding/" not in "/" + rel:
+                # Leftover "Firefox" / "Mozilla" text in menus and messages.
+                changed += debrand.rewrite_file(f)
         new = jar.with_name(jar.name + ".new")
         with zipfile.ZipFile(new, "w", zipfile.ZIP_DEFLATED) as z:
             for f in sorted(p for p in tmp.rglob("*") if p.is_file()):
                 z.write(f, f.relative_to(tmp).as_posix())
         new.replace(jar)
+    return changed
+
+
+def rebrand(gre: Path):
+    """Jace Browser name, logos and text in both omni.ja files, and the window icons."""
+    changed = rewrite_jar(gre / "browser" / "omni.ja", branding=True)
+    changed += rewrite_jar(gre / "omni.ja", branding=False)
     # Window and taskbar icons live outside omni.ja.
     icons = gre / "browser" / "chrome" / "icons" / "default"
     for png in sorted(icons.glob("default*.png")) if icons.exists() else []:

@@ -96,6 +96,21 @@ function maybeOpenSetup(win) {
   }, 1200);
 }
 
+/**
+ * Websites must see a normal Firefox. Jace Browser's own build is named
+ * "jace", which could put "jace/159.0" in the user agent; if so, use exactly
+ * Firefox's ("... Firefox/159.0"), set as a default pref each start so it
+ * follows the version.
+ */
+function keepFirefoxUserAgent() {
+  const http = Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler);
+  const ua = http.userAgent;
+  const version = Services.appinfo.version.split(".").slice(0, 2).join(".");
+  if (/\bFirefox\/\d/.test(ua)) return;
+  const firefoxUA = /\S+\/[\d.]+$/.test(ua) ? ua.replace(/\S+\/[\d.]+$/, `Firefox/${version}`) : `${ua} Firefox/${version}`;
+  Services.prefs.getDefaultBranch("").setStringPref("general.useragent.override", firefoxUA);
+}
+
 function registerWebUSB() {
   ChromeUtils.registerWindowActor("JaceUSB", {
     parent: { esModuleURI: "chrome://jace/content/usb/JaceUSBParent.sys.mjs" },
@@ -223,6 +238,11 @@ export const JaceLoader = {
 
     Services.obs.addObserver(function onProfile() {
       Services.obs.removeObserver(onProfile, "final-ui-startup");
+      try {
+        keepFirefoxUserAgent();
+      } catch (e) {
+        initErrors.push(`couldn't check the user agent: ${e}`);
+      }
       try {
         createWidgets();
       } catch (e) {

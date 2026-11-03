@@ -43,6 +43,11 @@ export const JaceSelfTest = {
         return module.getChromeURI(Services.io.newURI(`about:${what}`)).spec.startsWith("chrome://jace/");
       });
     }
+    await check("websites see Firefox (user agent)", () => {
+      const ua = Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).userAgent;
+      if (!/ Firefox\/\d+\.\d+$/.test(ua)) throw new Error(ua);
+      return true;
+    });
     await check("Jace look for the built-in pages is on", () => {
       const { JaceContentStyle } = ChromeUtils.importESModule("chrome://jace/content/JaceContentStyle.sys.mjs");
       return JaceContentStyle.started;

@@ -227,6 +227,20 @@ def jace_commit():
     return sha or "unknown"
 
 
+def patch_vendor():
+    """Makes the vendor Jace instead of Mozilla, wherever this Firefox sets it."""
+    done = []
+    pattern = re.compile(r'(imply_option\(\s*"MOZ_APP_VENDOR"\s*,\s*)"Mozilla"')
+    for conf in [ENGINE / "browser" / "moz.configure", ENGINE / "build" / "moz.configure" / "init.configure"]:
+        if conf.exists():
+            text = conf.read_text()
+            new = pattern.sub(r'\1"Jace"', text)
+            if new != text:
+                conf.write_text(new)
+                done.append(str(conf.relative_to(ENGINE)))
+    return ", ".join(done)
+
+
 def write_mozconfig(target):
     text = (ROOT / "configs" / "mozconfig.common").read_text()
     text += "\n" + (ROOT / "configs" / f"mozconfig.{target}").read_text()
@@ -279,6 +293,17 @@ def prepare(args):
     )
     log("Branding")
     make_branding()
+    log("Vendor name (Windows file details, application.ini)")
+    patched = patch_vendor()
+    print(f"  {patched or 'not found in this Firefox version; vendor stays Mozilla'}", flush=True)
+    log("Rewriting leftover Firefox / Mozilla text (debrand)")
+    import debrand  # scripts/debrand.py
+
+    changed = 0
+    for locales in ("browser/locales/en-US", "toolkit/locales/en-US", "devtools/client/locales/en-US", "dom/locales/en-US"):
+        if (ENGINE / locales).exists():
+            changed += debrand.rewrite_tree(ENGINE / locales)
+    print(f"  {changed} files", flush=True)
     write_mozconfig(args.platform)
     log("Ready: engine/ has Jace Browser in it")
 
