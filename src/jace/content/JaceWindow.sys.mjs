@@ -17,6 +17,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceSettingsPane: "chrome://jace/content/JaceSettingsPane.sys.mjs",
+  JaceAccountPanel: "chrome://jace/content/JaceAccountPanel.sys.mjs",
   JaceSplash: "chrome://jace/content/JaceSplash.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceUpdates: "chrome://jace/content/JaceUpdates.sys.mjs",
@@ -84,7 +85,6 @@ function applyTabStyle(win) {
   // Firefox restores its own sidebar state a moment after the window opens.
   win.setTimeout(expand, 1500);
 }
-const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 function applyLook(win) {
   const root = win.document.documentElement;
@@ -117,35 +117,6 @@ const prefObserver = {
 };
 let observing = false;
 
-function el(doc, tag, attrs = {}, children = []) {
-  const node = doc.createXULElement ? doc.createXULElement(tag) : doc.createElementNS(XUL_NS, tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "text") node.textContent = v;
-    else node.setAttribute(k, v);
-  }
-  for (const c of children) node.append(c);
-  return node;
-}
-
-function html(doc, tag, attrs = {}, children = []) {
-  const node = doc.createElementNS("http://www.w3.org/1999/xhtml", tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "text") node.textContent = v;
-    else node.setAttribute(k, v);
-  }
-  for (const c of children) node.append(c);
-  return node;
-}
-
-function timeAgo(ms) {
-  if (!ms) return "never";
-  const s = Math.round((Date.now() - ms) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.round(s / 60)} min ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
-  return new Date(ms).toLocaleDateString();
-}
-
 export const JaceWindow = {
   /** Before the window is first drawn: the skin, and the startup animation on top. */
   early(win) {
@@ -153,6 +124,11 @@ export const JaceWindow = {
     win.__jaceSkin = true;
     win.windowUtils.loadSheetUsingURIString(SKIN, win.windowUtils.AUTHOR_SHEET);
     applyLook(win);
+    try {
+      lazy.JaceAccountPanel.install(win);
+    } catch (e) {
+      console.error("Jace: account panel", e);
+    }
     lazy.JaceSplash.maybeShow(win);
   },
 
@@ -223,121 +199,5 @@ export const JaceWindow = {
     } else {
       node.style.removeProperty("list-style-image");
     }
-  },
-
-  _panel(win, id) {
-    const doc = win.document;
-    let panel = doc.getElementById(id);
-    if (!panel) {
-      panel = el(doc, "panel", { id, type: "arrow", role: "dialog", noautofocus: "true", class: "jace-popup" });
-      doc.getElementById("mainPopupSet").append(panel);
-    }
-    return panel;
-  },
-
-  async openAccountPanel(win, anchor) {
-    const panel = this._panel(win, "jace-account-panel");
-    panel.replaceChildren(await this._panelBody(win, panel));
-    panel.openPopup(anchor, "bottomright topright", 0, 0, false, false);
-  },
-
-  async _panelBody(win, panel) {
-    const doc = win.document;
-    const { JaceAccount, JaceSync } = lazy;
-    const profile = JaceAccount.profile;
-    const box = html(doc, "div", { class: "jace-panel" });
-    const close = () => panel.hidePopup();
-    const button = (label, onclick, cls = "") => {
-      const b = html(doc, "button", { class: `jace-panel-button ${cls}`, text: label });
-      b.addEventListener("click", onclick);
-      return b;
-    };
-    const openSettings = (section = "") => {
-      close();
-      win.switchToTabHavingURI(lazy.JaceSettingsPane.url(section), true, {
-        ignoreFragment: "whenComparingAndReplace",
-        ignoreQueryString: true,
-      });
-    };
-
-    if (!profile) {
-      box.append(
-        html(doc, "div", { class: "jace-panel-title", text: "Jace account" }),
-        html(doc, "p", {
-          class: "jace-panel-text",
-          text: "Sign in to sync your bookmarks, passwords, history, tabs, and the sites you're signed in to across every Jace Browser.",
-        }),
-        button(
-          JaceAccount.signingIn ? "Finish signing in…" : "Sign in with Jace",
-          () => {
-            close();
-            JaceAccount.signIn(win).catch((e) => console.warn("Jace sign-in:", e.message));
-          },
-          "primary",
-        ),
-      );
-      return box;
-    }
-
-    const head = html(doc, "div", { class: "jace-panel-profile" });
-    if (profile.picture && /^https:/.test(profile.picture)) {
-      head.append(html(doc, "img", { class: "jace-avatar", src: profile.picture, alt: "" }));
-    }
-    head.append(
-      html(doc, "div", {}, [
-        html(doc, "div", { class: "jace-panel-name", text: profile.name }),
-        html(doc, "div", { class: "jace-panel-handle", text: `@${profile.username}` }),
-      ]),
-    );
-    box.append(head);
-
-    const status = JaceSync.status;
-    let line;
-    switch (status.state) {
-      case "needs-passphrase":
-        line = "Sync needs your sync passphrase.";
-        break;
-      case "syncing":
-        line = "Syncing…";
-        break;
-      case "error":
-        line = `Sync problem: ${status.error ?? "unknown"}`;
-        break;
-      case "off":
-        line = "Sync is off.";
-        break;
-      default:
-        line = `Synced ${timeAgo(status.lastSync)}`;
-    }
-    box.append(html(doc, "p", { class: "jace-panel-text", text: line }));
-
-    if (status.state === "needs-passphrase") {
-      box.append(button("Set up sync", () => openSettings("sync"), "primary"));
-    } else {
-      box.append(
-        button("Sync now", async (e) => {
-          e.target.disabled = true;
-          await JaceSync.syncNow().catch(() => {});
-          panel.replaceChildren(await this._panelBody(win, panel));
-        }),
-      );
-    }
-
-    const devices = await JaceSync.remoteTabs().catch(() => []);
-    for (const device of devices.slice(0, 3)) {
-      if (!device.tabs?.length) continue;
-      box.append(html(doc, "div", { class: "jace-panel-section", text: `Tabs on ${device.device}` }));
-      for (const tab of device.tabs.slice(0, 6)) {
-        const link = html(doc, "button", { class: "jace-panel-link", text: tab.title || tab.url, title: tab.url });
-        link.addEventListener("click", () => {
-          close();
-          win.openTrustedLinkIn(tab.url, "tab");
-        });
-        box.append(link);
-      }
-    }
-
-    box.append(html(doc, "hr"), button("Jace settings", () => openSettings()));
-    return box;
   },
 };

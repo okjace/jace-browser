@@ -24,6 +24,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JaceContentStyle: "chrome://jace/content/JaceContentStyle.sys.mjs",
   JaceSettingsPane: "chrome://jace/content/JaceSettingsPane.sys.mjs",
   JaceNewTab: "chrome://jace/content/JaceNewTab.sys.mjs",
+  JaceAccountPanel: "chrome://jace/content/JaceAccountPanel.sys.mjs",
 });
 ChromeUtils.defineLazyGetter(lazy, "CustomizableUI", () => getCustomizableUI());
 
@@ -131,16 +132,23 @@ function createWidgets() {
 
   CustomizableUI.createWidget({
     id: "jace-account-button",
-    type: "button",
+    type: "view",
+    viewId: "PanelUI-jace-account",
     label: "Jace account",
-    tooltiptext: "Jace account and sync",
+    tooltiptext: "Jace account and profiles",
     defaultArea: CustomizableUI.AREA_NAVBAR,
     removable: true,
     onCreated(node) {
+      lazy.JaceAccountPanel.install(node.ownerGlobal);
       lazy.JaceWindow.updateAccountButton(node);
     },
-    onCommand(event) {
-      lazy.JaceWindow.openAccountPanel(event.target.ownerGlobal, event.target);
+    onBeforeCreated(doc) {
+      lazy.JaceAccountPanel.install(doc.defaultView);
+    },
+    onViewShowing(event) {
+      const filling = lazy.JaceAccountPanel.fillAccountView(event.target);
+      // Show the panel once it's filled, so it doesn't jump.
+      event.detail?.addBlocker?.(filling.catch((e) => console.error("Jace: account panel", e)));
     },
   });
 

@@ -149,6 +149,22 @@ export const JaceSelfTest = {
       if (labelShown || tabWidth > 60) throw new Error(`tab ${Math.round(tabWidth)}px wide; ${info}`);
       return true;
     });
+    await check("account panel and profile switcher build", async () => {
+      const { JaceAccountPanel, ACCOUNT_VIEW, PROFILES_VIEW } = ChromeUtils.importESModule(
+        "chrome://jace/content/JaceAccountPanel.sys.mjs",
+      );
+      const CustomizableUI = getCustomizableUI();
+      if (CustomizableUI.getWidget("jace-account-button")?.type !== "view") throw new Error("account button isn't a panel button");
+      JaceAccountPanel.install(win);
+      const find = (id) => win.PanelMultiView?.getViewNode?.(win.document, id) ?? win.document.getElementById(id);
+      const account = find(ACCOUNT_VIEW);
+      const profiles = find(PROFILES_VIEW);
+      await JaceAccountPanel.fillAccountView(account);
+      JaceAccountPanel.fillProfilesView(profiles);
+      const n = (v) => v.querySelectorAll("toolbarbutton, button").length;
+      if (n(account) < 3 || n(profiles) < 2) throw new Error(`account ${n(account)} / profiles ${n(profiles)} buttons`);
+      return true;
+    });
     await check("vertical tabs on by default", () => Services.prefs.getBoolPref("sidebar.verticalTabs"));
     await check("Jace sync modules load", () => {
       const { JaceSync } = ChromeUtils.importESModule("chrome://jace/content/sync/JaceSync.sys.mjs");

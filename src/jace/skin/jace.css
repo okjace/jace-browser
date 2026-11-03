@@ -764,3 +764,100 @@ menupopup > :is(menuitem, menu)[_moz-menuactive]:not([disabled="true"]) {
 #tracking-protection-icon-container {
   border-radius: 7px !important;
 }
+
+/* ---------- Your accent in the browser's own UI (panels, switches, buttons) ---------- */
+
+:root {
+  --color-accent-primary: var(--jace-accent) !important;
+  --color-accent-primary-hover: color-mix(in srgb, var(--jace-accent) 85%, black) !important;
+  --color-accent-primary-active: color-mix(in srgb, var(--jace-accent) 70%, black) !important;
+  --button-background-color-primary: var(--jace-accent) !important;
+  --button-background-color-primary-hover: color-mix(in srgb, var(--jace-accent) 88%, black) !important;
+  --button-background-color-primary-active: color-mix(in srgb, var(--jace-accent) 75%, black) !important;
+  --button-text-color-primary: #0c1410 !important;
+  --link-color: var(--jace-accent) !important;
+  --toolbar-field-focus-border-color: var(--jace-accent) !important;
+}
+
+/* ---------- Site security icons (address bar) ---------- */
+
+#tracking-protection-icon {
+  list-style-image: url("chrome://jace/skin/icons/shield.svg") !important;
+}
+#tracking-protection-icon-container[active] #tracking-protection-icon,
+#tracking-protection-icon-box[active] #tracking-protection-icon {
+  list-style-image: url("chrome://jace/skin/icons/shield-check.svg") !important;
+  fill: var(--jace-accent) !important;
+}
+#identity-box[pageproxystate="valid"]:is(.verifiedDomain, .verifiedIdentity, .mixedActiveBlocked) #identity-icon {
+  list-style-image: url("chrome://jace/skin/icons/lock.svg") !important;
+}
+#identity-box[pageproxystate="valid"]:is(.notSecure, .mixedActiveContent, .mixedDisplayContent, .weakCipher, .httpsOnlyErrorPage, .certErrorPage) #identity-icon {
+  list-style-image: url("chrome://jace/skin/icons/lock-open.svg") !important;
+}
+#permissions-granted-icon {
+  list-style-image: url("chrome://jace/skin/icons/sliders.svg") !important;
+}
+
+/* ---------- Account panel (JaceAccountPanel.sys.mjs) ---------- */
+
+.jace-panelview .panel-subview-body {
+  padding: 6px 0 !important;
+}
+
+.jace-account-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 12px;
+}
+
+.jace-account-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.jace-account-who { min-width: 0; }
+.jace-account-name { font-weight: 600; font-size: 1.1em; }
+.jace-account-handle { color: var(--jace-muted); font-size: 0.92em; max-width: 220px; }
+
+.jace-account-primary {
+  margin: 0 16px 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--jace-accent);
+  color: #0c1410;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.jace-account-primary:hover { filter: brightness(0.95); }
+
+.jace-account-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 16px 6px;
+  color: var(--jace-muted);
+}
+.jace-account-status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--jace-accent);
+  flex: none;
+}
+.jace-account-status:is([data-state="needs-passphrase"], [data-state="error"])::before { background: #f59e0b; }
+
+.jace-account-section {
+  padding: 6px 16px 2px;
+  font-size: 0.8em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--jace-muted);
+}
