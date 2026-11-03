@@ -471,7 +471,7 @@
 :root[jace-vertical-tabs][jace-tabs-style="icons"] :is(#sidebar-main, #sidebar-container),
 :root[jace-vertical-tabs][jace-tabs-style="hover"] :is(#sidebar-main, #sidebar-container):not(:hover) {
   & :is(.tab-label-container, .tab-close-button, .tab-audio-button, .tab-secondary-label, .tab-icon-overlay,
-        .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button) .toolbarbutton-text) {
+        .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     display: none !important;
   }
   & :is(sidebar-main, #vertical-tabs, #tabbrowser-tabs, #tabbrowser-arrowscrollbox) {
@@ -495,25 +495,88 @@
     padding-inline: 0 !important;
     justify-content: center !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button) {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
     width: 44px !important;
     min-width: 44px !important;
+    max-width: 44px !important;
     margin-inline: 6px !important;
     padding-inline: 0 !important;
     justify-content: center !important;
+    align-items: center !important;
+  }
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
+    margin-inline: 0 !important;
   }
 }
 
-/* Hover: grows over the page instead of pushing it aside. */
+/* Hover: grows over the page instead of pushing it aside, with motion:
+   a short delay (so passing the mouse by doesn't open it), an eased grow,
+   names fading and sliding in, and a quicker close. */
+:root[jace-vertical-tabs][jace-tabs-style="hover"] :is(#sidebar-main, #sidebar-container) {
+  transition:
+    width 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    margin 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 200ms ease,
+    background-color 200ms ease !important;
+}
+
 :root[jace-vertical-tabs][jace-tabs-style="hover"] :is(#sidebar-main, #sidebar-container):hover {
   width: 260px !important;
   max-width: 260px !important;
   margin-inline-end: -204px !important;
   z-index: 10;
   background: var(--jace-surface) !important;
-  box-shadow: var(--jace-shadow) !important;
+  box-shadow: 8px 0 32px rgb(0 0 0 / 0.22) !important;
   border-start-end-radius: var(--jace-radius);
   border-end-end-radius: var(--jace-radius);
+  transition:
+    width 320ms cubic-bezier(0.2, 0.9, 0.25, 1) 120ms,
+    max-width 320ms cubic-bezier(0.2, 0.9, 0.25, 1) 120ms,
+    margin 320ms cubic-bezier(0.2, 0.9, 0.25, 1) 120ms,
+    box-shadow 320ms ease 120ms,
+    background-color 200ms ease 120ms !important;
+
+  & :is(.tab-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
+    animation: jace-label-in 280ms cubic-bezier(0.2, 0.9, 0.25, 1) 220ms both;
+  }
+  & .tabbrowser-tab:is(:hover, [selected]) :is(.tab-close-button, .tab-audio-button) {
+    animation: jace-label-in 220ms ease 300ms both;
+  }
+  & .tabbrowser-tab :is(.tab-icon-stack, .tab-icon-image) {
+    animation: jace-icon-bounce 360ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both;
+  }
+}
+
+@keyframes jace-label-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes jace-icon-bounce {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+/* Icon-only tabs: a little lift on hover, and a soft press. */
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) .tabbrowser-tab .tab-background {
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) .tabbrowser-tab:hover .tab-background {
+  transform: scale(1.04);
+}
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) .tabbrowser-tab:active .tab-background {
+  transform: scale(0.96);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[jace-vertical-tabs] :is(#sidebar-main, #sidebar-container),
+  :root[jace-vertical-tabs] :is(#sidebar-main, #sidebar-container) * {
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+    animation: none !important;
+  }
 }
 
 /* ---------- Window controls ----------

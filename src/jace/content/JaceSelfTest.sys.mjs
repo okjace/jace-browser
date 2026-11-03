@@ -155,6 +155,40 @@ export const JaceSelfTest = {
       Services.prefs.setStringPref("jace.tabs.verticalStyle", before);
       return true;
     });
+    await check("the + New Tab button lines up with the tabs", async () => {
+      const doc = win.document;
+      const before = Services.prefs.getStringPref("jace.tabs.verticalStyle", "full");
+      Services.prefs.setBoolPref("sidebar.verticalTabs", true);
+      const problems = [];
+      for (const style of ["full", "icons"]) {
+        Services.prefs.setStringPref("jace.tabs.verticalStyle", style);
+        await new Promise((r) => win.setTimeout(r, 700));
+        const side = doc.getElementById("sidebar-container") ?? doc;
+        const tabIcon = win.gBrowser.selectedTab.querySelector(".tab-icon-stack, .tab-icon-image");
+        const button = side.querySelector("#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button");
+        const buttonIcon = button?.querySelector(".toolbarbutton-icon") ?? button;
+        if (!tabIcon || !buttonIcon) {
+          problems.push(`${style}: tab icon ${!!tabIcon}, button ${button ? button.id : "missing"}`);
+          continue;
+        }
+        const a = tabIcon.getBoundingClientRect();
+        const b = buttonIcon.getBoundingClientRect();
+        const off = style === "icons" ? b.left + b.width / 2 - (a.left + a.width / 2) : b.left - a.left;
+        if (Math.abs(off) > 3) {
+          const cs = win.getComputedStyle(button);
+          const ci = win.getComputedStyle(buttonIcon);
+          problems.push(
+            `${style}: + is ${Math.round(off)}px off (button #${button.id} in ${button.parentElement?.localName}#${button.parentElement?.id}; ` +
+              `tab icon ${Math.round(a.left)}+${Math.round(a.width)}, + icon ${Math.round(b.left)}+${Math.round(b.width)}; ` +
+              `button margin ${cs.marginLeft}/${cs.marginRight} padding ${cs.paddingLeft}/${cs.paddingRight}; ` +
+              `icon padding ${ci.paddingLeft} margin ${ci.marginLeft})`,
+          );
+        }
+      }
+      Services.prefs.setStringPref("jace.tabs.verticalStyle", before);
+      if (problems.length) throw new Error(problems.join(" | "));
+      return true;
+    });
     await check("account panel and profile switcher build", async () => {
       const { JaceAccountPanel, ACCOUNT_VIEW, PROFILES_VIEW } = ChromeUtils.importESModule(
         "chrome://jace/content/JaceAccountPanel.sys.mjs",
