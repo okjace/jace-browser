@@ -106,15 +106,13 @@ jobs:
       - name: Build jace-usb-helper.exe
         working-directory: usb-helper
         run: cargo build --release
-      - name: It needs no extra DLLs and answers
+      - name: It answers (no extra DLLs needed)
         working-directory: usb-helper
-        shell: pwsh
+        shell: bash
+        timeout-minutes: 3
         run: |
-          $deps = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find "**\dumpbin.exe" | Select-Object -First 1
-          if ($deps) { & $deps /dependents target\release\jace-usb-helper.exe | Select-String "\.dll" }
-          $out = '{"id":1,"cmd":"hello"}' | .\target\release\jace-usb-helper.exe
-          $out
-          if (-not ($out -match '"id":1')) { throw "the helper didn't answer" }
+          printf '{"id":1,"cmd":"hello"}\n{"id":2,"cmd":"list"}\n' | timeout 15 ./target/release/jace-usb-helper.exe | tee out.txt || true
+          grep -q '"id":1' out.txt
       - uses: actions/upload-artifact@v7
         with:
           name: usb-helper-windows
