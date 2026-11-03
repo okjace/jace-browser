@@ -170,6 +170,7 @@ function alignIconsSoon(win) {
       try {
         styleSidebar(win);
         alignIcons(win);
+        lazy.JaceDownloadsButton.align?.(win);
       } catch (e) {
         console.warn("Jace: couldn't line up the tab icons", e);
       }

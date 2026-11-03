@@ -339,6 +339,7 @@ function addSidebarTool(win) {
     root.append(style);
   }
   track(win, tool);
+  for (const ms of [0, 300, 1500, 4000]) win.setTimeout(() => alignTool(tool), ms);
   // If the sidebar redraws its row, put it back.
   if (!main.__jaceToolObserver) {
     main.__jaceToolObserver = new win.MutationObserver(() => {
@@ -349,6 +350,30 @@ function addSidebarTool(win) {
     main.__jaceToolObserver.observe(root, { childList: true, subtree: true });
   }
   return tool;
+}
+
+/**
+ * Lines the Downloads icon up with Firefox's own icons next to it (the
+ * picture's own spacing can differ by a pixel or two): measures both and
+ * nudges ours with `translate`.
+ */
+function alignTool(tool) {
+  if (!tool?.isConnected) return;
+  const other = [...tool.parentNode.children].find((n) => n !== tool && n.localName === "moz-button" && n.getBoundingClientRect().width);
+  if (!other) return;
+  const pic = (n) => n.shadowRoot?.querySelector("img, .button-icon, [part~='icon']") ?? n;
+  const center = (n) => {
+    const r = pic(n).getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  };
+  tool.style.translate = "";
+  const a = center(tool);
+  const b = center(other);
+  // Same column (stacked) or same row: line up across that direction only.
+  const stacked = Math.abs(a.x - b.x) < Math.abs(a.y - b.y);
+  const dx = stacked ? Math.round((b.x - a.x) * 2) / 2 : 0;
+  const dy = stacked ? 0 : Math.round((b.y - a.y) * 2) / 2;
+  tool.style.translate = dx || dy ? `${dx}px ${dy}px` : "";
 }
 
 export const JaceDownloadsButton = {
@@ -446,6 +471,11 @@ export const JaceDownloadsButton = {
         logStartup(`downloads: tab strip button ${real ? `in ${real.parentNode?.id}` : "not made"}${error ? ` (${error})` : ""}; using the backup in ${backup.parentNode?.id || backup.parentNode?.className}`);
       }, 600);
     }
+  },
+
+  /** Lines the sidebar Downloads icon up with its neighbours. */
+  align(win) {
+    alignTool(win.document.querySelector("sidebar-main")?.shadowRoot?.getElementById(TOOL_ID));
   },
 
   /** Where the Downloads icon is (for the self-test). */
