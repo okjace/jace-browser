@@ -285,7 +285,15 @@ export const JaceSelfTest = {
       const box = button?.getBoundingClientRect();
       const where = button ? `${button.parentNode?.id || button.parentNode?.className || button.parentNode?.localName}` : "";
       const strip = !!win.document.getElementById("TabsToolbar-customization-target");
+      const tabs = win.document.getElementById("tabbrowser-tabs");
+      const tabsBox = tabs?.getBoundingClientRect();
+      const tabsWhere = tabs?.closest("toolbar")?.id ?? tabs?.parentNode?.id;
+      const toolbar = win.document.getElementById("TabsToolbar");
+      const toolbarBox = toolbar?.getBoundingClientRect();
       Services.prefs.setBoolPref("sidebar.verticalTabs", was);
+      if (!tabsBox?.height || tabsWhere !== "TabsToolbar") {
+        throw new Error(`tabs didn't come back to the top: tabs in ${tabsWhere} ${Math.round(tabsBox?.width ?? 0)}x${Math.round(tabsBox?.height ?? 0)}, tab bar ${Math.round(toolbarBox?.width ?? 0)}x${Math.round(toolbarBox?.height ?? 0)} collapsed=${toolbar?.collapsed}`);
+      }
       await new Promise((r) => win.setTimeout(r, 800));
       if (!button) throw new Error(`no button (tab strip target ${strip})`);
       if (!box?.width) throw new Error(`not visible, in ${where}`);

@@ -361,14 +361,12 @@ export const JaceDownloadsButton = {
       } catch (e) {
         console.error("Jace: downloads icon in the sidebar", e);
       }
-      if (added) {
-        button?.remove();
-        return;
-      }
-      // No icon row found: under the tabs instead.
-      button ??= make(win);
-      const target = doc.getElementById("vertical-tabs");
-      if (target && button.parentNode !== target) target.append(button);
+      // Not found yet: Jace tries again shortly. (Never inside the vertical
+      // tabs area itself: Firefox's toolbar manager owns it, and a button it
+      // doesn't know there breaks moving the tabs back to the top.)
+      button?.remove();
+      void added;
+      return;
     } else {
       tool?.remove();
       button ??= make(win);
