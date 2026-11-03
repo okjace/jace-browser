@@ -161,23 +161,44 @@ function addCloseButton(tab) {
   const host = tab.querySelector(".tab-stack") ?? tab.querySelector(".tab-content") ?? tab;
   const doc = tab.ownerDocument;
   const button = doc.createElementNS("http://www.w3.org/1999/xhtml", "span");
-  button.className = "jace-tab-close";
+  // "tab-close-button" too: Firefox's own tab code then treats it as the
+  // close button (closes on click, doesn't select or drag the tab).
+  button.className = "jace-tab-close tab-close-button";
   button.setAttribute("role", "button");
   button.setAttribute("title", "Close tab");
-  // The tab would select itself, start a drag or open a menu: stop that here.
-  for (const type of ["mousedown", "mouseup", "dblclick", "contextmenu"]) {
-    button.addEventListener(type, (e) => e.stopPropagation(), true);
-  }
+  const close = (e) => {
+    e?.stopPropagation();
+    e?.preventDefault();
+    if (tab.closing || !tab.isConnected) return;
+    tab.ownerGlobal.gBrowser.removeTab(tab, { animate: true });
+  };
+  let pressed = false;
+  // Mouse down: keep the tab from selecting itself or starting a drag.
   button.addEventListener(
-    "click",
+    "mousedown",
     (e) => {
+      if (e.button !== 0 && e.button !== 1) return;
+      pressed = true;
       e.stopPropagation();
       e.preventDefault();
-      if (e.button !== 0 && e.button !== 1) return;
-      tab.ownerGlobal.gBrowser.removeTab(tab, { animate: true });
     },
     true,
   );
+  // Close on release over the button (works even if the tab takes the click).
+  button.addEventListener(
+    "mouseup",
+    (e) => {
+      if (!pressed) return;
+      pressed = false;
+      if (e.button === 0 || e.button === 1) close(e);
+    },
+    true,
+  );
+  button.addEventListener("mouseleave", () => (pressed = false));
+  button.addEventListener("click", (e) => close(e), true);
+  for (const type of ["dblclick", "contextmenu", "dragstart"]) {
+    button.addEventListener(type, (e) => e.stopPropagation(), true);
+  }
   host.append(button);
 }
 

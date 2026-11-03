@@ -828,8 +828,13 @@
 
 /* Jace draws its own close button on every tab (JaceWindow addCloseButtons):
    Firefox's own hides itself in some sidebar layouts. */
-.tabbrowser-tab .tab-close-button {
+.tabbrowser-tab .tab-close-button:not(.jace-tab-close) {
   display: none !important;
+}
+.jace-tab-close {
+  pointer-events: auto !important;
+  cursor: default;
+  -moz-user-focus: ignore;
 }
 .tabbrowser-tab .tab-stack {
   position: relative;
