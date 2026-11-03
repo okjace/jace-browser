@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome:; img-src chrome: data:; style-src chrome: 'unsafe-inline'">
+  <title>Jace debug</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; padding: 20px 24px; font: 13px/1.45 ui-monospace, monospace; background: Canvas; color: CanvasText; }
+    h1 { font: 600 18px system-ui, sans-serif; margin: 0 0 4px; }
+    p.hint { font: 13px system-ui, sans-serif; opacity: 0.7; margin: 0 0 14px; }
+    h2 { font: 600 13px system-ui, sans-serif; margin: 16px 0 4px; color: #3ddc84; }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
+    button { font: inherit; margin-top: 10px; }
+  </style>
+  <script type="module" src="chrome://jace/content/debug/debug.mjs"></script>
+</head>
+<body>
+  <h1>Jace debug</h1>
+  <p class="hint">Take a screenshot of this page (scroll for more) and send it. Refreshes every 2 seconds.</p>
+  <div id="out"></div>
+</body>
+</html>

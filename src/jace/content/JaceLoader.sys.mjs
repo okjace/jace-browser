@@ -34,6 +34,7 @@ const ABOUT_JACE_URL = "chrome://jace/content/settings/settings.html";
 const ABOUT_PAGES = {
   jace: { url: ABOUT_JACE_URL, cid: "{6c3f5d9e-2b1a-4b8e-9a51-6a0f2f3b7c11}" },
   "jace-setup": { url: "chrome://jace/content/setup/setup.html", cid: "{0f6a2c1e-8d3b-4f4a-b7e2-5c9d1a3e6b20}" },
+  "jace-debug": { url: "chrome://jace/content/debug/debug.html", cid: "{3d8e1f42-7c5a-4e19-b0d6-2a9f8c4e5b71}" },
 };
 
 let initialized = false;
@@ -73,6 +74,10 @@ function registerAboutPages() {
 /** First run: show Jace Browser's setup in the first window. */
 /** Lines for jace-startup.log in the profile (scripts/try.sh prints it). */
 const startupLog = [];
+/** For about:jace-debug. */
+export function getStartupLog() {
+  return [...startupLog, ...initErrors.map((e) => `ERROR ${e}`)];
+}
 let logTimer = null;
 export function logStartup(line) {
   startupLog.push(`${new Date().toISOString().slice(11, 23)} ${line}`);
