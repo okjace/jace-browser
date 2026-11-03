@@ -113,6 +113,37 @@ function keepFirefoxUserAgent() {
   Services.prefs.getDefaultBranch("").setStringPref("general.useragent.override", firefoxUA);
 }
 
+/**
+ * Firefox's new tab component (activity stream) writes its own default
+ * prefs once it loads, which drops the locks jace.cfg put on its sponsored
+ * and telemetry prefs. Put them back, and again whenever they change.
+ */
+const NEWTAB_LOCKED = [
+  "browser.newtabpage.activity-stream.showSponsored",
+  "browser.newtabpage.activity-stream.showSponsoredTopSites",
+  "browser.newtabpage.activity-stream.feeds.telemetry",
+  "browser.newtabpage.activity-stream.telemetry",
+  "browser.newtabpage.activity-stream.feeds.section.topstories",
+];
+let relocking = false;
+function relockNewTabPrefs() {
+  if (relocking) return;
+  relocking = true;
+  try {
+    for (const name of NEWTAB_LOCKED) {
+      if (Services.prefs.prefIsLocked(name) && !Services.prefs.getBoolPref(name, false)) continue;
+      if (Services.prefs.prefIsLocked(name)) Services.prefs.unlockPref(name);
+      Services.prefs.getDefaultBranch("").setBoolPref(name, false);
+      Services.prefs.clearUserPref(name);
+      Services.prefs.lockPref(name);
+    }
+  } catch (e) {
+    initErrors.push(`couldn't relock new tab prefs: ${e}`);
+  } finally {
+    relocking = false;
+  }
+}
+
 function registerWebUSB() {
   ChromeUtils.registerWindowActor("JaceUSB", {
     parent: { esModuleURI: "chrome://jace/content/usb/JaceUSBParent.sys.mjs" },
@@ -240,6 +271,10 @@ export const JaceLoader = {
         keepFirefoxUserAgent();
       } catch (e) {
         initErrors.push(`couldn't check the user agent: ${e}`);
+      }
+      relockNewTabPrefs();
+      for (const name of NEWTAB_LOCKED) {
+        Services.prefs.addObserver(name, () => relockNewTabPrefs());
       }
       try {
         lazy.JaceNewTab.start();

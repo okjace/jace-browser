@@ -57,7 +57,7 @@
 
 #navigator-toolbox,
 #browser,
-#sidebar-main,
+:is(#sidebar-main, #sidebar-container),
 #sidebar-box,
 #tabbrowser-tabbox,
 #TabsToolbar,
@@ -140,7 +140,7 @@
   min-height: 36px !important;
 }
 
-:root[jace-vertical-tabs] #sidebar-main {
+:root[jace-vertical-tabs] :is(#sidebar-main, #sidebar-container) {
   padding-inline: 4px 0 !important;
 }
 
@@ -153,7 +153,7 @@
 
 /* ---------- Compact mode: sidebar slides in from the edge ---------- */
 
-:root[jace-compact][jace-vertical-tabs] #sidebar-main {
+:root[jace-compact][jace-vertical-tabs] :is(#sidebar-main, #sidebar-container) {
   position: fixed !important;
   inset-block: 0;
   inset-inline-start: 0;
@@ -165,8 +165,8 @@
   border-end-end-radius: var(--jace-radius);
 }
 
-:root[jace-compact][jace-vertical-tabs] #sidebar-main:hover,
-:root[jace-compact][jace-vertical-tabs] #sidebar-main:focus-within {
+:root[jace-compact][jace-vertical-tabs] :is(#sidebar-main, #sidebar-container):hover,
+:root[jace-compact][jace-vertical-tabs] :is(#sidebar-main, #sidebar-container):focus-within {
   transform: none;
 }
 
@@ -448,7 +448,7 @@
  * jace-tabs-style (JaceWindow.sys.mjs): "full", "icons" (only icons), or
  * "hover" (only icons, growing over the page while you hover). */
 
-:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main {
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) :is(#sidebar-main, #sidebar-container) {
   width: 56px !important;
   min-width: 56px !important;
   max-width: 56px !important;
@@ -456,7 +456,7 @@
   transition: width 180ms ease, max-width 180ms ease, margin 180ms ease, box-shadow 180ms ease;
 }
 
-:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main sidebar-main {
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) :is(#sidebar-main, #sidebar-container) sidebar-main {
   width: 100% !important;
   min-width: 0 !important;
 }
@@ -466,8 +466,8 @@
 }
 
 /* Narrow: only the icons (labels, close and sound buttons hidden). */
-:root[jace-vertical-tabs][jace-tabs-style="icons"] #sidebar-main,
-:root[jace-vertical-tabs][jace-tabs-style="hover"] #sidebar-main:not(:hover) {
+:root[jace-vertical-tabs][jace-tabs-style="icons"] :is(#sidebar-main, #sidebar-container),
+:root[jace-vertical-tabs][jace-tabs-style="hover"] :is(#sidebar-main, #sidebar-container):not(:hover) {
   & :is(.tab-label-container, .tab-close-button, .tab-audio-button, .tab-secondary-label,
         .tab-group-label-container, #vertical-tabs-newtab-button .toolbarbutton-text) {
     display: none !important;
@@ -485,7 +485,7 @@
 }
 
 /* Hover: grows over the page instead of pushing it aside. */
-:root[jace-vertical-tabs][jace-tabs-style="hover"] #sidebar-main:hover {
+:root[jace-vertical-tabs][jace-tabs-style="hover"] :is(#sidebar-main, #sidebar-container):hover {
   width: 260px !important;
   max-width: 260px !important;
   margin-inline-end: -204px !important;

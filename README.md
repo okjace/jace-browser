@@ -130,7 +130,9 @@ python3 scripts/build.py package
 
 Windows builds are cross-compiled on Linux (`--platform windows`), the way Mozilla builds Firefox. macOS builds run on a Mac.
 
-**Trying it on your computer without building:** everything Jace Browser adds loads through Firefox's autoconfig, so you can copy it into a regular Firefox and skip the build:
+**Trying it on Linux without building:** `bash scripts/try.sh` gets the latest code, puts it into a separate Firefox in `~/jace-test`, starts with a fresh profile, runs the self-test and opens it.
+
+**Trying it on your computer without building (any OS):** everything Jace Browser adds loads through Firefox's autoconfig, so you can copy it into a regular Firefox and skip the build:
 
 ```bash
 python3 scripts/dev-install.py "/Applications/Firefox.app"
