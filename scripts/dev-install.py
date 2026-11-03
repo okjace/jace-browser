@@ -82,15 +82,60 @@ def png_size(data):
     return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
 
 
+def read_jar_entries(data: bytes):
+    """Yields (name, bytes) from a zip, including Mozilla's "optimized" jars.
+
+    Firefox's omni.ja puts the central directory at the start of the file
+    (after a 4-byte header) instead of the end, which Python's zipfile and
+    some unzip tools reject. Offsets in it are absolute, so read it directly.
+    """
+    import struct
+    import zlib
+
+    eocd = data.rfind(b"PK\x05\x06")
+    if eocd < 0:
+        raise RuntimeError("not a zip file (no end-of-central-directory record)")
+    _sig, _disk, _cd_disk, _n_disk, count, _cd_size, cd_offset, _clen = struct.unpack_from("<4s4H2LH", data, eocd)
+    pos = cd_offset
+    for _ in range(count):
+        if data[pos : pos + 4] != b"PK\x01\x02":
+            raise RuntimeError(f"bad central directory entry at {pos}")
+        (method, csize, fnlen, extlen, comlen, local) = (
+            struct.unpack_from("<H", data, pos + 10)[0],
+            struct.unpack_from("<L", data, pos + 20)[0],
+            *struct.unpack_from("<3H", data, pos + 28),
+            struct.unpack_from("<L", data, pos + 42)[0],
+        )
+        name = data[pos + 46 : pos + 46 + fnlen].decode("utf-8")
+        pos += 46 + fnlen + extlen + comlen
+        if name.endswith("/"):
+            continue
+        if data[local : local + 4] != b"PK\x03\x04":
+            raise RuntimeError(f"bad local header for {name}")
+        lfn, lext = struct.unpack_from("<2H", data, local + 26)
+        start = local + 30 + lfn + lext
+        raw = data[start : start + csize]
+        if method == 0:
+            yield name, raw
+        elif method == 8:
+            yield name, zlib.decompress(raw, -15)
+        else:
+            raise RuntimeError(f"{name} uses zip compression method {method}, which this script can't read")
+
+
 def extract_jar(jar: Path, dest: Path):
     try:
         with zipfile.ZipFile(jar) as z:
             z.extractall(dest)
+            return
     except zipfile.BadZipFile:
-        # Mozilla's "optimized" jars confuse some zip readers; unzip copes (with a warning).
-        res = subprocess.run(["unzip", "-qo", str(jar), "-d", str(dest)], capture_output=True)
-        if res.returncode not in (0, 1, 2):
-            raise RuntimeError(f"couldn't unpack {jar}: {res.stderr.decode(errors='replace')}")
+        pass  # Mozilla's optimized jar layout: read it ourselves
+    for name, content in read_jar_entries(jar.read_bytes()):
+        out = (dest / name).resolve()
+        if not str(out).startswith(str(dest.resolve())):
+            raise RuntimeError(f"unsafe path in jar: {name}")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(content)
 
 
 def rebrand_file(rel: str, path: Path, warn_icons):
