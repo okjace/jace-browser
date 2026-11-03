@@ -200,3 +200,12 @@ a { color: var(--accent); }
 .theme-preview.system::before { background: linear-gradient(135deg, #ffffff 50%, #1b1e24 50%); }
 .theme-name { font-size: 13px; font-weight: 600; }
 .custom-theme { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 10px; }
+
+/* Search engines */
+.engine-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.engine-option {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px;
+  border: 2px solid var(--line); background: var(--card); color: var(--fg); font: inherit; cursor: pointer; text-align: start;
+}
+.engine-option[aria-checked="true"] { border-color: var(--accent); font-weight: 600; }
+.engine-option img { width: 18px; height: 18px; border-radius: 4px; }

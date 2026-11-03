@@ -167,6 +167,7 @@ const PLACEMENT = [
   { sections: ["account", "sync"], panes: [ACCOUNT_PANE], label: /^$/ },
   { sections: ["about"], panes: ["paneAbout"], label: /^\s*about/i, replace: true },
   { sections: ["look", "profiles", "drm"], panes: ["paneGeneral"], label: /general/i },
+  { sections: ["search"], panes: ["paneSearch"], label: /search/i },
   { sections: ["privacy", "usb"], panes: ["panePrivacy"], label: /privacy|security/i },
 ];
 const ALL_SECTIONS = PLACEMENT.flatMap((p) => p.sections);

@@ -485,7 +485,7 @@
    narrow width (Firefox keeps its wide-mode padding otherwise), and each tab
    is a 44px square centered in the 56px sidebar. */
 :root[jace-vertical-tabs][jace-tabs-style="icons"] :is(#sidebar-main, #sidebar-container) {
-  & :is(.tab-label-container, .tab-close-button, .tab-audio-button, .tab-secondary-label, .tab-icon-overlay,
+  & :is(.tab-label-container, .jace-tab-close, .tab-audio-button, .tab-secondary-label, .tab-icon-overlay,
         .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     display: none !important;
   }
@@ -581,7 +581,7 @@
   & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
     margin-inline: 0 !important;
   }
-  & :is(.tab-label-container, .tab-close-button, .tab-audio-button, .tab-secondary-label,
+  & :is(.tab-label-container, .jace-tab-close, .tab-audio-button, .tab-secondary-label,
         :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     opacity: 0 !important;
     transform: translateX(-12px);
@@ -605,18 +605,18 @@
     transform: none;
     transition: opacity 240ms ease 220ms, transform 340ms var(--jace-open) 180ms !important;
   }
-  & .tabbrowser-tab:not(:hover, [selected]) :is(.tab-close-button, .tab-audio-button) {
+  & .tabbrowser-tab:not(:hover, [selected]) :is(.jace-tab-close, .tab-audio-button) {
     opacity: 0 !important;
   }
   /* Firefox only draws the close button in some sidebar states: always
      draw it here (hovered or current tab), at the right end. */
-  & .tabbrowser-tab:not([pinned]):is(:hover, [selected]) .tab-close-button {
+  & .tabbrowser-tab:not([pinned]):is(:hover, [selected]) .jace-tab-close {
     display: flex !important;
     visibility: visible !important;
     flex: none !important;
     margin-inline-start: auto !important;
   }
-  & .tabbrowser-tab:is(:hover, [selected]) :is(.tab-close-button, .tab-audio-button) {
+  & .tabbrowser-tab:is(:hover, [selected]) :is(.jace-tab-close, .tab-audio-button) {
     opacity: 1 !important;
     transform: none;
     transition: opacity 200ms ease 300ms, transform 240ms var(--jace-open) 280ms !important;
@@ -789,29 +789,44 @@
 
 /* ---------- Tab close buttons, new tab button ---------- */
 
-.tab-close-button {
-  list-style-image: url("chrome://jace/skin/win-close.svg") !important;
+/* Jace draws its own close button on every tab (JaceWindow addCloseButtons):
+   Firefox's own hides itself in some sidebar layouts. */
+.tabbrowser-tab .tab-close-button {
+  display: none !important;
+}
+.jace-tab-close {
+  box-sizing: border-box;
   width: 20px !important;
   height: 20px !important;
-  padding: 4px !important;
+  min-width: 20px;
+  margin-inline-start: 4px;
   border-radius: 6px !important;
-  -moz-context-properties: fill !important;
-  fill: currentColor !important;
+  position: relative;
+  color: inherit;
   opacity: 0;
-  transition: opacity 120ms ease, background-color 120ms ease;
+  transition: opacity 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+.jace-tab-close::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  background-color: currentColor;
+  mask: url("chrome://jace/skin/tab-close.svg") center / 12px 12px no-repeat;
+}
+.tabbrowser-tab[pinned] .jace-tab-close {
+  display: none !important;
 }
 
-/* Always there (Firefox hides it in some tab layouts and widths): faint on
-   every tab, clear on the current and hovered tab. The icon-only styles hide
-   it themselves. */
-.tabbrowser-tab:not([pinned]) .tab-close-button {
+/* Faint on every tab, clear on the current and hovered tab. The icon-only
+   styles hide it themselves. */
+.tabbrowser-tab:not([pinned]) .jace-tab-close {
   display: flex !important;
   visibility: visible !important;
   flex: none !important;
   opacity: 0.45;
 }
-.tabbrowser-tab:not([pinned]):is(:hover, [selected], [visuallyselected]) .tab-close-button { opacity: 0.85; }
-.tab-close-button:hover {
+.tabbrowser-tab:not([pinned]):is(:hover, [selected], [visuallyselected]) .jace-tab-close { opacity: 0.85; }
+.jace-tab-close:hover {
   opacity: 1 !important;
   background-color: color-mix(in srgb, #e5484d 22%, transparent) !important;
   color: #e5484d;
@@ -1166,6 +1181,7 @@ menupopup > :is(menuitem, menu) {
   height: 18px;
   flex: none;
   background: url("chrome://global/skin/icons/search-glass.svg") center / 16px no-repeat;
+  border-radius: 4px;
   -moz-context-properties: fill;
   fill: var(--jace-accent);
 }
@@ -1208,7 +1224,7 @@ menupopup > :is(menuitem, menu) {
   flex: none;
   border-radius: 4px;
 }
-#jace-quicktab .qt-item:is([data-kind="search"], [data-kind="go"]) .qt-icon {
+#jace-quicktab .qt-item:is([data-kind="search"], [data-kind="go"], [data-kind="suggestion"]) .qt-icon {
   background: url("chrome://global/skin/icons/search-glass.svg") center / 14px no-repeat;
   -moz-context-properties: fill;
   fill: currentColor;

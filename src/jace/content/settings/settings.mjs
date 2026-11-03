@@ -11,6 +11,7 @@ const { JaceUpdates } = ChromeUtils.importESModule("chrome://jace/content/JaceUp
 const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceProfiles.sys.mjs");
 const { AddonManager } = ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs");
 const { JaceThemes, THEMES, customTheme } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
+const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
 
 const $ = (id) => document.getElementById(id);
 
@@ -433,3 +434,35 @@ if (location.hash === "#welcome") notice("Welcome to Jace Browser! Sign in with 
 renderAll();
 renderUsb();
 renderDrm();
+
+// ---------------------------------------------------------------- search
+
+async function renderEngines() {
+  const box = $("search-engines");
+  let engines = [];
+  try {
+    engines = await JaceSearch.engines();
+  } catch (e) {
+    console.warn("Jace: search engines", e);
+  }
+  box.replaceChildren();
+  for (const engine of engines) {
+    const b = document.createElement("button");
+    b.className = "engine-option";
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-checked", String(engine.isDefault));
+    if (engine.icon) {
+      const img = document.createElement("img");
+      img.src = engine.icon;
+      img.alt = "";
+      b.append(img);
+    }
+    b.append(engine.name);
+    b.addEventListener("click", () => JaceSearch.setDefault(engine.name).then(renderEngines));
+    box.append(b);
+  }
+}
+renderEngines();
+window.addEventListener("unload", JaceSearch.onChange(renderEngines));
+$("search-suggest").checked = JaceSearch.suggestionsOn;
+$("search-suggest").addEventListener("change", (e) => (JaceSearch.suggestionsOn = e.target.checked));

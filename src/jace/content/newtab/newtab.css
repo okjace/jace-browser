@@ -96,7 +96,37 @@ main {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent), 0 10px 30px rgb(0 0 0 / 0.1);
 }
 
-.search img { width: 20px; height: 20px; }
+.search img { width: 20px; height: 20px; border-radius: 4px; }
+
+.search-wrap { position: relative; width: min(620px, 100%); margin-top: 10px; z-index: 5; }
+.search-wrap .search { width: 100%; margin-top: 0; }
+.engine-button {
+  display: inline-flex; align-items: center; gap: 3px; flex: none;
+  border: 0; background: transparent; color: var(--muted); padding: 6px 6px 6px 2px; border-radius: 10px; cursor: pointer;
+}
+.engine-button:hover { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+.engine-button .chev { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.popover {
+  position: absolute; left: 0; right: 0; top: calc(100% + 8px);
+  padding: 6px; border-radius: 18px;
+  background: color-mix(in srgb, var(--bg) 82%, var(--fg) 4%);
+  border: 1px solid var(--line);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.22);
+  backdrop-filter: blur(24px);
+  animation: pop 160ms cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.popover[hidden] { display: none; }
+.engine-menu { right: auto; min-width: 240px; }
+@keyframes pop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: none; } }
+.popover .opt {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 9px 14px; border: 0; border-radius: 12px; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer;
+}
+.popover .opt[aria-selected="true"], .popover .opt:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.popover .opt img, .popover .opt .glass { width: 16px; height: 16px; flex: none; border-radius: 4px; }
+.popover .opt .glass { opacity: 0.6; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.popover .opt .check { margin-inline-start: auto; color: var(--accent); }
+.popover .opt b { font-weight: 600; }
 
 .search input {
   flex: 1;

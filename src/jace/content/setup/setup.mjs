@@ -73,6 +73,19 @@ function browserApi() {
       }
       return shell.isDefaultBrowser(false, false);
     },
+    engines() {
+      const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
+      return JaceSearch.engines();
+    },
+    setEngine(name) {
+      const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
+      return JaceSearch.setDefault(name);
+    },
+    getSuggest: () => Services.prefs.getBoolPref("browser.search.suggest.enabled", true),
+    setSuggest(on) {
+      Services.prefs.setBoolPref("browser.search.suggest.enabled", on);
+      Services.prefs.setBoolPref("browser.urlbar.suggest.searches", on);
+    },
     themes() {
       const { THEMES, JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
       return { list: Object.entries(THEMES).filter(([id]) => id !== "custom"), current: JaceThemes.id };
@@ -129,6 +142,11 @@ function previewApi() {
       current: prefs["jace.theme.id"] ?? "jace",
     }),
     chooseTheme: async (id) => (prefs["jace.theme.id"] = id),
+    engines: async () =>
+      ["Google", "Bing", "DuckDuckGo", "Wikipedia"].map((name) => ({ name, isDefault: name === (prefs.engine ?? "Google") })),
+    setEngine: async (name) => (prefs.engine = name),
+    getSuggest: () => prefs.suggest ?? true,
+    setSuggest: (on) => (prefs.suggest = on),
     finish: () => {},
   };
 }
@@ -344,6 +362,35 @@ $("start-url").addEventListener("keydown", (e) => {
   }
 });
 renderStart();
+
+// ------------------------------------------------------------------ search
+
+async function renderEngines() {
+  const box = $("engines");
+  const engines = await api.engines().catch(() => []);
+  box.replaceChildren();
+  for (const engine of engines) {
+    const b = document.createElement("button");
+    b.className = "engine";
+    b.setAttribute("role", "radio");
+    b.setAttribute("aria-checked", String(engine.isDefault));
+    if (engine.icon) {
+      const img = document.createElement("img");
+      img.src = engine.icon;
+      img.alt = "";
+      b.append(img);
+    }
+    b.append(engine.name);
+    b.addEventListener("click", async () => {
+      await api.setEngine(engine.name);
+      renderEngines();
+    });
+    box.append(b);
+  }
+}
+renderEngines();
+$("suggest").checked = api.getSuggest();
+$("suggest").addEventListener("change", (e) => api.setSuggest(e.target.checked));
 
 // ------------------------------------------------------------------ import
 

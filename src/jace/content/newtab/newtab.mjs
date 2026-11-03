@@ -22,6 +22,7 @@ const api = inBrowser ? browserApi() : previewApi();
 function browserApi() {
   const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAccount.sys.mjs");
   const { JaceSettingsPane } = ChromeUtils.importESModule("chrome://jace/content/JaceSettingsPane.sys.mjs");
+  const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
   const win = () => window.browsingContext.topChromeWindow;
   return {
     accent: () => Services.prefs.getStringPref("jace.theme.accent", "#3ddc84"),
@@ -41,12 +42,18 @@ function browserApi() {
       Services.prefs.setStringPref(SHORTCUTS_PREF, JSON.stringify(list));
     },
     async engineIcon() {
-      try {
-        const engine = await Services.search.getDefault();
-        return (await engine.getIconURL?.()) ?? engine.iconURI?.spec ?? null;
-      } catch {
-        return null;
-      }
+      return (await JaceSearch.current().catch(() => null))?.icon ?? null;
+    },
+    engine: () => JaceSearch.current(),
+    engines: () => JaceSearch.engines(),
+    setEngine: (name) => JaceSearch.setDefault(name),
+    onEngineChange(fn) {
+      const stop = JaceSearch.onChange(fn);
+      window.addEventListener("unload", stop);
+    },
+    suggest: (text) => JaceSearch.suggest(text, { max: 7 }),
+    searchURL(term) {
+      return Services.search.defaultEngine?.getSubmission(term)?.uri.spec ?? null;
     },
     go(text) {
       // Same as the address bar: a web address opens, anything else is searched.
@@ -72,6 +79,12 @@ function previewApi() {
     shortcuts: () => list,
     saveShortcuts: (l) => (list = l),
     engineIcon: async () => null,
+    engine: async () => ({ name: "Search" }),
+    engines: async () => [{ name: "Search", isDefault: true }],
+    setEngine: async () => {},
+    onEngineChange() {},
+    suggest: async (t) => [`${t} news`, `${t} weather`, `${t} meaning`],
+    searchURL: () => null,
     go: () => {},
     open: () => {},
     openSettings: () => {},
@@ -101,17 +114,148 @@ function tick() {
 tick();
 setInterval(tick, 10_000);
 
-// ---- search ----
+// ---- search: engine picker and suggestions ----
+const sugBox = $("suggestions");
+const engineMenu = $("engine-menu");
+let suggestions = [];
+let picked = -1;
+let typed = "";
+let query = 0;
+
+function glass() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("class", "glass");
+  svg.innerHTML = '<circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/>';
+  return svg;
+}
+
+function renderSuggestions() {
+  sugBox.replaceChildren();
+  suggestions.forEach((term, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "opt";
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", String(i === picked));
+    const label = document.createElement("span");
+    // The part you typed plain, the rest bold (like most search boxes).
+    if (term.toLowerCase().startsWith(typed.toLowerCase())) {
+      label.append(term.slice(0, typed.length));
+      const rest = document.createElement("b");
+      rest.textContent = term.slice(typed.length);
+      label.append(rest);
+    } else {
+      label.textContent = term;
+    }
+    b.append(glass(), label);
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.addEventListener("click", () => searchFor(term));
+    sugBox.append(b);
+  });
+  sugBox.hidden = !suggestions.length || document.activeElement !== $("query");
+}
+
+function searchFor(term) {
+  const url = api.searchURL(term);
+  if (url) api.open(url);
+  else api.go(term);
+}
+
+async function updateSuggestions() {
+  typed = $("query").value.trim();
+  const id = ++query;
+  const list = typed ? await api.suggest(typed).catch(() => []) : [];
+  if (id !== query) return;
+  suggestions = list;
+  picked = -1;
+  renderSuggestions();
+}
+
+let timer = null;
+$("query").addEventListener("input", () => {
+  clearTimeout(timer);
+  timer = setTimeout(updateSuggestions, 80);
+});
+$("query").addEventListener("focus", () => renderSuggestions());
+$("query").addEventListener("blur", () => setTimeout(() => (sugBox.hidden = true), 120));
+$("query").addEventListener("keydown", (e) => {
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (!suggestions.length) return;
+    e.preventDefault();
+    const n = suggestions.length;
+    picked = e.key === "ArrowDown" ? (picked + 1) % n : picked <= 0 ? n - 1 : picked - 1;
+    $("query").value = suggestions[picked];
+    renderSuggestions();
+  } else if (e.key === "Escape") {
+    sugBox.hidden = true;
+  }
+});
+
 $("search").addEventListener("submit", (e) => {
   e.preventDefault();
   const text = $("query").value.trim();
-  if (text) api.go(text);
+  if (!text) return;
+  if (picked >= 0 && suggestions[picked] === text) searchFor(text);
+  else api.go(text);
 });
-api.engineIcon().then((src) => {
+
+async function showEngine() {
+  const engine = await api.engine().catch(() => null);
+  const src = await api.engineIcon();
   if (src) {
     $("engine-icon").src = src;
     $("engine-icon").hidden = false;
   }
+  if (engine?.name) {
+    $("query").placeholder = `Search with ${engine.name} or type a web address`;
+    $("engine-button").title = `Search engine: ${engine.name} (click to change)`;
+  }
+}
+showEngine();
+api.onEngineChange(() => showEngine());
+
+$("engine-button").addEventListener("click", async () => {
+  if (!engineMenu.hidden) {
+    engineMenu.hidden = true;
+    return;
+  }
+  const engines = await api.engines().catch(() => []);
+  engineMenu.replaceChildren();
+  for (const engine of engines) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "opt";
+    b.setAttribute("role", "option");
+    b.setAttribute("aria-selected", String(engine.isDefault));
+    if (engine.icon) {
+      const img = document.createElement("img");
+      img.src = engine.icon;
+      img.alt = "";
+      b.append(img);
+    } else {
+      b.append(glass());
+    }
+    b.append(engine.name);
+    if (engine.isDefault) {
+      const check = document.createElement("span");
+      check.className = "check";
+      check.textContent = "✓";
+      b.append(check);
+    }
+    b.addEventListener("click", async () => {
+      engineMenu.hidden = true;
+      await api.setEngine(engine.name);
+      showEngine();
+      $("query").focus();
+    });
+    engineMenu.append(b);
+  }
+  sugBox.hidden = true;
+  engineMenu.hidden = false;
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest?.("#engine-menu, #engine-button")) engineMenu.hidden = true;
 });
 
 // ---- shortcuts ----

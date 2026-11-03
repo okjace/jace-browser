@@ -405,3 +405,14 @@ button.big { padding: 13px 28px; font-size: 16px; border-radius: 12px; margin-to
   border: 1.5px solid var(--line); background: var(--card); color: var(--fg); font: inherit;
 }
 .start-url:focus { outline: none; border-color: var(--accent); }
+
+/* Search engines */
+.engines { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 600px; margin: 4px 0 12px; }
+.engine {
+  display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px; border-radius: 14px;
+  border: 2px solid var(--line); background: var(--card); color: var(--fg); font: inherit; cursor: pointer;
+  transition: border-color 140ms ease, transform 140ms ease;
+}
+.engine:hover { transform: translateY(-1px); }
+.engine[aria-checked="true"] { border-color: var(--accent); font-weight: 600; }
+.engine img { width: 20px; height: 20px; border-radius: 4px; }

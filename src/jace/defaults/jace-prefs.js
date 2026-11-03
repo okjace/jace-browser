@@ -189,3 +189,10 @@ pref("browser.aboutConfig.showWarning", false);
 pref("full-screen-api.transition-duration.enter", "0 0");
 pref("full-screen-api.transition-duration.leave", "0 0");
 pref("full-screen-api.warning.timeout", 0);
+
+// Closing the last tab shows your startup page instead of closing the window.
+pref("browser.tabs.closeWindowWithLastTab", false);
+// Search suggestions (from your search engine) in the new tab box, the start page and the address bar.
+pref("browser.search.suggest.enabled", true);
+pref("browser.urlbar.suggest.searches", true);
+pref("browser.search.suggest.enabled.private", false);

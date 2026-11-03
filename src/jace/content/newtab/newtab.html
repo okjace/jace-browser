@@ -19,10 +19,17 @@
     <div class="clock" id="clock"></div>
     <div class="greeting" id="greeting"></div>
 
-    <form id="search" class="search" role="search">
-      <img id="engine-icon" alt="" hidden>
-      <input id="query" type="text" autocomplete="off" spellcheck="false" placeholder="Search or type a web address" aria-label="Search or type a web address">
-    </form>
+    <div class="search-wrap">
+      <form id="search" class="search" role="search">
+        <button type="button" id="engine-button" class="engine-button" title="Change search engine" aria-haspopup="listbox">
+          <img id="engine-icon" alt="" hidden>
+          <svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="m2.5 4 2.5 2.5L7.5 4"/></svg>
+        </button>
+        <input id="query" type="text" autocomplete="off" spellcheck="false" placeholder="Search or type a web address" aria-label="Search or type a web address" aria-controls="suggestions">
+      </form>
+      <div id="engine-menu" class="popover engine-menu" role="listbox" hidden></div>
+      <div id="suggestions" class="popover suggestions" role="listbox" hidden></div>
+    </div>
 
     <div id="shortcuts" class="shortcuts"></div>
 

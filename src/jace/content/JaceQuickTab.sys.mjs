@@ -17,14 +17,24 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  JaceSearch: "chrome://jace/content/JaceSearch.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
 const PREF = "jace.newtab.popup";
 const PANEL_ID = "jace-quicktab";
 const HTML = "http://www.w3.org/1999/xhtml";
 const WIDTH = 620;
-const MAX_RESULTS = 8;
+const MAX_RESULTS = 9;
+
+function searchURL(text) {
+  try {
+    return Services.search.defaultEngine?.getSubmission(text)?.uri.spec ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function el(doc, tag, attrs = {}, text = null) {
   const n = doc.createElementNS(HTML, tag);
@@ -102,7 +112,7 @@ function build(win) {
       const r = el(doc, "div", { class: "qt-item", role: "option", "data-kind": item.kind });
       if (i === state.selected) r.setAttribute("selected", "true");
       const img = el(doc, "img", { class: "qt-icon", alt: "" });
-      if (item.url && item.kind !== "search") {
+      if (item.url && !["search", "suggestion"].includes(item.kind)) {
         img.src = item.tab?.image || `page-icon:${item.url}`;
         img.addEventListener("error", () => img.removeAttribute("src"));
       }
@@ -144,14 +154,21 @@ function build(win) {
         if (items.length >= 4) break;
       }
     }
-    let found = [];
-    try {
-      found = await places(text);
-    } catch (e) {
-      console.warn("Jace: new tab search", e);
-    }
+    const [found, suggestions] = await Promise.all([
+      places(text).catch((e) => {
+        console.warn("Jace: new tab search", e);
+        return [];
+      }),
+      lazy.JaceSearch.suggest(text, { max: 4, isPrivate: lazy.PrivateBrowsingUtils?.isWindowPrivate?.(win) ?? false }).catch(() => []),
+    ]);
     if (id !== state.query) return; // a newer search is running
     const seen = new Set(items.map((i) => i.url));
+    for (const term of suggestions) {
+      const url = searchURL(term);
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      items.push({ kind: "suggestion", title: term, url });
+    }
     for (const p of found) {
       if (seen.has(p.url)) continue;
       seen.add(p.url);
@@ -223,6 +240,13 @@ function build(win) {
       state.items = [];
       render();
       update();
+      lazy.JaceSearch.current()
+        .then((engine) => {
+          input.placeholder = engine ? `Search with ${engine.name} or type an address` : "Search or type an address";
+          if (engine?.icon) icon.style.backgroundImage = `url("${engine.icon.replace(/"/g, "%22")}")`;
+          else icon.style.removeProperty("background-image");
+        })
+        .catch(() => {});
       const anchor = win.gBrowser.selectedBrowser?.closest(".browserStack") ?? win.gBrowser.selectedBrowser ?? doc.getElementById("tabbrowser-tabbox");
       const width = anchor.getBoundingClientRect().width;
       box.style.width = `${Math.min(WIDTH, Math.max(320, width - 40))}px`;

@@ -217,6 +217,21 @@ export const JaceSelfTest = {
       if (!panel) throw new Error("no box");
       return `panel ${state}`;
     });
+    await check("every tab has a close button", async () => {
+      const tab = win.gBrowser.addTrustedTab("about:blank", { inBackground: true });
+      await new Promise((r) => win.setTimeout(r, 200));
+      const missing = [...win.gBrowser.tabs].filter((t) => !t.pinned && !t.querySelector(".jace-tab-close")).length;
+      const button = tab.querySelector(".jace-tab-close");
+      const box = button?.getBoundingClientRect();
+      const style = button ? win.getComputedStyle(button) : null;
+      button?.click();
+      await new Promise((r) => win.setTimeout(r, 400));
+      const closed = !tab.isConnected || tab.closing;
+      if (!closed) win.gBrowser.removeTab(tab);
+      if (missing) throw new Error(`${missing} tabs without one`);
+      if (!closed) throw new Error("clicking it didn't close the tab");
+      return `${Math.round(box?.width ?? 0)}x${Math.round(box?.height ?? 0)}, display ${style?.display}, opacity ${style?.opacity}`;
+    });
     await check("themes change the window's colors", async () => {
       const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
       const before = Services.prefs.getStringPref("jace.theme.id", "jace");

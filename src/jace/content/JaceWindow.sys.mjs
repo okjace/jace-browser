@@ -153,6 +153,67 @@ function applyLook(win) {
   applyTheme(win);
 }
 
+/** Jace's own close button on a tab (Firefox's hides itself in some sidebar layouts). */
+function addCloseButton(tab) {
+  if (!tab || tab.querySelector(".jace-tab-close")) return;
+  const content = tab.querySelector(".tab-content");
+  if (!content) return;
+  const doc = tab.ownerDocument;
+  const button = doc.createElementNS("http://www.w3.org/1999/xhtml", "span");
+  button.className = "jace-tab-close";
+  button.setAttribute("role", "button");
+  button.setAttribute("title", "Close tab");
+  // The tab would select itself, start a drag or open a menu: stop that here.
+  for (const type of ["mousedown", "mouseup", "dblclick", "contextmenu"]) {
+    button.addEventListener(type, (e) => e.stopPropagation(), true);
+  }
+  button.addEventListener(
+    "click",
+    (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (e.button !== 0 && e.button !== 1) return;
+      tab.ownerGlobal.gBrowser.removeTab(tab, { animate: true });
+    },
+    true,
+  );
+  content.append(button);
+}
+
+function addCloseButtons(win) {
+  const gBrowser = win.gBrowser;
+  if (!gBrowser) return;
+  for (const tab of gBrowser.tabs) addCloseButton(tab);
+  if (win.__jaceCloseHooked) return;
+  win.__jaceCloseHooked = true;
+  gBrowser.tabContainer.addEventListener("TabOpen", (e) => addCloseButton(e.target));
+}
+
+/**
+ * Closing the last tab keeps the window open and shows your startup page
+ * (Jace start page or your website), not an empty tab.
+ */
+function watchLastTab(win) {
+  const gBrowser = win.gBrowser;
+  if (!gBrowser || win.__jaceLastTabHooked) return;
+  win.__jaceLastTabHooked = true;
+  gBrowser.tabContainer.addEventListener("TabClose", (e) => {
+    if (Services.prefs.getBoolPref("browser.tabs.closeWindowWithLastTab", false)) return;
+    const others = [...gBrowser.tabs].filter((t) => t !== e.target && !t.closing);
+    if (others.length) return;
+    win.setTimeout(() => {
+      const tab = gBrowser.tabs.length === 1 ? gBrowser.tabs[0] : null;
+      if (!tab) return;
+      let home = "about:home";
+      try {
+        home = win.HomePage?.get?.(win)?.split("|")[0] || Services.prefs.getStringPref("browser.startup.homepage", "about:home").split("|")[0];
+      } catch {}
+      const spec = tab.linkedBrowser.currentURI?.spec ?? "";
+      if (spec !== home) tab.linkedBrowser.fixupAndLoadURIString(home, { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });
+    }, 0);
+  });
+}
+
 const THEME_VARS = ["--jace-surface", "--jace-surface-2", "--jace-text", "--jace-muted", "--jace-hover", "--jace-selected"];
 
 /** The Jace theme's colors (JaceThemes), or the add-on theme's. */
@@ -215,6 +276,12 @@ export const JaceWindow = {
     if (win.__jaceReady) return;
     this.early(win);
     win.__jaceReady = true;
+    try {
+      addCloseButtons(win);
+      watchLastTab(win);
+    } catch (e) {
+      console.error("Jace: tab close buttons", e);
+    }
     try {
       lazy.JaceQuickTab.install(win);
     } catch (e) {
