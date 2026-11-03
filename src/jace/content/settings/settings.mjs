@@ -340,7 +340,10 @@ $("check-updates").addEventListener("click", (e) =>
 $("update-kind").textContent = JaceUpdates.installKind
   ? ""
   : "This copy can't replace itself (the portable .zip or .tar.xz), so updates open the download instead.";
-$("run-setup").addEventListener("click", () => browserWindow().openTrustedLinkIn("about:jace-setup", "tab"));
+$("run-setup").addEventListener("click", () => {
+  const { jacePageURL } = ChromeUtils.importESModule("chrome://jace/content/JaceCompat.sys.mjs");
+  browserWindow().openTrustedLinkIn(jacePageURL("jace-setup"), "tab");
+});
 
 // ---------------------------------------------------------------- live updates
 

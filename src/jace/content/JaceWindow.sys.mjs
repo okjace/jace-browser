@@ -11,7 +11,7 @@
  * - the Jace account panel (sign in, sync status, other devices' tabs)
  */
 
-import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
+import { getCustomizableUI, jacePageURL } from "chrome://jace/content/JaceCompat.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -325,7 +325,7 @@ export const JaceWindow = {
     };
     const openSettings = (hash = "") => {
       close();
-      win.switchToTabHavingURI(`about:jace${hash}`, true, { ignoreFragment: "whenComparingAndReplace" });
+      win.switchToTabHavingURI(`${jacePageURL("jace")}${hash}`, true, { ignoreFragment: "whenComparingAndReplace" });
     };
 
     if (!profile) {

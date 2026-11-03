@@ -40,3 +40,17 @@ export function getShellService() {
     "resource:///modules/ShellService.sys.mjs",
   ]).ShellService;
 }
+
+const PAGE_URLS = {
+  jace: "chrome://jace/content/settings/settings.html",
+  "jace-setup": "chrome://jace/content/setup/setup.html",
+};
+
+/**
+ * The address of a Jace page: about:jace / about:jace-setup when those are
+ * registered, otherwise the page's chrome:// address (works either way).
+ */
+export function jacePageURL(what) {
+  const contract = `@mozilla.org/network/protocol/about;1?what=${what}`;
+  return contract in Cc ? `about:${what}` : PAGE_URLS[what];
+}

@@ -13,7 +13,7 @@
  * - starts Jace sync once the first window is up
  */
 
-import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
+import { getCustomizableUI, jacePageURL } from "chrome://jace/content/JaceCompat.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -65,18 +65,33 @@ function registerAboutPages() {
   }
 }
 
-/** First run: show Jace Browser's setup in the first window's first tab. */
+/** First run: show Jace Browser's setup in the first window. */
 function maybeOpenSetup(win) {
   if (setupChecked) return;
   setupChecked = true;
   if (Services.prefs.getBoolPref("jace.setup.done", false)) return;
-  const url = "about:jace-setup";
-  const current = win.gBrowser.selectedBrowser.currentURI?.spec ?? "";
-  if (["about:home", "about:newtab", "about:blank", "about:welcome", ""].includes(current)) {
-    win.openTrustedLinkIn(url, "current");
-  } else {
-    win.gBrowser.selectedTab = win.gBrowser.addTrustedTab(url);
-  }
+  // Wait for Firefox's own first page (new tab / home) to finish opening, so
+  // it can't replace the setup.
+  win.setTimeout(() => {
+    try {
+      const url = jacePageURL("jace-setup");
+      const gBrowser = win.gBrowser;
+      const already = gBrowser.tabs.find((t) => /jace-setup|setup\/setup\.html/.test(t.linkedBrowser.currentURI?.spec ?? ""));
+      if (already) {
+        gBrowser.selectedTab = already;
+        return;
+      }
+      const current = gBrowser.selectedBrowser.currentURI?.spec ?? "";
+      if (gBrowser.tabs.length === 1 && /^about:(home|newtab|blank|welcome)?$/.test(current)) {
+        win.openTrustedLinkIn(url, "current");
+      } else {
+        gBrowser.selectedTab = gBrowser.addTrustedTab(url);
+      }
+    } catch (e) {
+      initErrors.push(`couldn't open setup: ${e}`);
+      console.error("Jace: couldn't open setup", e);
+    }
+  }, 1200);
 }
 
 function registerWebUSB() {
