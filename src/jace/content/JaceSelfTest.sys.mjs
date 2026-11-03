@@ -256,6 +256,15 @@ export const JaceSelfTest = {
       if (!box?.width || style?.display === "none" || style?.visibility !== "visible" || Number(style?.opacity) < 0.3) throw new Error(`can't be seen: ${detail}`);
       return detail;
     });
+    await check("Downloads button is with the tabs", async () => {
+      await new Promise((r) => win.setTimeout(r, 500));
+      const button = win.document.getElementById("jace-tabs-downloads");
+      if (!button) throw new Error("no button");
+      const box = button.getBoundingClientRect();
+      const where = button.parentNode?.id || button.parentNode?.className;
+      if (!box.width) throw new Error(`not visible (in ${where})`);
+      return `in ${where}, ${Math.round(box.width)}x${Math.round(box.height)}`;
+    });
     await check("themes change the window's colors", async () => {
       const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
       const before = Services.prefs.getStringPref("jace.theme.id", "jace");

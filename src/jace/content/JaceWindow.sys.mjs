@@ -20,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JaceAccountPanel: "chrome://jace/content/JaceAccountPanel.sys.mjs",
   JaceThemes: "chrome://jace/content/JaceThemes.sys.mjs",
   JaceQuickTab: "chrome://jace/content/JaceQuickTab.sys.mjs",
+  JaceDownloadsButton: "chrome://jace/content/JaceDownloadsButton.sys.mjs",
   JaceSplash: "chrome://jace/content/JaceSplash.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceUpdates: "chrome://jace/content/JaceUpdates.sys.mjs",
@@ -248,6 +249,19 @@ function watchLastTab(win) {
   });
 }
 
+function placeDownloads(win) {
+  // After Firefox has moved its tab strip for the new layout.
+  for (const ms of [0, 400]) {
+    win.setTimeout(() => {
+      try {
+        lazy.JaceDownloadsButton.place(win);
+      } catch (e) {
+        console.error("Jace: downloads button", e);
+      }
+    }, ms);
+  }
+}
+
 const THEME_VARS = ["--jace-surface", "--jace-surface-2", "--jace-text", "--jace-muted", "--jace-hover", "--jace-selected"];
 
 /** The Jace theme's colors (JaceThemes), or the add-on theme's. */
@@ -286,6 +300,7 @@ const prefObserver = {
         const node = win.document.getElementById("jace-vertical-tabs-button");
         if (node) JaceWindow.updateVerticalTabsButton(node);
       }
+      if (pref === VERTICAL_PREF || pref === "jace.tabs.downloadsButton") placeDownloads(win);
     }
   },
 };
@@ -313,6 +328,7 @@ export const JaceWindow = {
     try {
       addCloseButtons(win);
       watchLastTab(win);
+      placeDownloads(win);
     } catch (e) {
       console.error("Jace: tab close buttons", e);
     }
@@ -325,7 +341,7 @@ export const JaceWindow = {
     if (!observing) {
       observing = true;
       applyTabStyleGlobally();
-      for (const pref of [...Object.keys(LOOK_PREFS), "jace.theme.accent", TAB_STYLE_PREF, CONTROLS_PREF]) {
+      for (const pref of [...Object.keys(LOOK_PREFS), "jace.theme.accent", "jace.tabs.downloadsButton", TAB_STYLE_PREF, CONTROLS_PREF]) {
         Services.prefs.addObserver(pref, prefObserver);
       }
       lazy.JaceThemes.applyMode();

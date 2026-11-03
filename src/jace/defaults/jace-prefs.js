@@ -196,3 +196,4 @@ pref("browser.tabs.closeWindowWithLastTab", false);
 pref("browser.search.suggest.enabled", true);
 pref("browser.urlbar.suggest.searches", true);
 pref("browser.search.suggest.enabled.private", false);
+pref("jace.tabs.downloadsButton", true);    // Downloads button with the tabs (sidebar bottom / end of tab strip)

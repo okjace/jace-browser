@@ -486,7 +486,7 @@
    is a 44px square centered in the 56px sidebar. */
 :root[jace-vertical-tabs][jace-tabs-style="icons"] :is(#sidebar-main, #sidebar-container) {
   & :is(.tab-label-container, .tab-audio-button, .tab-secondary-label, .tab-icon-overlay,
-        .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
+        .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) .toolbarbutton-text) {
     display: none !important;
   }
   & :is(sidebar-main, #vertical-tabs, #tabbrowser-tabs, #tabbrowser-arrowscrollbox) {
@@ -510,7 +510,7 @@
     padding-inline: 0 !important;
     justify-content: center !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) {
     width: 44px !important;
     min-width: 44px !important;
     max-width: 44px !important;
@@ -519,7 +519,7 @@
     justify-content: center !important;
     align-items: center !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) > .toolbarbutton-icon {
     margin-inline: 0 !important;
   }
 }
@@ -554,7 +554,7 @@
     margin-inline: 0 !important;
     padding-inline: 0 !important;
   }
-  & :is(.tabbrowser-tab, #vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
+  & :is(.tabbrowser-tab, #vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) {
     width: 248px !important;
     min-width: 0 !important;
     max-width: 248px !important;
@@ -574,15 +574,15 @@
     flex: 1 1 auto !important;
     min-width: 0 !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) {
     padding-inline: 6px 0 !important;
     justify-content: flex-start !important;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) > .toolbarbutton-icon {
     margin-inline: 0 !important;
   }
   & :is(.tab-label-container, .tab-audio-button, .tab-secondary-label,
-        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
+        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) .toolbarbutton-text) {
     opacity: 0 !important;
     transform: translateX(-12px);
     transition: opacity 220ms ease 160ms, transform 320ms var(--jace-close) 160ms !important;
@@ -600,7 +600,7 @@
     box-shadow 340ms ease 120ms !important;
 
   & :is(.tab-label-container,
-        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
+        :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) .toolbarbutton-text) {
     opacity: 1 !important;
     transform: none;
     transition: opacity 240ms ease 220ms, transform 340ms var(--jace-open) 180ms !important;
@@ -669,7 +669,7 @@
   & .tabbrowser-tab :is(.tab-icon-stack, .tab-throbber, .tab-sharing-icon-overlay) {
     translate: var(--jace-tab-nudge, 0px) 0;
   }
-  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button, #jace-tabs-downloads[vertical]) > .toolbarbutton-icon {
     translate: var(--jace-newtab-nudge, 0px) 0;
   }
 }
@@ -1347,4 +1347,80 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 @media (prefers-reduced-motion: reduce) {
   .tabbrowser-tab[fadein] .tab-content { animation: none; }
   toolbarbutton:active > :is(.toolbarbutton-icon, .toolbarbutton-badge-stack) { transform: none; }
+}
+
+/* ---------- Downloads button with the tabs (JaceDownloadsButton) ---------- */
+
+#jace-tabs-downloads {
+  list-style-image: url("chrome://jace/skin/icons/downloads.svg") !important;
+  -moz-context-properties: fill, fill-opacity, stroke;
+  fill: currentColor;
+  position: relative;
+  flex: none;
+}
+#jace-tabs-downloads[vertical] {
+  margin: 4px 6px 6px !important;
+  padding: 6px 8px;
+  border-radius: 8px !important;
+  justify-content: flex-start;
+  gap: 8px;
+  color: var(--jace-text);
+}
+#jace-tabs-downloads[vertical]:hover { background: var(--jace-hover); }
+#jace-tabs-downloads[vertical] > .toolbarbutton-text {
+  display: flex !important;
+  font-size: inherit;
+}
+:root[jace-vertical-tabs][jace-tabs-style="icons"] #jace-tabs-downloads > .toolbarbutton-text {
+  display: none !important;
+}
+#jace-tabs-downloads:not([vertical]) > .toolbarbutton-text { display: none; }
+#jace-tabs-downloads[downloading] { color: var(--jace-accent); }
+#jace-tabs-downloads[badge]::after {
+  content: attr(badge);
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 22px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: var(--jace-accent);
+  color: #0c1410;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+/* Progress: a thin bar along the bottom while something downloads. */
+#jace-tabs-downloads > .jace-downloads-progress {
+  position: absolute;
+  inset-inline: 8px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--jace-accent) 25%, transparent);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+#jace-tabs-downloads[downloading] > .jace-downloads-progress { opacity: 1; }
+#jace-tabs-downloads > .jace-downloads-progress::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: calc(var(--jace-dl-progress, 0) * 100%);
+  background: var(--jace-accent);
+  transition: width 300ms ease;
+}
+#jace-tabs-downloads[indeterminate] > .jace-downloads-progress::before {
+  width: 35%;
+  animation: jace-dl-slide 1.2s ease-in-out infinite;
+}
+@keyframes jace-dl-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
 }

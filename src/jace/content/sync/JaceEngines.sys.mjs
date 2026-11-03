@@ -348,6 +348,7 @@ export const SYNCED_PREFS = [
   "jace.theme.id",
   "jace.theme.custom",
   "jace.tabs.verticalStyle",
+  "jace.tabs.downloadsButton",
   "jace.newtab.enabled",
   "jace.newtab.shortcuts",
   "jace.windowControls.style",
