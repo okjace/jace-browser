@@ -21,9 +21,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JaceSelfTest: "chrome://jace/content/JaceSelfTest.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceWindow: "chrome://jace/content/JaceWindow.sys.mjs",
-  JaceProfiles: "chrome://jace/content/JaceProfiles.sys.mjs",
   JaceContentStyle: "chrome://jace/content/JaceContentStyle.sys.mjs",
   JaceSettingsPane: "chrome://jace/content/JaceSettingsPane.sys.mjs",
+  JaceNewTab: "chrome://jace/content/JaceNewTab.sys.mjs",
 });
 ChromeUtils.defineLazyGetter(lazy, "CustomizableUI", () => getCustomizableUI());
 
@@ -84,7 +84,8 @@ function maybeOpenSetup(win) {
         return;
       }
       const current = gBrowser.selectedBrowser.currentURI?.spec ?? "";
-      if (gBrowser.tabs.length === 1 && /^about:(home|newtab|blank|welcome)?$/.test(current)) {
+      const firstPage = /^about:(home|newtab|blank|welcome)?$/.test(current) || current.startsWith("chrome://jace/content/newtab/");
+      if (gBrowser.tabs.length === 1 && firstPage) {
         win.openTrustedLinkIn(url, "current");
       } else {
         gBrowser.selectedTab = gBrowser.addTrustedTab(url);
@@ -143,22 +144,11 @@ function createWidgets() {
     },
   });
 
-  CustomizableUI.createWidget({
-    id: "jace-profiles-button",
-    type: "button",
-    label: "Profiles",
-    tooltiptext: "Switch profiles",
-    defaultArea: CustomizableUI.AREA_NAVBAR,
-    removable: true,
-    onCreated(node) {
-      lazy.JaceWindow.updateProfilesButton(node);
-    },
-    onCommand(event) {
-      lazy.JaceWindow.openProfilesPanel(event.target.ownerGlobal, event.target);
-    },
-  });
-  lazy.JaceProfiles.syncButtonPlacement();
-  lazy.JaceProfiles.watchPref();
+  // The profiles button was removed (profiles live in Settings -> Jace);
+  // take it off toolbars it was put on before.
+  if (CustomizableUI.getPlacementOfWidget("jace-profiles-button")) {
+    CustomizableUI.removeWidgetFromArea("jace-profiles-button");
+  }
 
   CustomizableUI.createWidget({
     id: "jace-vertical-tabs-button",
@@ -242,6 +232,11 @@ export const JaceLoader = {
         keepFirefoxUserAgent();
       } catch (e) {
         initErrors.push(`couldn't check the user agent: ${e}`);
+      }
+      try {
+        lazy.JaceNewTab.start();
+      } catch (e) {
+        initErrors.push(`couldn't set the Jace new tab page: ${e}`);
       }
       try {
         createWidgets();

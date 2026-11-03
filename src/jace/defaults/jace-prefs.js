@@ -24,7 +24,6 @@ pref("jace.theme.floatingContent", true);   // rounded, inset web content with a
 pref("jace.theme.accent", "#3ddc84");       // Jace green
 pref("jace.tabs.verticalStyle", "full");    // "full", "icons" (icons only), or "hover" (icons, expand on hover)
 pref("jace.windowControls.style", "system"); // "system" (GNOME look on Linux, the real buttons on Windows and macOS), "jace" (colored dots), or "minimal"
-pref("jace.profiles.showButton", true);     // the profiles button in the toolbar
 
 // ---------- No Firefox-branded features ----------
 // Jace Browser has its own account, sync, profiles and settings; these
@@ -59,6 +58,8 @@ pref("browser.contentblocking.report.lockwise.mobile-android.url", "");
 pref("browser.contentblocking.report.lockwise.mobile-ios.url", "");
 
 // ---------- New tab ----------
+// Jace's own new tab and home page (newtab/newtab.html) instead of Firefox's.
+pref("jace.newtab.enabled", true);
 // Default shortcuts (instead of Firefox's, like "Add-ons for Firefox").
 pref("browser.newtabpage.activity-stream.default.sites", "https://jaceo.vercel.app/,https://www.youtube.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://github.com/");
 pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);

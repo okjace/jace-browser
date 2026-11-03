@@ -19,8 +19,10 @@
 - **Mozilla's tracking removed**: telemetry and Glean, studies and remote experiments, crash reports, sponsored content, ad measurement, recommendations and background pings are switched off **and locked** (`src/jace/autoconfig/jace.cfg` and `src/jace/policies/policies.json`), so nothing can turn them back on. Safe Browsing, security blocklists and the Widevine download stay on, because removing them makes you less safe or breaks DRM. The full list is in **about:jace → Privacy**.
 - **Zen-style look**: the window is one soft surface, web pages float on it as a rounded card, tabs are pills, and the accent is Jace green (change it in about:jace).
 - **Vertical tabs you can turn off**: on by default. Turn them off or on with the tabs button in the toolbar, **Ctrl+Alt+V** (**Cmd+Opt+V** on macOS), or **about:jace → Look**. Compact mode hides the sidebar until you hover the left edge.
+- **Jace new tab page** (also the home page): a big clock, a greeting, search, and your shortcuts, in your accent color. Turn it off in Settings → Jace → Look.
+- **Jace icons** throughout the toolbar instead of Firefox's.
 - **Vertical tab styles**: names and icons, **only icons**, or **only icons that grow over the page when you hover**. Pick in the setup or **about:jace → Look**.
-- **Profiles button**: shows which profile this window is (a colored letter) and switches between them, e.g. Personal, Work, School, each with its own tabs, passwords, add-ons and Jace account. Other profiles open in their own window. Hide it with **Hide this button** in its panel, Customize Toolbar, or **about:jace → Look**; profiles stay in **about:jace → Profiles**.
+- **Profiles**: separate Personal, Work, School… profiles, each with its own tabs, passwords, add-ons and Jace account, in **Settings → Jace → Profiles**. Each opens in its own window.
 - **Window buttons that match your system**: GNOME-style (Adwaita) buttons on Linux, the real Windows buttons on Windows, and the traffic lights on macOS. On Windows and Linux you can pick Jace colored dots or Minimal instead.
 - **No Mozilla terms-of-use screen**: Jace Browser starts with its own setup, not Mozilla's terms and data notices.
 - **Custom browser pieces**: Tab close buttons, menus, panels and the address bar's suggestions are restyled to match, in your accent color.

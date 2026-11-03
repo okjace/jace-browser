@@ -4,11 +4,8 @@
 
 /**
  * Profiles: separate sets of tabs, history, passwords, add-ons and Jace
- * account - e.g. Personal and School. The profiles button in the toolbar
- * shows which one this window is and opens the others side by side.
- *
- * Hide the button with jace.profiles.showButton (the "Hide this button" link
- * in its panel, or about:jace -> Look); profiles stay in about:jace.
+ * account - e.g. Personal and School. Managed in Settings -> Jace -> Profiles,
+ * where each one opens in its own window.
  */
 
 import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
@@ -18,8 +15,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 ChromeUtils.defineLazyGetter(lazy, "CustomizableUI", () => getCustomizableUI());
 
-export const PROFILES_WIDGET = "jace-profiles-button";
-const SHOW_PREF = "jace.profiles.showButton";
 const COLORS = ["#3ddc84", "#38bdf8", "#a78bfa", "#f472b6", "#fb923c", "#f87171", "#facc15", "#2dd4bf"];
 
 function service() {
@@ -118,37 +113,5 @@ export const JaceProfiles = {
       `<circle cx="8" cy="8" r="8" fill="${colorFor(name ?? "?")}"/>` +
       `<text x="8" y="11.6" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" font-weight="700" fill="#0c1410">${letter}</text></svg>`;
     return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-  },
-
-  get showButton() {
-    return Services.prefs.getBoolPref(SHOW_PREF, true);
-  },
-
-  set showButton(show) {
-    Services.prefs.setBoolPref(SHOW_PREF, !!show);
-  },
-
-  /** Puts the toolbar button where the pref says (called at startup and when the pref changes). */
-  syncButtonPlacement() {
-    const { CustomizableUI } = lazy;
-    const placement = CustomizableUI.getPlacementOfWidget(PROFILES_WIDGET);
-    if (this.showButton && !placement) {
-      CustomizableUI.addWidgetToArea(PROFILES_WIDGET, CustomizableUI.AREA_NAVBAR);
-    } else if (!this.showButton && placement) {
-      CustomizableUI.removeWidgetFromArea(PROFILES_WIDGET);
-    }
-  },
-
-  watchPref() {
-    Services.prefs.addObserver(SHOW_PREF, () => this.syncButtonPlacement());
-    // Removing the button with Customize Toolbar also counts as hiding it.
-    lazy.CustomizableUI.addListener({
-      onWidgetRemoved: (id) => {
-        if (id === PROFILES_WIDGET && this.showButton) this.showButton = false;
-      },
-      onWidgetAdded: (id) => {
-        if (id === PROFILES_WIDGET && !this.showButton) this.showButton = true;
-      },
-    });
   },
 };

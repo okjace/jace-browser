@@ -21,7 +21,7 @@ version is just changing `firefox` in `jace.json`.
 - `JaceLoader.sys.mjs`: startup; registers about:jace, the toolbar buttons, the WebUSB actor, and each window.
 - `JaceWindow.sys.mjs`: per-window look, vertical tab styles (Firefox's own collapsed / expand-on-hover sidebar, with a CSS fallback), window button styles, Ctrl+Alt+V for vertical tabs, the account and profiles panels.
 - `JaceAccount.sys.mjs`: Sign in with Jace (OAuth + PKCE on a loopback redirect, like Jace OS), and signing in to Jace websites: `/api/oauth/browser-session` for the Jace website, and the `X-Jace-Browser-Token` header on top-level visits to its `/oauth/authorize` so Jace's own apps skip the consent screen.
-- `JaceProfiles.sys.mjs`: the profiles button and switching profiles.
+- `JaceProfiles.sys.mjs`: profiles (Settings → Jace → Profiles).
 - `JaceSecrets.sys.mjs`: the token and sync key, kept in the password manager.
 - `sync/`: Jace sync. `JaceCrypto` (AES-256-GCM, PBKDF2 passphrase key), `JaceMerge` (three-way merge), `JaceEngines` (bookmarks, history, passwords, cookies, tabs, prefs, add-ons), `JaceSync` (talks to Jace's `/api/oauth/sync`).
 - `usb/`: WebUSB. `JaceUSBChild` defines `navigator.usb` in secure pages using `webusb-polyfill.js`; `JaceUSBParent` checks permissions; `JaceUSBService` runs the helper, shows the device chooser and remembers choices.

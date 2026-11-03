@@ -60,7 +60,7 @@ function browserApi() {
 }
 
 function previewApi() {
-  const prefs = { "jace.profiles.showButton": true, "sidebar.verticalTabs": true, "jace.theme.floatingContent": true, "jace.startup.animation": true };
+  const prefs = { "sidebar.verticalTabs": true, "jace.theme.floatingContent": true, "jace.startup.animation": true };
   let profile = null;
   const listeners = [];
   return {
@@ -213,7 +213,6 @@ for (const [id, pref, fallback] of [
   ["compact", "jace.theme.compact", false],
   ["floating", "jace.theme.floatingContent", true],
   ["animation", "jace.startup.animation", true],
-  ["profiles-button", "jace.profiles.showButton", true],
 ]) {
   const box = $(id);
   box.checked = api.getBool(pref, fallback);

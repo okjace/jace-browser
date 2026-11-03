@@ -48,6 +48,10 @@ export const JaceSelfTest = {
       if (!/ Firefox\/\d+\.\d+$/.test(ua)) throw new Error(ua);
       return true;
     });
+    await check("the Jace new tab page is the new tab page", () => {
+      const { JaceNewTab } = ChromeUtils.importESModule("chrome://jace/content/JaceNewTab.sys.mjs");
+      return JaceNewTab.active;
+    });
     await check("Jace look for the built-in pages is on", () => {
       const { JaceContentStyle } = ChromeUtils.importESModule("chrome://jace/content/JaceContentStyle.sys.mjs");
       return JaceContentStyle.started;
@@ -101,15 +105,10 @@ export const JaceSelfTest = {
       const CustomizableUI = getCustomizableUI();
       return !!CustomizableUI.getWidget("jace-account-button")?.provider && !!CustomizableUI.getWidget("jace-vertical-tabs-button")?.provider;
     });
-    await check("profiles button can be hidden and shown", () => {
+    await check("no profiles button; profiles listed for settings", () => {
       const CustomizableUI = getCustomizableUI();
       const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceProfiles.sys.mjs");
-      const shownAtStart = !!CustomizableUI.getPlacementOfWidget("jace-profiles-button");
-      JaceProfiles.showButton = false;
-      const hidden = !CustomizableUI.getPlacementOfWidget("jace-profiles-button");
-      JaceProfiles.showButton = true;
-      const shown = !!CustomizableUI.getPlacementOfWidget("jace-profiles-button");
-      return shownAtStart && hidden && shown && Array.isArray(JaceProfiles.list());
+      return !CustomizableUI.getPlacementOfWidget("jace-profiles-button") && Array.isArray(JaceProfiles.list());
     });
     await check("vertical tab style and window buttons applied", () => {
       const root = win.document.documentElement;

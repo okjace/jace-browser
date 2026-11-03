@@ -444,39 +444,56 @@
   animation: jace-splash-out 300ms ease 500ms forwards !important;
 }
 
-/* ---------- Vertical tab styles (fallback for Firefox without native modes) ----------
- * JaceWindow.sys.mjs uses Firefox's own collapsed / expand-on-hover sidebar
- * when it has them; jace-tabs-fallback means it doesn't, so do it here. */
+/* ---------- Vertical tab styles ----------
+ * jace-tabs-style (JaceWindow.sys.mjs): "full", "icons" (only icons), or
+ * "hover" (only icons, growing over the page while you hover). */
 
-:root[jace-vertical-tabs][jace-tabs-fallback]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main {
-  width: 52px !important;
-  min-width: 52px !important;
-  max-width: 52px !important;
-  transition: width 180ms ease, max-width 180ms ease, margin 180ms ease;
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  overflow: hidden !important;
+  transition: width 180ms ease, max-width 180ms ease, margin 180ms ease, box-shadow 180ms ease;
 }
 
-:root[jace-vertical-tabs][jace-tabs-fallback]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main:not(:hover) :is(.tab-label-container, .tab-close-button, .tab-audio-button) {
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main sidebar-main {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-launcher-splitter {
   display: none !important;
 }
 
-:root[jace-vertical-tabs][jace-tabs-fallback][jace-tabs-style="icons"] #sidebar-main :is(.tab-label-container, .tab-close-button) {
-  display: none !important;
+/* Narrow: only the icons (labels, close and sound buttons hidden). */
+:root[jace-vertical-tabs][jace-tabs-style="icons"] #sidebar-main,
+:root[jace-vertical-tabs][jace-tabs-style="hover"] #sidebar-main:not(:hover) {
+  & :is(.tab-label-container, .tab-close-button, .tab-audio-button, .tab-secondary-label,
+        .tab-group-label-container, #vertical-tabs-newtab-button .toolbarbutton-text) {
+    display: none !important;
+  }
+  & .tabbrowser-tab .tab-content,
+  & #vertical-tabs-newtab-button {
+    justify-content: center !important;
+    padding-inline: 0 !important;
+  }
+  & .tabbrowser-tab {
+    min-width: 0 !important;
+    max-width: 44px !important;
+    margin-inline: auto !important;
+  }
 }
 
 /* Hover: grows over the page instead of pushing it aside. */
-:root[jace-vertical-tabs][jace-tabs-fallback][jace-tabs-style="hover"] #sidebar-main:hover {
-  width: 250px !important;
-  max-width: 250px !important;
-  margin-inline-end: -198px !important;
+:root[jace-vertical-tabs][jace-tabs-style="hover"] #sidebar-main:hover {
+  width: 260px !important;
+  max-width: 260px !important;
+  margin-inline-end: -204px !important;
   z-index: 10;
+  background: var(--jace-surface) !important;
   box-shadow: var(--jace-shadow) !important;
   border-start-end-radius: var(--jace-radius);
   border-end-end-radius: var(--jace-radius);
-}
-
-/* Icons-only tabs are centered squares, native or not. */
-:root[jace-vertical-tabs]:is([jace-tabs-style="icons"], [jace-tabs-style="hover"]) #sidebar-main:not(:hover) .tabbrowser-tab .tab-content {
-  justify-content: center;
 }
 
 /* ---------- Window controls ----------
@@ -701,3 +718,49 @@ menupopup > :is(menuitem, menu)[_moz-menuactive]:not([disabled="true"]) {
 
 .jace-panel-link.muted { color: var(--jace-muted); }
 .jace-error { color: #e5484d !important; }
+
+/* ---------- Jace icons (skin/icons/) instead of Firefox's ---------- */
+
+#back-button { list-style-image: url("chrome://jace/skin/icons/back.svg") !important; }
+#forward-button { list-style-image: url("chrome://jace/skin/icons/forward.svg") !important; }
+#reload-button { list-style-image: url("chrome://jace/skin/icons/reload.svg") !important; }
+#stop-button { list-style-image: url("chrome://jace/skin/icons/stop.svg") !important; }
+#home-button { list-style-image: url("chrome://jace/skin/icons/home.svg") !important; }
+#sidebar-button { list-style-image: url("chrome://jace/skin/icons/sidebar.svg") !important; }
+#PanelUI-menu-button { list-style-image: url("chrome://jace/skin/icons/menu.svg") !important; }
+#unified-extensions-button { list-style-image: url("chrome://jace/skin/icons/extensions.svg") !important; }
+#alltabs-button { list-style-image: url("chrome://jace/skin/icons/list.svg") !important; }
+:is(#new-tab-button, #tabs-newtab-button, #vertical-tabs-newtab-button) {
+  list-style-image: url("chrome://jace/skin/icons/plus.svg") !important;
+}
+#downloads-button:not([attention], [progress]) .toolbarbutton-icon,
+#downloads-button:not([attention], [progress]) #downloads-indicator-icon {
+  list-style-image: url("chrome://jace/skin/icons/downloads.svg") !important;
+}
+#star-button:not([starred]) {
+  list-style-image: url("chrome://jace/skin/icons/star.svg") !important;
+}
+
+/* Rounder, softer toolbar buttons */
+:root {
+  --toolbarbutton-border-radius: 9px !important;
+  --toolbarbutton-hover-background: var(--jace-hover) !important;
+  --toolbarbutton-active-background: color-mix(in srgb, var(--jace-text) 14%, transparent) !important;
+}
+
+/* The menu button gets the accent dot when there's something to see (updates etc.) */
+#PanelUI-menu-button[badge-status] .toolbarbutton-badge {
+  background-color: var(--jace-accent) !important;
+  box-shadow: none !important;
+}
+
+/* Address bar: a soft centered pill */
+#urlbar-container {
+  max-width: 820px !important;
+  margin-inline: auto !important;
+}
+
+#identity-icon-box,
+#tracking-protection-icon-container {
+  border-radius: 7px !important;
+}

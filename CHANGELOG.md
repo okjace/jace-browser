@@ -3,11 +3,12 @@
 ## 1.0.1
 The first release of **Jace Browser**, built on **Firefox 159.0**.
 
+- **Looks like Jace everywhere**: a Jace new tab and home page, Jace toolbar icons, Jace's colors on every built-in page, and one settings page (Settings → Jace). Leftover Firefox and Mozilla text is rewritten; only the legal notices keep Mozilla's name. Websites still see a normal Firefox.
 - **Window buttons match your system**: GNOME-style on Linux, Windows' own on Windows, traffic lights on macOS (Jace and Minimal styles still available).
 - **No Mozilla terms-of-use screen** on first start.
 - **Signed in to Jace websites automatically**: signing in to Jace Browser signs you in to the Jace website, and Jace's own apps skip the sign-in screen. Turn it off in about:jace.
 - **Vertical tab styles**: names and icons, only icons, or only icons that grow when you hover.
-- **Profiles button** to switch between profiles (each with its own tabs, passwords and Jace account). Hide it any time.
+- **Profiles** in Settings → Jace (each with its own tabs, passwords and Jace account).
 - **Jace-styled** tab close buttons, menus and panels, in your accent color.
 - **Startup animation**: the Jace logo draws itself in and zooms away to the browser. Press any key to skip, or turn it off in about:jace.
 - **First-run setup**: choose your tabs, accent color and look, import from another browser, sign in with Jace and turn on sync, and make Jace Browser your default.

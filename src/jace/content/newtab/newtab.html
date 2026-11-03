@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src chrome: 'self'; img-src chrome: page-icon: https: data: 'self'; style-src chrome: 'self' 'unsafe-inline'">
+  <meta name="color-scheme" content="light dark">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Tab</title>
+  <link rel="icon" href="chrome://branding/content/icon32.png">
+  <link rel="stylesheet" href="chrome://jace/content/newtab/newtab.css">
+  <script type="module" src="chrome://jace/content/newtab/newtab.mjs"></script>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <main>
+    <div class="clock" id="clock"></div>
+    <div class="greeting" id="greeting"></div>
+
+    <form id="search" class="search" role="search">
+      <img id="engine-icon" alt="" hidden>
+      <input id="query" type="text" autocomplete="off" spellcheck="false" placeholder="Search or type a web address" aria-label="Search or type a web address">
+    </form>
+
+    <div id="shortcuts" class="shortcuts"></div>
+
+    <form id="add-form" class="add-form" hidden>
+      <input id="add-title" placeholder="Name" maxlength="40">
+      <input id="add-url" placeholder="https://…" required>
+      <button type="submit" class="primary">Add</button>
+      <button type="button" id="add-cancel">Cancel</button>
+    </form>
+  </main>
+  <button id="settings" class="corner" title="Jace settings" aria-label="Jace settings">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg>
+  </button>
+</body>
+</html>
