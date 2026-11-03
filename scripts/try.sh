@@ -9,8 +9,18 @@
 set -e
 DIR="$HOME/jace-test"
 
-pkill -f "$DIR/firefox/firefox" 2>/dev/null || true
-sleep 1
+# Close any open test copy first (it would keep the setup from showing):
+# ask nicely, wait up to 10 seconds, then force it.
+pkill -f "$DIR/firefox/" 2>/dev/null || true
+for _ in $(seq 20); do
+  pgrep -f "$DIR/firefox/" >/dev/null || break
+  sleep 0.5
+done
+if pgrep -f "$DIR/firefox/" >/dev/null; then
+  echo "Closing the Jace Browser test copy that was still open..."
+  pkill -9 -f "$DIR/firefox/" 2>/dev/null || true
+  sleep 1
+fi
 mkdir -p "$DIR"
 cd "$DIR"
 
