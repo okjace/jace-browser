@@ -517,13 +517,18 @@
    - icons keep the same spot in both states (14px in, centered in 44px) */
 :root[jace-vertical-tabs][jace-tabs-style="hover"] :is(#sidebar-main, #sidebar-container) {
   --jace-open: cubic-bezier(0.2, 0.9, 0.25, 1);
-  --jace-close: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Closing: waits a moment (so brushing past doesn't snap it shut), then
+     glides back with a long, soft ease-out while the names fade first. */
+  --jace-close: cubic-bezier(0.32, 0.72, 0, 1);
+  --jace-close-time: 420ms;
+  --jace-close-delay: 160ms;
   transition:
-    width 240ms var(--jace-close),
-    max-width 240ms var(--jace-close),
-    margin 240ms var(--jace-close),
-    box-shadow 240ms ease,
-    background-color 240ms ease !important;
+    width var(--jace-close-time) var(--jace-close) var(--jace-close-delay),
+    max-width var(--jace-close-time) var(--jace-close) var(--jace-close-delay),
+    margin var(--jace-close-time) var(--jace-close) var(--jace-close-delay),
+    box-shadow 380ms ease calc(var(--jace-close-delay) + 80ms),
+    border-radius 380ms ease var(--jace-close-delay),
+    background-color 320ms ease calc(var(--jace-close-delay) + 120ms) !important;
 
   & :is(sidebar-main, #vertical-tabs, #tabbrowser-tabs, #tabbrowser-arrowscrollbox) {
     width: 100% !important;
@@ -538,7 +543,7 @@
     max-width: 44px !important;
     margin-inline: 6px !important;
     padding-inline: 0 !important;
-    transition: max-width 240ms var(--jace-close) !important;
+    transition: max-width var(--jace-close-time) var(--jace-close) var(--jace-close-delay) !important;
   }
   & .tabbrowser-tab .tab-background {
     margin-inline: 0 !important;
@@ -552,7 +557,11 @@
     opacity: 0 !important;
     max-width: 0 !important;
     overflow: hidden !important;
-    transition: opacity 120ms ease, max-width 200ms var(--jace-close) !important;
+    transform: translateX(-10px);
+    transition:
+      opacity 200ms ease var(--jace-close-delay),
+      transform 260ms var(--jace-close) var(--jace-close-delay),
+      max-width var(--jace-close-time) var(--jace-close) var(--jace-close-delay) !important;
   }
   & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) {
     min-width: 44px !important;
@@ -560,7 +569,7 @@
     margin-inline: 6px !important;
     padding-inline: 6px 0 !important;
     justify-content: flex-start !important;
-    transition: max-width 240ms var(--jace-close) !important;
+    transition: max-width var(--jace-close-time) var(--jace-close) var(--jace-close-delay) !important;
   }
   & :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) > .toolbarbutton-icon {
     margin-inline: 0 !important;
@@ -594,12 +603,14 @@
         :is(#vertical-tabs-newtab-button, #tabs-newtab-button, #new-tab-button) .toolbarbutton-text) {
     opacity: 1 !important;
     max-width: 200px !important;
-    transition: opacity 220ms ease 260ms, max-width 320ms var(--jace-open) 120ms !important;
+    transform: none;
+    transition: opacity 220ms ease 260ms, transform 320ms var(--jace-open) 240ms, max-width 320ms var(--jace-open) 120ms !important;
   }
   & .tabbrowser-tab:is(:hover, [selected]) :is(.tab-close-button, .tab-audio-button) {
     opacity: 1 !important;
     max-width: 24px !important;
-    transition: opacity 200ms ease 320ms, max-width 200ms var(--jace-open) 300ms !important;
+    transform: none;
+    transition: opacity 200ms ease 320ms, transform 240ms var(--jace-open) 300ms, max-width 200ms var(--jace-open) 300ms !important;
   }
   & .tabbrowser-tab :is(.tab-icon-stack, .tab-icon-image) {
     animation: jace-icon-bounce 360ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms both;
