@@ -112,11 +112,11 @@ jobs:
   linux:
     needs: [version, tests]
     if: needs.version.outputs.build == 'true'
-    # Ubicloud's 30-core runner (~$0.012/min; about 25-40 min a build).
+    # Ubicloud's 16-core runner (~$0.0064/min; about 40-60 min a build; the project's quota is 16 cores).
     # Older Ubuntu = older glibc = the AppImage runs on more distros.
     # To go back to GitHub's free (slower) runner, set the repository
     # variable JACE_LINUX_RUNNER to ubuntu-22.04.
-    runs-on: ${{ vars.JACE_LINUX_RUNNER || 'ubicloud-standard-30-ubuntu-2204' }}
+    runs-on: ${{ vars.JACE_LINUX_RUNNER || 'ubicloud-standard-16-ubuntu-2204' }}
     timeout-minutes: 240
     env:
       # Compiler cache in GitHub's cache: rebuilds only recompile what changed.
@@ -166,8 +166,8 @@ jobs:
     # Cross-compiled on Linux, like Mozilla builds Firefox for Windows.
     needs: [version, tests, usb-helper-windows]
     if: needs.version.outputs.build == 'true'
-    # Ubicloud's 30-core runner; JACE_WINDOWS_RUNNER=ubuntu-24.04 for GitHub's free one.
-    runs-on: ${{ vars.JACE_WINDOWS_RUNNER || 'ubicloud-standard-30' }}
+    # Ubicloud's 16-core runner; JACE_WINDOWS_RUNNER=ubuntu-24.04 for GitHub's free one.
+    runs-on: ${{ vars.JACE_WINDOWS_RUNNER || 'ubicloud-standard-16' }}
     timeout-minutes: 240
     env:
       # Compiler cache in GitHub's cache: rebuilds only recompile what changed.
