@@ -93,27 +93,8 @@ function applyTabStyle(win) {
 /**
  * The sidebar's bottom row of icons (bookmarks, history, ..., downloads)
  * lives in <sidebar-main>'s own (shadow) DOM, which Jace's skin can't reach.
- * In the narrow styles it's stacked into a column so every icon fits (no
- * "more" button hiding some of them).
+ * In the narrow styles it's stacked into a column so every icon fits.
  */
-const SIDEBAR_SHADOW_CSS = `
-:host([jace-narrow]) :is(button-group, .tools-and-extensions, .bottom-actions, .actions-list) {
-  display: flex !important;
-  flex-direction: column !important;
-  flex-wrap: nowrap !important;
-  align-items: flex-start !important;
-  gap: 2px !important;
-  overflow: visible !important;
-  max-width: none !important;
-}
-:host([jace-narrow]) :is(button-group, .tools-and-extensions, .bottom-actions, .actions-list) > moz-button {
-  margin-inline-start: 10px !important;
-}
-:host([jace-narrow]) :is(.overflow-button, .more-tools, [class*="overflow"], moz-button[class*="chevron"], moz-button[iconsrc*="chevron"], moz-button[iconsrc*="arrow-double"]) {
-  display: none !important;
-}
-`;
-
 function styleSidebar(win) {
   const doc = win.document;
   const main = doc.querySelector("sidebar-main");
@@ -122,11 +103,29 @@ function styleSidebar(win) {
   const style = doc.documentElement.getAttribute("jace-tabs-style");
   const narrow = Services.prefs.getBoolPref(VERTICAL_PREF, false) && (style === "icons" || style === "hover");
   main.toggleAttribute("jace-narrow", narrow);
-  if (!root.getElementById("jace-sidebar-shadow-style")) {
-    const el = doc.createElementNS("http://www.w3.org/1999/xhtml", "style");
-    el.id = "jace-sidebar-shadow-style";
-    el.textContent = SIDEBAR_SHADOW_CSS;
-    root.append(el);
+  // Firefox's button rows (<button-group>) lay themselves out from their
+  // "orientation": vertical when narrow, as Firefox does for its own
+  // collapsed sidebar.
+  const apply = () => {
+    for (const group of root.querySelectorAll("button-group")) {
+      if (narrow) {
+        if (!group.hasAttribute("jace-orientation")) group.setAttribute("jace-orientation", group.getAttribute("orientation") ?? "");
+        if (group.getAttribute("orientation") !== "vertical") group.setAttribute("orientation", "vertical");
+      } else if (group.hasAttribute("jace-orientation")) {
+        const was = group.getAttribute("jace-orientation");
+        group.removeAttribute("jace-orientation");
+        if (was) group.setAttribute("orientation", was);
+        else group.removeAttribute("orientation");
+      }
+    }
+  };
+  apply();
+  // Firefox may redraw the rows: keep them that way.
+  if (!main.__jaceOrientation) {
+    main.__jaceOrientation = new win.MutationObserver(() => {
+      if (main.hasAttribute("jace-narrow")) apply();
+    });
+    main.__jaceOrientation.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ["orientation"] });
   }
   return true;
 }

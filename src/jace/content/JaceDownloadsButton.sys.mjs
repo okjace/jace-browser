@@ -266,7 +266,7 @@ function track(win, node) {
 /** Styles for the button inside the sidebar's own (shadow) part. */
 const TOOL_CSS = `
 /* No resize handle inside the sidebar either (the tab style sets its width). */
-:is([class*="splitter"], [class*="resizer"], [id*="splitter"], [part*="splitter"]) {
+:is(.splitter, .resizer, .sidebar-splitter, [id$="splitter"]) {
   display: none !important;
 }
 .wrapper, :host { border-inline-end-color: transparent !important; }
