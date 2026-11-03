@@ -234,13 +234,27 @@ export const JaceSelfTest = {
       const button = tab.querySelector(".jace-tab-close");
       const box = button?.getBoundingClientRect();
       const style = button ? win.getComputedStyle(button) : null;
+      const tabBox = tab.getBoundingClientRect();
+      // What's actually drawn at the button's spot (something on top of it?)
+      const onTop = box?.width ? win.document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) : null;
+      const describe = (n) => (n ? `${n.localName}${n.id ? "#" + n.id : ""}${n.className && typeof n.className === "string" ? "." + n.className.split(" ").join(".") : ""}` : "nothing");
+      const detail = button
+        ? [
+            `in ${describe(button.parentNode)}`,
+            `box ${Math.round(box.left - tabBox.left)},${Math.round(box.top - tabBox.top)} ${Math.round(box.width)}x${Math.round(box.height)} of tab ${Math.round(tabBox.width)}x${Math.round(tabBox.height)}`,
+            `display ${style.display} visibility ${style.visibility} opacity ${style.opacity} position ${style.position}`,
+            `on top: ${describe(onTop)}`,
+            `style ${win.document.documentElement.getAttribute("jace-tabs-style")}`,
+          ].join("; ")
+        : "no button";
       button?.click();
       await new Promise((r) => win.setTimeout(r, 400));
       const closed = !tab.isConnected || tab.closing;
       if (!closed) win.gBrowser.removeTab(tab);
       if (missing) throw new Error(`${missing} tabs without one`);
       if (!closed) throw new Error("clicking it didn't close the tab");
-      return `${Math.round(box?.width ?? 0)}x${Math.round(box?.height ?? 0)}, display ${style?.display}, opacity ${style?.opacity}`;
+      if (!box?.width || style?.display === "none" || style?.visibility !== "visible" || Number(style?.opacity) < 0.3) throw new Error(`can't be seen: ${detail}`);
+      return detail;
     });
     await check("themes change the window's colors", async () => {
       const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");

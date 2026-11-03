@@ -829,7 +829,8 @@
 
 /* Faint on every tab, clear on the current and hovered tab. The icon-only
    styles hide it themselves. */
-.tabbrowser-tab:not([pinned]) .jace-tab-close {
+.tabbrowser-tab:not([pinned]) .jace-tab-close,
+#tabbrowser-tabs .tabbrowser-tab:not([pinned]) .jace-tab-close {
   display: block !important;
   visibility: visible !important;
   opacity: 0.55;
