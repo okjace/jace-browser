@@ -828,7 +828,7 @@
 
 /* Jace draws its own close button on every tab (JaceWindow addCloseButtons):
    Firefox's own hides itself in some sidebar layouts. */
-.tabbrowser-tab .tab-close-button:not(.jace-tab-close) {
+.tabbrowser-tab .tab-close-button {
   display: none !important;
 }
 .jace-tab-close {
@@ -1531,3 +1531,30 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
 .jace-dl-cancel:hover { color: #e5484d; }
 .jace-dl-folder { --icon: url("chrome://jace/skin/dl-folder.svg"); }
 .jace-dl-retry { --icon: url("chrome://jace/skin/dl-retry.svg"); }
+
+.jace-tab-close[pressed] {
+  background-color: color-mix(in srgb, #e5484d 35%, transparent) !important;
+  color: #e5484d !important;
+}
+
+/* The sidebar's resize handle: no stripe, just the resize cursor at the
+   edge (and a faint line while you point at it). */
+:is(#sidebar-launcher-splitter, #sidebar-splitter) {
+  appearance: none !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  min-width: 0 !important;
+  width: 6px !important;
+  margin-inline: -3px !important;
+  position: relative;
+  z-index: 5;
+  opacity: 1 !important;
+  --splitter-color: transparent !important;
+  transition: background-color 150ms ease;
+}
+:is(#sidebar-launcher-splitter, #sidebar-splitter):hover,
+:is(#sidebar-launcher-splitter, #sidebar-splitter)[state="dragging"] {
+  background: linear-gradient(to right, transparent 2px, color-mix(in srgb, var(--jace-text) 18%, transparent) 2px, color-mix(in srgb, var(--jace-text) 18%, transparent) 4px, transparent 4px) !important;
+}

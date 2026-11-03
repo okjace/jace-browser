@@ -162,48 +162,78 @@ function addCloseButton(tab) {
   const host = tab.querySelector(".tab-stack") ?? tab.querySelector(".tab-content") ?? tab;
   const doc = tab.ownerDocument;
   const button = doc.createElementNS("http://www.w3.org/1999/xhtml", "span");
-  // "tab-close-button" too: Firefox's own tab code then treats it as the
-  // close button (closes on click, doesn't select or drag the tab).
-  button.className = "jace-tab-close tab-close-button";
+  button.className = "jace-tab-close";
   button.setAttribute("role", "button");
   button.setAttribute("title", "Close tab");
-  const close = (e) => {
-    e?.stopPropagation();
-    e?.preventDefault();
-    if (tab.closing || !tab.isConnected) return;
-    tab.ownerGlobal.gBrowser.removeTab(tab, { animate: true });
-  };
-  let pressed = false;
-  // Mouse down: keep the tab from selecting itself or starting a drag.
-  button.addEventListener(
-    "mousedown",
-    (e) => {
-      if (e.button !== 0 && e.button !== 1) return;
-      pressed = true;
-      e.stopPropagation();
-      e.preventDefault();
-    },
-    true,
-  );
-  // Close on release over the button (works even if the tab takes the click).
-  button.addEventListener(
-    "mouseup",
-    (e) => {
-      if (!pressed) return;
-      pressed = false;
-      if (e.button === 0 || e.button === 1) close(e);
-    },
-    true,
-  );
-  button.addEventListener("mouseleave", () => (pressed = false));
-  button.addEventListener("click", (e) => close(e), true);
-  for (const type of ["dblclick", "contextmenu", "dragstart"]) {
-    button.addEventListener(type, (e) => e.stopPropagation(), true);
-  }
+  // Clicks are handled for the whole window in watchCloseClicks: the tab
+  // strip grabs the mouse (for dragging tabs) before a button inside a tab
+  // would see it.
   host.append(button);
 }
 
+/**
+ * Close-button clicks, caught at the window before the tab strip (which
+ * takes the mouse for dragging) can swallow them: a press and release on a
+ * tab's close button closes that tab.
+ */
+function watchCloseClicks(win) {
+  if (win.__jaceCloseClicks) return;
+  win.__jaceCloseClicks = true;
+  const within = (button, e) => {
+    const r = button.getBoundingClientRect();
+    return r.width > 0 && e.clientX >= r.left - 1 && e.clientX <= r.right + 1 && e.clientY >= r.top - 1 && e.clientY <= r.bottom + 1;
+  };
+  const hit = (e) => {
+    const tab = e.target?.closest?.(".tabbrowser-tab");
+    const button = tab?.querySelector(".jace-tab-close");
+    if (!button || tab.pinned || !within(button, e)) return null;
+    const style = win.getComputedStyle(button);
+    if (style.display === "none" || style.visibility !== "visible" || Number(style.opacity) < 0.05) return null;
+    return { tab, button };
+  };
+  let pressed = null;
+  const swallow = (e) => {
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    e.preventDefault();
+  };
+  win.addEventListener(
+    "mousedown",
+    (e) => {
+      if (e.button !== 0 && e.button !== 1) return;
+      const h = hit(e);
+      if (!h) return;
+      pressed = h;
+      h.button.setAttribute("pressed", "true");
+      swallow(e);
+    },
+    true,
+  );
+  win.addEventListener(
+    "mouseup",
+    (e) => {
+      if (!pressed) return;
+      const { tab, button } = pressed;
+      pressed = null;
+      button.removeAttribute("pressed");
+      swallow(e);
+      if (within(button, e) && !tab.closing && tab.isConnected) win.gBrowser.removeTab(tab, { animate: true });
+    },
+    true,
+  );
+  for (const type of ["click", "auxclick", "dblclick", "dragstart"]) {
+    win.addEventListener(
+      type,
+      (e) => {
+        if (hit(e)) swallow(e);
+      },
+      true,
+    );
+  }
+}
+
 function addCloseButtons(win) {
+  watchCloseClicks(win);
   const gBrowser = win.gBrowser;
   if (!gBrowser) return;
   for (const tab of gBrowser.tabs) addCloseButton(tab);

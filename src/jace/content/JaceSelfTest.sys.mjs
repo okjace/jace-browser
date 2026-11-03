@@ -247,7 +247,12 @@ export const JaceSelfTest = {
             `style ${win.document.documentElement.getAttribute("jace-tabs-style")}`,
           ].join("; ")
         : "no button";
-      button?.click();
+      if (box?.width) {
+        // A real press and release at the button (like a mouse click).
+        const at = { bubbles: true, cancelable: true, button: 0, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 };
+        button.dispatchEvent(new win.MouseEvent("mousedown", at));
+        button.dispatchEvent(new win.MouseEvent("mouseup", at));
+      }
       await new Promise((r) => win.setTimeout(r, 400));
       const closed = !tab.isConnected || tab.closing;
       if (!closed) win.gBrowser.removeTab(tab);
