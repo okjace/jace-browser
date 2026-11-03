@@ -367,16 +367,23 @@ jobs:
           path: dist/*.dmg
 
   release:
+    # Windows and Linux are released as soon as they pass (and the Windows
+    # installer test passes); the Mac downloads are added by release-macos
+    # when those builds finish.
     if: needs.version.outputs.publish == 'true'
-    needs: [version, linux, windows, windows-installer-test, macos]
+    needs: [version, linux, windows, windows-installer-test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v8
         with:
+          name: linux
           path: artifacts
-          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows
+          path: artifacts
       - name: Keep only the downloads
         run: rm -f artifacts/jace-usb-helper.exe && ls -la artifacts
       - uses: actions/checkout@v7
@@ -386,6 +393,7 @@ jobs:
         run: |
           V="${{ needs.version.outputs.tag }}"; V="${V#v}"
           awk -v v="$V" '$0 == "## "v {f=1; next} /^## / {f=0} f' src/CHANGELOG.md > notes.md
+          printf '\n_The macOS downloads are added here when their builds finish._\n' >> notes.md
           cat notes.md
       - uses: softprops/action-gh-release@v3
         with:
@@ -412,6 +420,34 @@ jobs:
             exit 0
           fi
           python3 packaging/publish_store.py "${{ needs.version.outputs.tag }}"
+
+  release-macos:
+    # Adds whichever Mac builds succeeded to the release, then refreshes the
+    # Jace Store entry so it lists them too.
+    if: always() && needs.version.outputs.publish == 'true' && needs.release.result == 'success'
+    needs: [version, release, store, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      JACE_STORE_TOKEN: ${{ secrets.JACE_STORE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: macos-*
+          path: artifacts
+          merge-multiple: true
+      - name: Add the Mac downloads to the release
+        run: |
+          shopt -s nullglob
+          files=(artifacts/*.dmg)
+          if [ ${#files[@]} -eq 0 ]; then echo "::warning::No Mac build succeeded - the release has Windows and Linux only"; exit 0; fi
+          gh release upload "${{ needs.version.outputs.tag }}" -R "$GITHUB_REPOSITORY" --clobber "${files[@]}"
+          if [ -n "$JACE_STORE_TOKEN" ]; then
+            python3 packaging/publish_store.py "${{ needs.version.outputs.tag }}" --replace
+          fi
 
   report-failure:
     # An automatic Firefox update that doesn't build or pass its tests gets

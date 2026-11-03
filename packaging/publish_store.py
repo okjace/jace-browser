@@ -1,6 +1,7 @@
 """Publish a GitHub release to Jace Store as raw download links.
 
     python packaging/publish_store.py v1.0.0 [v0.9.0 ...] [--dry-run]
+    python packaging/publish_store.py v1.0.0 --replace   (re-publish with the release's current files)
 
 Same as Jace Launcher's: each release file becomes a labelled direct-download
 link (the files stay on GitHub), and the changelog comes from CHANGELOG.md.
@@ -61,11 +62,28 @@ def links_for(rel: dict) -> tuple[list[str], list[str]]:
     return links, platforms
 
 
-def published_versions() -> set[str]:
+def store_versions() -> dict[str, str]:
+    """{version number: version id} on Jace Store."""
     res = subprocess.run(["node", str(CLI), "project", SLUG, "--json"], capture_output=True, text=True)
     if res.returncode != 0:
         sys.exit(f"Couldn't read the Jace Store project: {res.stdout.strip() or res.stderr.strip()}")
-    return {v["version_number"] for v in json.loads(res.stdout).get("versions", [])}
+    return {v["version_number"]: v.get("id") for v in json.loads(res.stdout).get("versions", [])}
+
+
+def published_versions() -> set[str]:
+    return set(store_versions())
+
+
+def replace(tag: str) -> None:
+    """Re-publish a version with the release's current files (e.g. once the Mac builds are added)."""
+    version = tag.lstrip("v")
+    vid = store_versions().get(version)
+    if vid:
+        res = subprocess.run(["node", str(CLI), "delete-version", vid, "--json"], capture_output=True, text=True)
+        if res.returncode != 0:
+            sys.exit(f"{tag}: couldn't replace the Jace Store version: {res.stdout.strip() or res.stderr.strip()}")
+        print(f"{tag}: removed the old Jace Store entry to re-publish it")
+    publish(tag)
 
 
 def publish(tag: str, dry_run=False, existing: set[str] | None = None) -> None:
@@ -96,6 +114,10 @@ if __name__ == "__main__":
     if not args:
         sys.exit(__doc__)
     dry = "--dry-run" in sys.argv
+    if "--replace" in sys.argv:
+        for t in args:
+            replace(t)
+        sys.exit(0)
     existing = None if dry else published_versions()
     for t in args:
         publish(t if t.startswith("v") else f"v{t}", dry_run=dry, existing=existing)
