@@ -459,12 +459,7 @@ async function renderEngines() {
     b.className = "engine-option";
     b.setAttribute("role", "radio");
     b.setAttribute("aria-checked", String(engine.isDefault));
-    if (engine.icon) {
-      const img = document.createElement("img");
-      img.src = engine.icon;
-      img.alt = "";
-      b.append(img);
-    }
+    b.append(engineIconNode(engine, (name) => JaceSearch.iconFor(name)));
     b.append(engine.name);
     b.addEventListener("click", () => JaceSearch.setDefault(engine.name).then(renderEngines));
     box.append(b);
@@ -474,3 +469,26 @@ renderEngines();
 window.addEventListener("unload", JaceSearch.onChange(renderEngines));
 $("search-suggest").checked = JaceSearch.suggestionsOn;
 $("search-suggest").addEventListener("change", (e) => (JaceSearch.suggestionsOn = e.target.checked));
+
+/** An engine's icon: the picture, or its first letter until the picture loads. */
+function engineIconNode(engine, loadIcon) {
+  const show = (src) => {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = src;
+    img.addEventListener("error", () => img.replaceWith(letter()));
+    return img;
+  };
+  const letter = () => {
+    const span = document.createElement("span");
+    span.className = "engine-letter";
+    span.textContent = (engine.name || "?").charAt(0).toUpperCase();
+    return span;
+  };
+  if (engine.icon) return show(engine.icon);
+  const node = letter();
+  loadIcon?.(engine.name)
+    ?.then((src) => src && node.isConnected && node.replaceWith(show(src)))
+    .catch(() => {});
+  return node;
+}

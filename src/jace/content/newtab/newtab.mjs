@@ -47,6 +47,7 @@ function browserApi() {
     engine: () => JaceSearch.current(),
     engines: () => JaceSearch.engines(),
     setEngine: (name) => JaceSearch.setDefault(name),
+    iconFor: (name) => JaceSearch.iconFor(name),
     onEngineChange(fn) {
       const stop = JaceSearch.onChange(fn);
       window.addEventListener("unload", stop);
@@ -82,6 +83,7 @@ function previewApi() {
     engine: async () => ({ name: "Search" }),
     engines: async () => [{ name: "Search", isDefault: true }],
     setEngine: async () => {},
+    iconFor: async () => null,
     onEngineChange() {},
     suggest: async (t) => [`${t} news`, `${t} weather`, `${t} meaning`],
     searchURL: () => null,
@@ -228,14 +230,7 @@ $("engine-button").addEventListener("click", async () => {
     b.className = "opt";
     b.setAttribute("role", "option");
     b.setAttribute("aria-selected", String(engine.isDefault));
-    if (engine.icon) {
-      const img = document.createElement("img");
-      img.src = engine.icon;
-      img.alt = "";
-      b.append(img);
-    } else {
-      b.append(glass());
-    }
+    b.append(engineIconNode(engine, api.iconFor));
     b.append(engine.name);
     if (engine.isDefault) {
       const check = document.createElement("span");
@@ -349,3 +344,26 @@ $("add-form").addEventListener("submit", (e) => {
 $("add-cancel").addEventListener("click", () => ($("add-form").hidden = true));
 
 $("settings").addEventListener("click", () => api.openSettings());
+
+/** An engine's icon: the picture, or its first letter until the picture loads. */
+function engineIconNode(engine, loadIcon) {
+  const show = (src) => {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = src;
+    img.addEventListener("error", () => img.replaceWith(letter()));
+    return img;
+  };
+  const letter = () => {
+    const span = document.createElement("span");
+    span.className = "engine-letter";
+    span.textContent = (engine.name || "?").charAt(0).toUpperCase();
+    return span;
+  };
+  if (engine.icon) return show(engine.icon);
+  const node = letter();
+  loadIcon?.(engine.name)
+    ?.then((src) => src && node.isConnected && node.replaceWith(show(src)))
+    .catch(() => {});
+  return node;
+}

@@ -11,6 +11,11 @@
 
 import { setTimeout } from "resource://gre/modules/Timer.sys.mjs";
 
+// fetch and FileReader for turning icons into data: URLs.
+try {
+  Cu.importGlobalProperties(["fetch", "FileReader"]);
+} catch {}
+
 import { getSearchService, getSearchSuggestionController } from "chrome://jace/content/JaceCompat.sys.mjs";
 
 /** The search service (Services.search on older Firefox). */
@@ -18,14 +23,43 @@ const search = () => getSearchService();
 
 const SUGGEST_PREF = "browser.search.suggest.enabled";
 
-/** An engine's icon, or null. Never waits long: icons can come from the network. */
-async function iconOf(engine) {
-  try {
-    const icon = Promise.resolve(engine.getIconURL?.() ?? engine.iconURI?.spec ?? null).catch(() => null);
-    return await Promise.race([icon, new Promise((r) => setTimeout(() => r(null), 700))]);
-  } catch {
-    return null;
+const icons = new Map(); // engine name -> Promise<url|null>
+
+/**
+ * An engine's icon (a data: URL when possible, so any page can show it).
+ * Icons can take a while (they may come from the network on a new profile).
+ */
+function loadIcon(engine) {
+  if (!icons.has(engine.name)) {
+    const p = (async () => {
+      let url = null;
+      try {
+        url = (await engine.getIconURL?.(32)) ?? engine.iconURI?.spec ?? null;
+      } catch {}
+      if (!url) return null;
+      if (/^(blob|moz-[a-z-]+):/.test(url)) {
+        // Only this module can read these: make a copy pages can show.
+        try {
+          const blob = await (await fetch(url)).blob();
+          url = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+          });
+        } catch {}
+      }
+      return url;
+    })();
+    icons.set(engine.name, p);
+    p.then((url) => url || icons.delete(engine.name)); // try again next time
   }
+  return icons.get(engine.name);
+}
+
+/** The icon if it's ready within `ms`, else null (it keeps loading). */
+async function iconOf(engine, ms = 700) {
+  return Promise.race([loadIcon(engine).catch(() => null), new Promise((r) => setTimeout(() => r(null), ms))]);
 }
 
 /** The search service, ready (with a time limit so callers never hang). */
@@ -50,10 +84,17 @@ export const JaceSearch = {
     return Promise.all(list.map(async (e) => ({ name: e.name, icon: await iconOf(e), isDefault: e.name === current?.name })));
   },
 
+  /** An engine's icon, waiting up to 10 s. */
+  async iconFor(name) {
+    await ready();
+    const engine = search().getEngineByName(name);
+    return engine ? iconOf(engine, 10000) : null;
+  },
+
   async current() {
     await ready();
     const engine = await search().getDefault();
-    return engine ? { name: engine.name, icon: await iconOf(engine) } : null;
+    return engine ? { name: engine.name, icon: await iconOf(engine, 10000) } : null;
   },
 
   /** The address that searches the default engine for `term`, or null. */

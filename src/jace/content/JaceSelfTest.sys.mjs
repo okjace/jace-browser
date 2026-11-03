@@ -222,7 +222,10 @@ export const JaceSelfTest = {
       const t = Date.now();
       const engines = await JaceSearch.engines();
       if (!engines.length) throw new Error("no engines");
-      return `${engines.length} (${engines.map((e) => e.name + (e.isDefault ? "*" : "")).join(", ")}) in ${Date.now() - t} ms`;
+      const first = engines.find((e) => e.isDefault) ?? engines[0];
+      const icon = await JaceSearch.iconFor(first.name).catch((e) => `error ${e}`);
+      const iconInfo = icon ? String(icon).slice(0, 30) : "none";
+      return `${engines.length} (${engines.map((e) => e.name + (e.isDefault ? "*" : "")).join(", ")}) in ${Date.now() - t} ms; icon ${iconInfo}`;
     });
     await check("every tab has a close button", async () => {
       const tab = win.gBrowser.addTrustedTab("about:blank", { inBackground: true });

@@ -77,6 +77,10 @@ function browserApi() {
       const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
       return JaceSearch.engines();
     },
+    engineIcon(name) {
+      const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
+      return JaceSearch.iconFor(name);
+    },
     setEngine(name) {
       const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
       return JaceSearch.setDefault(name);
@@ -145,6 +149,7 @@ function previewApi() {
     engines: async () =>
       ["Google", "Bing", "DuckDuckGo", "Wikipedia"].map((name) => ({ name, isDefault: name === (prefs.engine ?? "Google") })),
     setEngine: async (name) => (prefs.engine = name),
+    engineIcon: async () => null,
     getSuggest: () => prefs.suggest ?? true,
     setSuggest: (on) => (prefs.suggest = on),
     finish: () => {},
@@ -390,12 +395,7 @@ async function renderEngines() {
     b.className = "engine";
     b.setAttribute("role", "radio");
     b.setAttribute("aria-checked", String(engine.isDefault));
-    if (engine.icon) {
-      const img = document.createElement("img");
-      img.src = engine.icon;
-      img.alt = "";
-      b.append(img);
-    }
+    b.append(engineIconNode(engine, api.engineIcon));
     b.append(engine.name);
     b.addEventListener("click", async () => {
       await api.setEngine(engine.name);
@@ -528,3 +528,26 @@ $("finish").addEventListener("click", () => api.finish());
 
 const start = steps.findIndex((s) => `#${s.dataset.step}` === location.hash);
 show(start > 0 ? start : 0);
+
+/** An engine's icon: the picture, or its first letter until the picture loads. */
+function engineIconNode(engine, loadIcon) {
+  const show = (src) => {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.src = src;
+    img.addEventListener("error", () => img.replaceWith(letter()));
+    return img;
+  };
+  const letter = () => {
+    const span = document.createElement("span");
+    span.className = "engine-letter";
+    span.textContent = (engine.name || "?").charAt(0).toUpperCase();
+    return span;
+  };
+  if (engine.icon) return show(engine.icon);
+  const node = letter();
+  loadIcon?.(engine.name)
+    ?.then((src) => src && node.isConnected && node.replaceWith(show(src)))
+    .catch(() => {});
+  return node;
+}
