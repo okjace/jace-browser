@@ -386,7 +386,8 @@ def package(args):
             setups = list((obj / "dist" / "install" / "sea").glob("*.exe")) or list((obj / "dist").glob("jace-*.installer.exe"))
         (setup,) = setups
         shutil.copy(setup, DIST / f"{stem}-windows-x64-setup.exe")
-        (zipped,) = list((obj / "dist").glob("jace-*.zip"))
+        # The browser zip (Firefox also leaves e.g. *.xpt_artifacts.zip there).
+        (zipped,) = [p for p in (obj / "dist").glob("jace-*.zip") if p.name.count(".") <= 4 and "artifacts" not in p.name and "symbols" not in p.name]
         shutil.copy(zipped, DIST / f"{stem}-windows-x64-portable.zip")
     elif args.platform == "macos":
         arch = os.environ.get("JACE_MAC_ARCH") or ("arm64" if platform.machine() == "arm64" else "x86_64")
@@ -394,6 +395,21 @@ def package(args):
         make_dmg(dmg, DIST / f"{stem}-macos-{arch}.dmg")
     for f in sorted(DIST.iterdir()):
         print(f"  {f.name}  ({f.stat().st_size // (1 << 20)} MB)")
+
+
+AUTOCONFIG_JS = """// Jace Browser: load jace.cfg at startup (see jace.cfg). Also in
+// jace-prefs.js; here too because this is where Firefox documents it.
+pref("general.config.filename", "jace.cfg");
+pref("general.config.obscure_value", 0);
+pref("general.config.sandbox_enabled", false);
+"""
+
+
+def add_autoconfig(install: Path):
+    """defaults/pref/autoconfig.js on disk next to the browser."""
+    pref_dir = install / "defaults" / "pref"
+    pref_dir.mkdir(parents=True, exist_ok=True)
+    (pref_dir / "autoconfig.js").write_text(AUTOCONFIG_JS)
 
 
 def repack_linux(tarball: Path, out: Path):
@@ -405,6 +421,7 @@ def repack_linux(tarball: Path, out: Path):
     helper = work / "jace" / "jacebrowser" / "bin" / "jace-usb-helper"
     if helper.exists():
         helper.chmod(0o755)
+    add_autoconfig(work / "jace")
     run(["tar", "-cJf", out, "-C", work, "jace"])
 
 

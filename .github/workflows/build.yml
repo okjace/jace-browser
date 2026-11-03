@@ -153,8 +153,14 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/profile"
           timeout 300 ./dist/JaceBrowser-*-x86_64.AppImage --headless -no-remote -profile "$RUNNER_TEMP/profile" || true
-          cat "$JACE_SELF_TEST_OUT"
-          grep -q "SELF-TEST OK" "$JACE_SELF_TEST_OUT"
+          if grep -q "SELF-TEST OK" "$JACE_SELF_TEST_OUT" 2>/dev/null; then cat "$JACE_SELF_TEST_OUT"; exit 0; fi
+          echo "::group::Self-test report"; cat "$JACE_SELF_TEST_OUT" 2>/dev/null || echo "(no report written)"; echo "::endgroup::"
+          echo "::group::Jace startup log (profile)"; cat "$RUNNER_TEMP/profile/jace-startup.log" 2>/dev/null || echo "(no startup log: Jace's code didn't run)"; echo "::endgroup::"
+          echo "::group::What's in the package"
+          mkdir -p "$RUNNER_TEMP/pkg" && tar -xf dist/JaceBrowser-*-linux-x86_64.tar.xz -C "$RUNNER_TEMP/pkg"
+          python3 scripts/check_package.py "$RUNNER_TEMP/pkg/jace" || true
+          echo "::endgroup::"
+          exit 1
       - uses: actions/upload-artifact@v7
         with:
           name: linux
