@@ -53,7 +53,7 @@ function browserApi() {
     },
     suggest: (text) => JaceSearch.suggest(text, { max: 7 }),
     searchURL(term) {
-      return Services.search.defaultEngine?.getSubmission(term)?.uri.spec ?? null;
+      return JaceSearch.searchURL(term);
     },
     go(text) {
       // Same as the address bar: a web address opens, anything else is searched.

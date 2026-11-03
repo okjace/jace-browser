@@ -11,10 +11,10 @@
 
 import { setTimeout } from "resource://gre/modules/Timer.sys.mjs";
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  SearchSuggestionController: "resource://gre/modules/SearchSuggestionController.sys.mjs",
-});
+import { getSearchService, getSearchSuggestionController } from "chrome://jace/content/JaceCompat.sys.mjs";
+
+/** The search service (Services.search on older Firefox). */
+const search = () => getSearchService();
 
 const SUGGEST_PREF = "browser.search.suggest.enabled";
 
@@ -30,7 +30,7 @@ async function iconOf(engine) {
 
 /** The search service, ready (with a time limit so callers never hang). */
 async function ready() {
-  await Promise.race([Services.search.init(), new Promise((_, no) => setTimeout(() => no(new Error("search service didn't start")), 8000))]);
+  await Promise.race([search().init(), new Promise((_, no) => setTimeout(() => no(new Error("search service didn't start")), 8000))]);
 }
 
 export const JaceSearch = {
@@ -45,23 +45,32 @@ export const JaceSearch = {
   /** [{ name, icon, isDefault }] */
   async engines() {
     await ready();
-    const current = await Services.search.getDefault();
-    const list = (await Services.search.getVisibleEngines?.()) ?? (await Services.search.getEngines());
+    const current = await search().getDefault();
+    const list = (await search().getVisibleEngines?.()) ?? (await search().getEngines());
     return Promise.all(list.map(async (e) => ({ name: e.name, icon: await iconOf(e), isDefault: e.name === current?.name })));
   },
 
   async current() {
     await ready();
-    const engine = await Services.search.getDefault();
+    const engine = await search().getDefault();
     return engine ? { name: engine.name, icon: await iconOf(engine) } : null;
+  },
+
+  /** The address that searches the default engine for `term`, or null. */
+  searchURL(term) {
+    try {
+      return search().defaultEngine?.getSubmission(term)?.uri.spec ?? null;
+    } catch {
+      return null;
+    }
   },
 
   async setDefault(name) {
     await ready();
-    const engine = Services.search.getEngineByName(name);
+    const engine = search().getEngineByName(name);
     if (!engine) throw new Error(`No search engine called ${name}`);
-    const reason = Ci.nsISearchService.CHANGE_REASON_USER ?? 0;
-    await Services.search.setDefault(engine, reason);
+    const reason = Ci.nsISearchService?.CHANGE_REASON_USER ?? search().CHANGE_REASON_USER ?? 0;
+    await search().setDefault(engine, reason);
   },
 
   /** Calls fn when the default engine changes; returns a function that stops it. */
@@ -83,11 +92,11 @@ export const JaceSearch = {
     text = text.trim();
     if (!text || !this.suggestionsOn || text.length > 100 || /^[a-z]+:\/\//i.test(text)) return [];
     await ready();
-    const engine = await Services.search.getDefault();
+    const engine = await search().getDefault();
     if (!engine) return [];
     let results = null;
     try {
-      const controller = new lazy.SearchSuggestionController();
+      const controller = new (getSearchSuggestionController())();
       controller.maxLocalResults = 0;
       controller.maxRemoteResults = max;
       // Newer Firefox takes one options object; older takes arguments.

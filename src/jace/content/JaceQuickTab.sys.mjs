@@ -30,7 +30,7 @@ const MAX_RESULTS = 9;
 
 function searchURL(text) {
   try {
-    return Services.search.defaultEngine?.getSubmission(text)?.uri.spec ?? null;
+    return lazy.JaceSearch.searchURL(text);
   } catch {
     return null;
   }
