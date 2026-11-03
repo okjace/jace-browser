@@ -265,12 +265,9 @@ function track(win, node) {
 
 /** Styles for the button inside the sidebar's own (shadow) part. */
 const TOOL_CSS = `
-/* Sidebar edge / resize handle drawn inside the sidebar itself: no colored line. */
+/* No resize handle inside the sidebar either (the tab style sets its width). */
 :is([class*="splitter"], [class*="resizer"], [id*="splitter"], [part*="splitter"]) {
-  background-color: transparent !important;
-  border-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
+  display: none !important;
 }
 .wrapper, :host { border-inline-end-color: transparent !important; }
 #${TOOL_ID} { position: relative; }

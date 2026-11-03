@@ -1537,32 +1537,15 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   color: #e5484d !important;
 }
 
-/* The sidebar's resize handle: no stripe, just the resize cursor at the
-   edge (and a faint line while you point at it). */
-:is(#sidebar-launcher-splitter, #sidebar-splitter, #browser > splitter, #browser splitter, #vertical-tabs-splitter),
-:is(#sidebar-launcher-splitter, #sidebar-splitter, #browser splitter)::before,
-:is(#sidebar-launcher-splitter, #sidebar-splitter, #browser splitter)::after {
+/* No resize handle on the vertical tabs sidebar: its width is set by the
+   tab style (names / only icons / bigger on hover). */
+:root[jace-vertical-tabs] #sidebar-launcher-splitter {
+  display: none !important;
+}
+#sidebar-splitter {
   border-color: transparent !important;
   background-color: transparent !important;
   outline: none !important;
   box-shadow: none !important;
 }
-:is(#sidebar-launcher-splitter, #sidebar-splitter) {
-  appearance: none !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-  min-width: 0 !important;
-  width: 6px !important;
-  margin-inline: -3px !important;
-  position: relative;
-  z-index: 5;
-  opacity: 1 !important;
-  --splitter-color: transparent !important;
-  transition: background-color 150ms ease;
-}
-:is(#sidebar-launcher-splitter, #sidebar-splitter, #browser splitter):hover,
-:is(#sidebar-launcher-splitter, #sidebar-splitter, #browser splitter)[state="dragging"] {
-  background: linear-gradient(to right, transparent 2px, color-mix(in srgb, var(--jace-text) 18%, transparent) 2px, color-mix(in srgb, var(--jace-text) 18%, transparent) 4px, transparent 4px) !important;
-}
+
