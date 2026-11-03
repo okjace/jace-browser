@@ -465,22 +465,42 @@
   display: none !important;
 }
 
-/* Narrow: only the icons (labels, close and sound buttons hidden). */
+/* Narrow: only the icons. Every layer of the tab strip is forced to the
+   narrow width (Firefox keeps its wide-mode padding otherwise), and each tab
+   is a 44px square centered in the 56px sidebar. */
 :root[jace-vertical-tabs][jace-tabs-style="icons"] :is(#sidebar-main, #sidebar-container),
 :root[jace-vertical-tabs][jace-tabs-style="hover"] :is(#sidebar-main, #sidebar-container):not(:hover) {
-  & :is(.tab-label-container, .tab-close-button, .tab-audio-button, .tab-secondary-label,
-        .tab-group-label-container, #vertical-tabs-newtab-button .toolbarbutton-text) {
+  & :is(.tab-label-container, .tab-close-button, .tab-audio-button, .tab-secondary-label, .tab-icon-overlay,
+        .tab-group-label-container, :is(#vertical-tabs-newtab-button, #tabs-newtab-button) .toolbarbutton-text) {
     display: none !important;
   }
-  & .tabbrowser-tab .tab-content,
-  & #vertical-tabs-newtab-button {
-    justify-content: center !important;
+  & :is(sidebar-main, #vertical-tabs, #tabbrowser-tabs, #tabbrowser-arrowscrollbox) {
+    width: 56px !important;
+    min-width: 0 !important;
+    max-width: 56px !important;
+    margin-inline: 0 !important;
     padding-inline: 0 !important;
   }
   & .tabbrowser-tab {
-    min-width: 0 !important;
+    width: 44px !important;
+    min-width: 44px !important;
     max-width: 44px !important;
-    margin-inline: auto !important;
+    margin-inline: 6px !important;
+    padding-inline: 0 !important;
+  }
+  & .tabbrowser-tab .tab-background {
+    margin-inline: 0 !important;
+  }
+  & .tabbrowser-tab .tab-content {
+    padding-inline: 0 !important;
+    justify-content: center !important;
+  }
+  & :is(#vertical-tabs-newtab-button, #tabs-newtab-button) {
+    width: 44px !important;
+    min-width: 44px !important;
+    margin-inline: 6px !important;
+    padding-inline: 0 !important;
+    justify-content: center !important;
   }
 }
 
@@ -823,18 +843,20 @@ menupopup > :is(menuitem, menu)[_moz-menuactive]:not([disabled="true"]) {
 .jace-account-name { font-weight: 600; font-size: 1.1em; }
 .jace-account-handle { color: var(--jace-muted); font-size: 0.92em; max-width: 220px; }
 
-.jace-account-primary {
-  margin: 0 16px 8px;
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 9px;
-  background: var(--jace-accent);
-  color: #0c1410;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
+toolbarbutton.subviewbutton.jace-account-primary {
+  margin: 0 16px 8px !important;
+  padding: 8px 12px !important;
+  border-radius: 9px !important;
+  background: var(--jace-accent) !important;
+  color: #0c1410 !important;
+  font-weight: 600 !important;
+  justify-content: center;
 }
-.jace-account-primary:hover { filter: brightness(0.95); }
+toolbarbutton.subviewbutton.jace-account-primary > .toolbarbutton-text {
+  text-align: center;
+  padding-inline-start: 0 !important;
+}
+toolbarbutton.subviewbutton.jace-account-primary:hover { filter: brightness(0.95); }
 
 .jace-account-status {
   display: flex;
@@ -860,4 +882,55 @@ menupopup > :is(menuitem, menu)[_moz-menuactive]:not([disabled="true"]) {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--jace-muted);
+}
+
+/* ---------- Menus and panels in Jace's colors (not the system's gray) ---------- */
+
+:root,
+menupopup,
+panel {
+  --panel-background: var(--jace-surface-2) !important;
+  --panel-color: var(--jace-text) !important;
+  --panel-border-color: color-mix(in srgb, var(--jace-text) 12%, transparent) !important;
+  --panel-separator-color: color-mix(in srgb, var(--jace-text) 10%, transparent) !important;
+  --arrowpanel-background: var(--jace-surface-2) !important;
+  --arrowpanel-color: var(--jace-text) !important;
+  --arrowpanel-border-color: color-mix(in srgb, var(--jace-text) 12%, transparent) !important;
+  --arrowpanel-dimmed: var(--jace-hover) !important;
+  --arrowpanel-dimmed-further: color-mix(in srgb, var(--jace-text) 14%, transparent) !important;
+  --panel-item-hover-bgcolor: var(--jace-hover) !important;
+  --panel-item-active-bgcolor: color-mix(in srgb, var(--jace-text) 14%, transparent) !important;
+  --menu-background-color: var(--jace-surface-2) !important;
+  --menu-color: var(--jace-text) !important;
+  --menu-border-color: color-mix(in srgb, var(--jace-text) 12%, transparent) !important;
+  --menuitem-hover-background-color: color-mix(in srgb, var(--jace-accent) 18%, transparent) !important;
+  --menuitem-disabled-hover-background-color: transparent !important;
+}
+
+menupopup,
+panel {
+  color-scheme: light dark;
+}
+
+menupopup > menuitem[disabled="true"],
+menupopup > menu[disabled="true"] {
+  color: color-mix(in srgb, var(--jace-text) 40%, transparent) !important;
+}
+
+menupopup > menuseparator {
+  border-top-color: color-mix(in srgb, var(--jace-text) 10%, transparent) !important;
+}
+
+/* Panel headers and footers (app menu, downloads, extensions, site info) */
+.panel-header,
+.panel-footer,
+.panel-subview-footer,
+#downloadsFooter {
+  background: transparent !important;
+  color: var(--jace-text) !important;
+}
+
+.panel-footer button,
+.panel-subview-footer-button {
+  border-radius: 8px !important;
 }

@@ -132,11 +132,15 @@ export const JaceAccountPanel = {
     body.append(header);
 
     if (!profile) {
-      const signIn = html(doc, "button", { class: "jace-account-primary" }, JaceAccount.signingIn ? "Finish signing in…" : "Sign in with Jace");
-      signIn.addEventListener("click", () => {
+      const signIn = row(doc, JaceAccount.signingIn ? "Finish signing in…" : "Sign in with Jace", () => {
         closePanel(view);
-        JaceAccount.signIn(win).catch((e) => console.warn("Jace sign-in:", e.message));
+        JaceAccount.signIn(win).catch((e) => {
+          if (e?.code === "cancelled") return;
+          console.error("Jace sign-in:", e);
+          Services.prompt.alert(win, "Sign in with Jace", `Signing in didn't work: ${e?.message ?? e}`);
+        });
       });
+      signIn.classList.add("jace-account-primary");
       body.append(signIn);
     } else {
       // Sync status line + action

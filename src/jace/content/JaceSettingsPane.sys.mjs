@@ -25,13 +25,56 @@ function isSettingsDocument(doc) {
   );
 }
 
+/**
+ * Settings pages without the sidebar this file knows (Firefox keeps
+ * redesigning it): put Jace's settings at the top of the page instead,
+ * under a "Jace" heading, so they're always reachable from here.
+ */
+function injectAtTop(win) {
+  const doc = win.document;
+  if (doc.getElementById("jace-settings-section")) return true;
+  // Above Firefox's own content area (it hides anything inside it that isn't
+  // tagged with the current category).
+  const firefoxPane = doc.getElementById("mainPrefPane");
+  const container = firefoxPane?.parentNode ?? doc.querySelector("main, #main-content, .main-content") ?? doc.body;
+  if (!container) return false;
+  const section = doc.createElementNS("http://www.w3.org/1999/xhtml", "section");
+  section.id = "jace-settings-section";
+  const heading = doc.createElementNS("http://www.w3.org/1999/xhtml", "h1");
+  heading.textContent = "Jace";
+  heading.className = "jace-settings-heading";
+  const params = new URLSearchParams(win.location.search);
+  const hash = params.get("jace") ? `#${params.get("jace")}` : "";
+  const frame = doc.createElementNS("http://www.w3.org/1999/xhtml", "iframe");
+  frame.id = "jace-settings-frame";
+  frame.setAttribute("src", `${SETTINGS_PAGE}?embedded=1${hash}`);
+  section.append(heading, frame);
+  if (firefoxPane) container.insertBefore(section, firefoxPane);
+  else container.prepend(section);
+  fitFrame(frame);
+  if (/^#jace/.test(win.location.hash)) section.scrollIntoView();
+  return true;
+}
+
+function fitFrame(frame) {
+  frame.addEventListener("load", () => {
+    const fit = () => {
+      const body = frame.contentDocument?.documentElement;
+      if (body) frame.style.height = `${body.scrollHeight + 8}px`;
+    };
+    fit();
+    new frame.contentWindow.ResizeObserver(fit).observe(frame.contentDocument.documentElement);
+  });
+}
+
+/** Firefox's settings page as this file knows it: a "Jace" entry in its sidebar. */
 function inject(win) {
   const doc = win.document;
-  if (doc.getElementById("category-jace")) return true;
+  if (doc.getElementById("category-jace") || doc.getElementById("jace-settings-section")) return true;
   const categories = doc.getElementById("categories");
   const mainPane = doc.getElementById("mainPrefPane");
   if (!categories || !mainPane || typeof win.register_module !== "function" || typeof win.gotoPref !== "function") {
-    return false;
+    return injectAtTop(win);
   }
 
   // Sidebar entry, first in the list.
@@ -62,14 +105,7 @@ function inject(win) {
 
   win.register_module("paneJace", { init() {} });
   // Keep the frame as tall as its content so the page scrolls as one.
-  frame.addEventListener("load", () => {
-    const fit = () => {
-      const body = frame.contentDocument?.documentElement;
-      if (body) frame.style.height = `${body.scrollHeight + 8}px`;
-    };
-    fit();
-    new frame.contentWindow.ResizeObserver(fit).observe(frame.contentDocument.documentElement);
-  });
+  fitFrame(frame);
 
   if (/^#jace/.test(win.location.hash)) {
     win.gotoPref("paneJace");
@@ -88,8 +124,8 @@ function onSettingsDocument(doc) {
     }
     Services.prefs.setBoolPref(WORKS_PREF, ok);
     if (!ok && /^#jace/.test(win.location.hash)) {
-      // This Firefox's settings page is different: show Jace's own page.
-      win.location.replace(SETTINGS_PAGE + win.location.hash.replace(/^#jace/, ""));
+      // Couldn't add Jace to this page at all: show Jace's own page.
+      win.location.replace(`${SETTINGS_PAGE}?standalone=1${win.location.hash.replace(/^#jace/, "")}`);
     }
   };
   // Firefox builds its categories on load; add ours right after.
@@ -115,9 +151,6 @@ export const JaceSettingsPane = {
 
   /** The URL for Jace settings, with an optional section/notice ("sync", "signed-in"). */
   url(section = "") {
-    if (!Services.prefs.getBoolPref(WORKS_PREF, true)) {
-      return SETTINGS_PAGE + (section ? `#${section}` : "");
-    }
     return section ? `about:preferences?jace=${encodeURIComponent(section)}#jace` : SETTINGS_URL;
   },
 };

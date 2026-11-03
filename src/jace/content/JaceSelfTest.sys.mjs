@@ -144,9 +144,15 @@ export const JaceSelfTest = {
         `tab label shown: ${labelShown}`,
         `tab -> root: ${chain.join(" < ")}`,
       ].join("; ");
+      const tabBox = tab.getBoundingClientRect();
+      const side = (doc.getElementById("sidebar-container") ?? doc.getElementById("sidebar-main"))?.getBoundingClientRect();
+      const inside = side ? tabBox.left >= side.left - 1 && tabBox.right <= side.right + 1 : false;
+      if (labelShown || tabBox.width > 60 || !inside) {
+        throw new Error(
+          `tab ${Math.round(tabBox.width)}px wide at ${Math.round(tabBox.left)}-${Math.round(tabBox.right)}, sidebar ${side ? `${Math.round(side.left)}-${Math.round(side.right)}` : "missing"}; ${info}`,
+        );
+      }
       Services.prefs.setStringPref("jace.tabs.verticalStyle", before);
-      const tabWidth = tab.getBoundingClientRect().width;
-      if (labelShown || tabWidth > 60) throw new Error(`tab ${Math.round(tabWidth)}px wide; ${info}`);
       return true;
     });
     await check("account panel and profile switcher build", async () => {
@@ -163,6 +169,41 @@ export const JaceSelfTest = {
       JaceAccountPanel.fillProfilesView(profiles);
       const n = (v) => v.querySelectorAll("toolbarbutton, button").length;
       if (n(account) < 3 || n(profiles) < 2) throw new Error(`account ${n(account)} / profiles ${n(profiles)} buttons`);
+      return true;
+    });
+    await check("Jace settings are in about:preferences", async () => {
+      // Also a probe: reports how this Firefox's settings page is built.
+      const tab = win.gBrowser.addTrustedTab("about:preferences#jace", { inBackground: true });
+      const browser = tab.linkedBrowser;
+      for (let i = 0; i < 40 && browser.contentDocument?.readyState !== "complete"; i++) {
+        await new Promise((r) => win.setTimeout(r, 250));
+      }
+      await new Promise((r) => win.setTimeout(r, 800));
+      const d = browser.contentDocument;
+      const found = !!d?.getElementById("category-jace") || !!d?.getElementById("jace-settings-section");
+      const probe = d
+        ? [
+            `uri=${d.documentURI}`,
+            `categories=${!!d.getElementById("categories")}`,
+            `mainPrefPane=${!!d.getElementById("mainPrefPane")}`,
+            `register_module=${typeof d.defaultView?.register_module}`,
+            `nav=${[...d.querySelectorAll("moz-page-nav, nav, [role=navigation], richlistbox")].map((e) => e.localName + (e.id ? "#" + e.id : "")).join(",") || "none"}`,
+            `jace=${d.getElementById("category-jace") ? "sidebar" : d.getElementById("jace-settings-section") ? "top" : "missing"}`,
+          ].join("; ")
+        : "no document";
+      win.gBrowser.removeTab(tab);
+      if (!found) throw new Error(probe);
+      return true;
+    });
+    await check("Sign in with Jace opens Jace's sign-in page", async () => {
+      const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAccount.sys.mjs");
+      JaceAccount.signIn(win).catch(() => {});
+      await new Promise((r) => win.setTimeout(r, 600));
+      const tab = JaceAccount.pendingTab;
+      const ok = !!tab?.isConnected;
+      JaceAccount.cancelSignIn();
+      if (tab?.isConnected) win.gBrowser.removeTab(tab);
+      if (!ok) throw new Error("no sign-in tab opened");
       return true;
     });
     await check("vertical tabs on by default", () => Services.prefs.getBoolPref("sidebar.verticalTabs"));

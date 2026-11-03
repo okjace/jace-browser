@@ -167,9 +167,12 @@ export const JaceAccount = {
     if (pending) {
       const gBrowser = pending.tab?.ownerGlobal?.gBrowser;
       if (gBrowser && pending.tab.isConnected) {
+        // Still open: just show it.
         gBrowser.selectedTab = pending.tab;
+        return pending.promise;
       }
-      return pending.promise;
+      // The sign-in tab was closed: start over.
+      this.cancelSignIn();
     }
     win ??= Services.wm.getMostRecentWindow("navigator:browser");
     if (!win) {
@@ -215,7 +218,9 @@ export const JaceAccount = {
     };
 
     const cleanup = () => {
-      Services.obs.removeObserver(observer, "http-on-modify-request");
+      try {
+        Services.obs.removeObserver(observer, "http-on-modify-request");
+      } catch {}
       win.clearTimeout(timer);
       pending = null;
       notify();
@@ -253,9 +258,27 @@ export const JaceAccount = {
     Services.obs.addObserver(observer, "http-on-modify-request");
     const tab = win.gBrowser.addTrustedTab(url.href, { inBackground: false });
     win.gBrowser.selectedTab = tab;
-    pending = { promise, tab };
+    pending = {
+      promise,
+      tab,
+      cancel: () => {
+        cleanup();
+        reject(new JaceAccountError("cancelled", "Sign-in was cancelled."));
+      },
+    };
     notify();
     return promise;
+  },
+
+  /** Gives up on a sign-in in progress (its tab was closed, or for tests). */
+  cancelSignIn() {
+    pending?.cancel?.();
+    pending = null;
+  },
+
+  /** The sign-in tab, while a sign-in is in progress. */
+  get pendingTab() {
+    return pending?.tab ?? null;
   },
 
   async _finishSignIn(code, verifier) {

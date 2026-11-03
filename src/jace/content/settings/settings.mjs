@@ -18,7 +18,7 @@ const $ = (id) => document.getElementById(id);
 const embedded = new URLSearchParams(location.search).has("embedded");
 if (embedded) {
   document.documentElement.classList.add("embedded");
-} else if (Services.prefs.getBoolPref("jace.settings.inPreferences", false)) {
+} else if (!new URLSearchParams(location.search).has("standalone")) {
   const section = location.hash.slice(1);
   location.replace(section ? `about:preferences?jace=${encodeURIComponent(section)}#jace` : "about:preferences#jace");
 }

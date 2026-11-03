@@ -111,6 +111,24 @@ function css(accent) {
   #category-jace .category-icon {
     list-style-image: url("chrome://branding/content/icon32.png");
   }
+  #jace-settings-section {
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  }
+  .jace-settings-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.6em;
+    margin: 0 0 12px;
+  }
+  .jace-settings-heading::before {
+    content: "";
+    width: 28px;
+    height: 28px;
+    background: url("chrome://branding/content/icon64.png") center / contain no-repeat;
+  }
   #jace-settings-frame {
     display: block;
     width: 100%;
