@@ -180,8 +180,8 @@ def make_branding():
         for f in dst.rglob(svg):
             shutil.copy(ROOT / "branding" / "logo.svg", f)
     wordmark = (
-        '<svg xmlns="http://www.w3.org/2000/svg" width="172" height="42" viewBox="0 0 172 42">'
-        '<text x="0" y="31" font-family="system-ui, sans-serif" font-size="28" font-weight="700" '
+        '<svg xmlns="http://www.w3.org/2000/svg" width="210" height="42" viewBox="0 0 210 42">'
+        '<text x="0" y="31" font-family="system-ui, sans-serif" font-size="27" font-weight="700" '
         'fill="context-fill">Jace Browser</text></svg>\n'
     )
     for name in ("about-wordmark.svg", "firefox-wordmark.svg"):

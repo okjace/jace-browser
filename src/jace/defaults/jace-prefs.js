@@ -18,6 +18,11 @@ pref("jace.tabs.verticalStyle", "full");    // "full", "icons" (icons only), or 
 pref("jace.windowControls.style", "system"); // "system" (GNOME look on Linux, the real buttons on Windows and macOS), "jace" (colored dots), or "minimal"
 pref("jace.profiles.showButton", true);     // the profiles button in the toolbar
 
+// ---------- New tab ----------
+// Default shortcuts (instead of Firefox's, like "Add-ons for Firefox").
+pref("browser.newtabpage.activity-stream.default.sites", "https://jaceo.vercel.app/,https://www.youtube.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://github.com/");
+pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
+
 // ---------- Jace account & sync ----------
 pref("jace.account.server", "https://jaceo.vercel.app");
 pref("jace.account.clientId", "00000000-0000-0000-0000-000000000003");

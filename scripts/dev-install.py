@@ -53,19 +53,22 @@ BRAND_PROPERTIES = {
     "vendorShortName": "Jace",
 }
 WORDMARK = (
-    '<svg xmlns="http://www.w3.org/2000/svg" width="172" height="42" viewBox="0 0 172 42">'
-    '<text x="0" y="31" font-family="system-ui, sans-serif" font-size="28" font-weight="700" '
+    '<svg xmlns="http://www.w3.org/2000/svg" width="210" height="42" viewBox="0 0 210 42">'
+    '<text x="0" y="31" font-family="system-ui, sans-serif" font-size="27" font-weight="700" '
     'fill="context-fill">Jace Browser</text></svg>\n'
 )
 BACKUP = ".firefox-original"
 
 
 def logo_png(size):
-    """The Jace logo as PNG bytes at size (w, h), or None without Pillow."""
+    """The Jace logo as PNG bytes at size (w, h). Uses Pillow if it's
+    installed, otherwise the nearest ready-made size in branding/png."""
     try:
         from PIL import Image
     except ImportError:
-        return None
+        made = sorted((int(p.stem.split("-")[1]), p) for p in (ROOT / "branding" / "png").glob("logo-*.png"))
+        want = max(size)
+        return next((p for n, p in made if n >= want), made[-1][1]).read_bytes()
     import io
     w, h = size
     side = min(w, h)
@@ -154,17 +157,14 @@ def rebrand_file(rel: str, path: Path, warn_icons):
         return True
     if "/branding/" not in "/" + rel:
         return False
-    if name in ("about-wordmark.svg", "firefox-wordmark.svg"):
+    if name.endswith(".svg") and "wordmark" in name:
         path.write_text(WORDMARK)
         return True
-    if name in ("about-logo.svg", "firefox-logo.svg"):
+    if name.endswith(".svg") and ("logo" in name or name.startswith(("icon", "firefox"))):
         shutil.copy(ROOT / "branding" / "logo.svg", path)
         return True
     if name.endswith(".png"):
         data = logo_png(png_size(path.read_bytes()))
-        if data is None:
-            warn_icons.append(rel)
-            return False
         path.write_bytes(data)
         return True
     return False
@@ -194,15 +194,9 @@ def rebrand(gre: Path):
         backup = png.with_name(png.name + BACKUP)
         if not backup.exists():
             shutil.copy(png, backup)
-        data = logo_png(png_size(backup.read_bytes()))
-        if data is None:
-            warn_icons.append(png.name)
-        else:
-            png.write_bytes(data)
-            changed += 1
+        png.write_bytes(logo_png(png_size(backup.read_bytes())))
+        changed += 1
     print(f"Rebranded as Jace Browser ({changed} files).")
-    if warn_icons:
-        print("note: install Pillow (python3 -m pip install --user pillow) to also replace the Firefox icons.")
 
 
 def unbrand(gre: Path):
