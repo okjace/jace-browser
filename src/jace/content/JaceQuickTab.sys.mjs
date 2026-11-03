@@ -58,8 +58,10 @@ async function places(text) {
   if (!text) {
     const rows = await db.executeCached(
       `SELECT url, title FROM moz_places
-       WHERE hidden = 0 AND frecency > 0 AND url LIKE 'http%'
+       WHERE hidden = 0 AND frecency > 0 AND url LIKE :http
        ORDER BY frecency DESC LIMIT 6`,
+      // Firefox's history database only accepts LIKE patterns as bindings.
+      { http: "http%" },
     );
     return rows.map((r) => ({ url: r.getResultByName("url"), title: r.getResultByName("title") }));
   }

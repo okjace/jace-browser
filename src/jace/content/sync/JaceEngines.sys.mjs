@@ -138,9 +138,10 @@ const history = {
     const rows = await db.executeCached(
       `SELECT url, title, last_visit_date FROM moz_places
        WHERE last_visit_date > :since AND hidden = 0 AND url_hash != 0
-         AND (url LIKE 'http://%' OR url LIKE 'https://%')
+         AND (url LIKE :http OR url LIKE :https)
        ORDER BY last_visit_date DESC LIMIT :limit`,
-      { since, limit: HISTORY_MAX },
+      // Firefox's history database only accepts LIKE patterns as bindings.
+      { since, limit: HISTORY_MAX, http: "http://%", https: "https://%" },
     );
     const out = {};
     for (const row of rows) {
