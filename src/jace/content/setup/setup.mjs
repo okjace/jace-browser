@@ -90,6 +90,14 @@ function browserApi() {
       Services.prefs.setBoolPref("browser.search.suggest.enabled", on);
       Services.prefs.setBoolPref("browser.urlbar.suggest.searches", on);
     },
+    installOffer() {
+      const { JaceInstall } = ChromeUtils.importESModule("chrome://jace/content/JaceInstall.sys.mjs");
+      return JaceInstall.offer;
+    },
+    async install(options) {
+      const { JaceInstall } = ChromeUtils.importESModule("chrome://jace/content/JaceInstall.sys.mjs");
+      return JaceInstall.install(options);
+    },
     themes() {
       const { THEMES, JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
       return { list: Object.entries(THEMES).filter(([id]) => id !== "custom"), current: JaceThemes.id };
@@ -146,6 +154,8 @@ function previewApi() {
       current: prefs["jace.theme.id"] ?? "jace",
     }),
     chooseTheme: async (id) => (prefs["jace.theme.id"] = id),
+    installOffer: () => (globalThis.JACE_PREVIEW_INSTALL ? { os: "linux", where: "~/Applications", installed: false, options: [{ id: "desktopShortcut", label: "Add to the desktop", checked: false }] } : null),
+    install: async () => ({ relaunch() {} }),
     engines: async () =>
       ["Google", "Bing", "DuckDuckGo", "Wikipedia"].map((name) => ({ name, isDefault: name === (prefs.engine ?? "Google") })),
     setEngine: async (name) => (prefs.engine = name),
@@ -157,6 +167,17 @@ function previewApi() {
 }
 
 const $ = (id) => document.getElementById(id);
+// The Install step only when there's something to install (see JaceInstall).
+const installOffer = (() => {
+  try {
+    return api.installOffer();
+  } catch (e) {
+    console.warn("Jace setup: install", e);
+    return null;
+  }
+})();
+if (!installOffer) document.querySelector('[data-step="install"]')?.remove();
+
 const steps = [...document.querySelectorAll(".step")];
 let index = 0;
 
@@ -407,6 +428,49 @@ async function renderEngines() {
 renderEngines();
 $("suggest").checked = api.getSuggest();
 $("suggest").addEventListener("change", (e) => api.setSuggest(e.target.checked));
+
+// ------------------------------------------------------------------ install
+
+if (installOffer) {
+  const mac = installOffer.os === "mac";
+  placeLogo($("install-logo"));
+  $("install-folder").textContent = mac ? "Applications" : "Apps menu";
+  $("install-title").textContent = installOffer.installed ? "Update the installed Jace Browser" : "Install Jace Browser";
+  $("install-lead").textContent = mac
+    ? `You opened Jace Browser from the download. Install it in ${installOffer.where} so it's always there, with no "damaged app" warnings.`
+    : `You're running Jace Browser from the download. Install it to ${installOffer.where}, your applications menu and app center, so it's always there.`;
+  for (const o of installOffer.options) {
+    const label = document.createElement("label");
+    label.className = "switch";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.id = `install-${o.id}`;
+    box.checked = o.checked;
+    const track = document.createElement("span");
+    track.className = "track";
+    label.append(box, track, ` ${o.label}`);
+    $("install-options").append(label);
+  }
+  $("install-now").addEventListener("click", async (e) => {
+    const button = e.target;
+    button.disabled = true;
+    button.textContent = "Installing…";
+    $("install-result").textContent = "";
+    const options = Object.fromEntries(installOffer.options.map((o) => [o.id, $(`install-${o.id}`).checked]));
+    try {
+      const done = await api.install(options);
+      document.querySelector('[data-step="install"]').classList.add("install-done");
+      $("install-result").textContent = "Installed. Starting the installed Jace Browser…";
+      button.textContent = "Installed";
+      // The installed copy opens (setup continues there) and this one closes.
+      setTimeout(() => done.relaunch(), 1200);
+    } catch (err) {
+      button.disabled = false;
+      button.textContent = "Try again";
+      $("install-result").textContent = `Couldn't install: ${err.message ?? err}`;
+    }
+  });
+}
 
 // ------------------------------------------------------------------ import
 

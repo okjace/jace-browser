@@ -217,6 +217,8 @@ def make_branding():
     text = re.sub(r"^MOZ_MACBUNDLE_ID=.*$", "", text, flags=re.M)
     conf.write_text(text.strip() + '\nMOZ_APP_DISPLAYNAME="Jace Browser"\nMOZ_MACBUNDLE_ID=jace\n')
 
+    installer_artwork(dst, logo)
+
     # The unofficial branding's name ("Mozilla Developer Preview", "Nightly")
     # is also in the Windows installer's branding.nsi (install folder, the
     # installed-apps entry, shortcuts) and a few other text files: Jace there too.
@@ -244,6 +246,56 @@ def make_branding():
         for key, value in [("BrandFullNameInternal", "Jace Browser"), ("BrandShortName", "Jace Browser"), ("BrandFullName", "Jace Browser")]:
             text = re.sub(rf'^(!define {key}\s+)".*"', rf'\1"{value}"', text, flags=re.M)
         nsi.write_text(text)
+
+
+def installer_artwork(dst: Path, logo):
+    """Jace-designed pictures for the Windows installer (NSIS): the tall
+    banner on the welcome and finish pages (wizWatermark) and the small one
+    at the top of the other pages (wizHeader), instead of Mozilla's."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    def font(size, bold=True):
+        for path in (
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+        ):
+            if Path(path).exists():
+                return ImageFont.truetype(path, size)
+        return ImageFont.load_default()
+
+    def backdrop(w, h):
+        # Jace's dark surface with a soft green glow, like the setup pages.
+        img = Image.new("RGB", (w, h), (14, 16, 19))
+        glow = Image.new("RGB", (w, h), (32, 120, 74))
+        mask = Image.new("L", (w, h), 0)
+        d = ImageDraw.Draw(mask)
+        for i in range(60, 0, -1):
+            r = int(max(w, h) * 0.9 * i / 60)
+            d.ellipse((-r // 2, -r // 3, r // 2, r // 2), fill=int(150 * (1 - i / 60)))
+        return Image.composite(glow, img, mask)
+
+    def paste_logo(img, size, x, y):
+        img.paste(logo.resize((size, size), Image.LANCZOS), (x, y), logo.resize((size, size), Image.LANCZOS))
+
+    for bmp in dst.rglob("*.bmp"):
+        name = bmp.name.lower()
+        with Image.open(bmp) as old:
+            w, h = old.size
+        if "watermark" in name:
+            img = backdrop(w, h)
+            paste_logo(img, int(w * 0.5), int(w * 0.25), int(h * 0.18))
+            d = ImageDraw.Draw(img)
+            d.text((w // 2, int(h * 0.62)), "Jace", font=font(int(w * 0.17)), fill=(230, 232, 235), anchor="mm")
+            d.text((w // 2, int(h * 0.71)), "Browser", font=font(int(w * 0.11), bold=False), fill=(61, 220, 132), anchor="mm")
+        elif "header" in name:
+            img = Image.new("RGB", (w, h), (255, 255, 255))  # header pages are light in NSIS
+            paste_logo(img, h - 12, w - h + 4, 6)
+        else:
+            continue
+        if "rtl" in name:
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+        img.save(bmp, format="BMP")
 
 
 def jace_commit():

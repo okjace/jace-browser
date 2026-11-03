@@ -409,6 +409,21 @@ export const JaceSelfTest = {
       if (!ok) throw new Error("no sign-in tab opened");
       return true;
     });
+    if (Services.appinfo.OS === "Linux" && Services.env.get("APPIMAGE")) {
+      await check("the AppImage installs itself (menu entry, icon, app center) and uninstalls", async () => {
+        const { JaceInstall } = ChromeUtils.importESModule("chrome://jace/content/JaceInstall.sys.mjs");
+        const offer = JaceInstall.offer;
+        if (!offer) throw new Error("no install offered for this AppImage");
+        await JaceInstall.install({ desktopShortcut: false });
+        const { target, desktopFile } = JaceInstall.linuxPaths;
+        const entry = await IOUtils.readUTF8(desktopFile);
+        const ok = (await IOUtils.exists(target)) && entry.includes(target) && entry.includes("WebBrowser");
+        await JaceInstall.uninstall({ quit: false });
+        if (!ok) throw new Error(`installed files missing (${target}, ${desktopFile})`);
+        if (await IOUtils.exists(desktopFile)) throw new Error("uninstall left the menu entry");
+        return `installed to ${target}`;
+      });
+    }
     await check("vertical tabs on by default", () => Services.prefs.getBoolPref("sidebar.verticalTabs"));
     await check("Jace sync modules load", () => {
       const { JaceSync } = ChromeUtils.importESModule("chrome://jace/content/sync/JaceSync.sys.mjs");

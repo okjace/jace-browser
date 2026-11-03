@@ -24,6 +24,21 @@
       <button class="primary big" data-next>Get started</button>
     </section>
 
+    <!-- 1b. Install (only when running from the download: AppImage / .dmg) -->
+    <section class="step" data-step="install">
+      <div class="install-art" aria-hidden="true">
+        <div class="install-box"><div class="hero-logo small" id="install-logo"></div></div>
+        <svg class="install-arrow" viewBox="0 0 64 24"><path d="M2 12h54M46 3l10 9-10 9"/></svg>
+        <div class="install-folder" id="install-folder">Applications</div>
+      </div>
+      <h2 id="install-title">Install Jace Browser</h2>
+      <p class="lead" id="install-lead"></p>
+      <div class="toggles" id="install-options"></div>
+      <button class="primary big" id="install-now">Install</button>
+      <p class="small" id="install-result"></p>
+      <div class="nav"><button data-back>Back</button><button data-next id="install-skip">Not now</button></div>
+    </section>
+
     <!-- 2. Tabs -->
     <section class="step" data-step="tabs">
       <h2>Where do you want your tabs?</h2>
