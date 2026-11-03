@@ -339,11 +339,9 @@ export const JaceDownloadsButton = {
   /** For the toolbar widget (JaceLoader createWidgets). */
   widgetCreated(node) {
     node.classList.add("jace-tabs-downloads");
-    // The picture itself (the stylesheet alone left the icon at 0 px here).
+    // Nothing may be added inside: Firefox only builds a toolbar button's
+    // icon and label when it starts out empty. (Progress is drawn by CSS.)
     node.setAttribute("image", ICON);
-    const bar = node.ownerDocument.createElementNS(HTML, "span");
-    bar.className = "jace-downloads-progress";
-    node.append(bar);
     track(node.ownerGlobal, node);
   },
   widgetCommand(event) {
@@ -419,9 +417,6 @@ export const JaceDownloadsButton = {
           backup.setAttribute("label", "Downloads");
           backup.setAttribute("image", ICON);
           backup.setAttribute("horizontal", "true");
-          const bar = doc.createElementNS(HTML, "span");
-          bar.className = "jace-downloads-progress";
-          backup.append(bar);
           backup.addEventListener("command", () => openDownloads(win, backup));
           track(win, backup);
         }

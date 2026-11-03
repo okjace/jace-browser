@@ -1424,36 +1424,29 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   line-height: 14px;
   text-align: center;
 }
-/* Progress: a thin bar along the bottom while something downloads. */
-:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) > .jace-downloads-progress {
-  position: absolute;
-  inset-inline: 8px;
-  bottom: 2px;
-  height: 2px;
-  border-radius: 1px;
-  background: color-mix(in srgb, var(--jace-accent) 25%, transparent);
-  opacity: 0;
-  transition: opacity 200ms ease;
-  pointer-events: none;
-  overflow: hidden;
-}
-:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[downloading] > .jace-downloads-progress { opacity: 1; }
-:is(#jace-tabs-downloads, #jace-tabs-downloads-backup) > .jace-downloads-progress::before {
+/* Progress: a thin bar along the bottom while something downloads (drawn
+   with ::before - the button must have no extra children). */
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[downloading]::before {
   content: "";
   position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  width: calc(var(--jace-dl-progress, 0) * 100%);
-  background: var(--jace-accent);
-  transition: width 300ms ease;
+  inset-inline: 6px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 1px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--jace-accent), var(--jace-accent)) 0 0 / calc(var(--jace-dl-progress, 0) * 100%) 100% no-repeat,
+    color-mix(in srgb, var(--jace-accent) 25%, transparent);
 }
-:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[indeterminate] > .jace-downloads-progress::before {
-  width: 35%;
+:is(#jace-tabs-downloads, #jace-tabs-downloads-backup)[indeterminate]::before {
+  background:
+    linear-gradient(var(--jace-accent), var(--jace-accent)) 0 0 / 35% 100% no-repeat,
+    color-mix(in srgb, var(--jace-accent) 25%, transparent);
   animation: jace-dl-slide 1.2s ease-in-out infinite;
 }
 @keyframes jace-dl-slide {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(300%); }
+  from { background-position: -40% 0, 0 0; }
+  to { background-position: 140% 0, 0 0; }
 }
 
 /* ---------- Downloads list (JaceDownloadsButton) ---------- */
