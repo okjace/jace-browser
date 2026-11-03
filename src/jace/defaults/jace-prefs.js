@@ -22,6 +22,8 @@ pref("jace.profiles.showButton", true);     // the profiles button in the toolba
 // Default shortcuts (instead of Firefox's, like "Add-ons for Firefox").
 pref("browser.newtabpage.activity-stream.default.sites", "https://jaceo.vercel.app/,https://www.youtube.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://github.com/");
 pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
+// Newer Firefox downloads its default shortcuts from Mozilla; use ours instead.
+pref("browser.topsites.useRemoteSetting", false);
 
 // ---------- Jace account & sync ----------
 pref("jace.account.server", "https://jaceo.vercel.app");
