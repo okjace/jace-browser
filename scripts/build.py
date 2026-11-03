@@ -454,7 +454,8 @@ def make_dmg(source_dmg: Path, out: Path):
     run(["hdiutil", "attach", "-nobrowse", "-readonly", "-mountpoint", mnt, source_dmg])
     try:
         (app,) = list(mnt.glob("*.app"))
-        run(["ditto", app, stage / "Jace Browser.app"])
+        # Without resource forks / Finder info: codesign refuses an app that has them.
+        run(["ditto", "--norsrc", "--noextattr", "--noqtn", app, stage / "Jace Browser.app"])
     finally:
         run(["hdiutil", "detach", mnt])
     helper = stage / "Jace Browser.app" / "Contents" / "Resources" / "jacebrowser" / "bin" / "jace-usb-helper"
@@ -462,6 +463,7 @@ def make_dmg(source_dmg: Path, out: Path):
         helper.chmod(0o755)
     # Not notarized (no paid Apple certificate), but a valid ad-hoc signature is
     # required on Apple Silicon and avoids the "damaged" message.
+    run(["xattr", "-cr", stage / "Jace Browser.app"])
     run(["codesign", "--force", "--deep", "--sign", "-", stage / "Jace Browser.app"])
     (stage / "Applications").symlink_to("/Applications")
     run(["hdiutil", "create", "-volname", "Jace Browser", "-srcfolder", stage, "-ov", "-format", "UDZO", out])
