@@ -37,7 +37,8 @@ function browserApi() {
       window.addEventListener("unload", () => Services.obs.removeObserver(observer, "jace-account-changed"));
     },
     async importData() {
-      const { MigrationUtils } = ChromeUtils.importESModule("resource:///modules/MigrationUtils.sys.mjs");
+      const { getMigrationUtils } = ChromeUtils.importESModule("chrome://jace/content/JaceCompat.sys.mjs");
+      const MigrationUtils = getMigrationUtils();
       await MigrationUtils.showMigrationWizard(win(), {
         entrypoint: MigrationUtils.MIGRATION_ENTRYPOINTS?.FIRSTRUN ?? MigrationUtils.MIGRATION_ENTRYPOINTS?.UNKNOWN,
       });
@@ -45,12 +46,8 @@ function browserApi() {
     async makeDefault() {
       let shell = win().ShellService;
       if (!shell) {
-        for (const url of ["moz-src:///browser/components/shell/ShellService.sys.mjs", "resource:///modules/ShellService.sys.mjs"]) {
-          try {
-            shell = ChromeUtils.importESModule(url).ShellService;
-            break;
-          } catch {}
-        }
+        const { getShellService } = ChromeUtils.importESModule("chrome://jace/content/JaceCompat.sys.mjs");
+        shell = getShellService();
       }
       await shell.setDefaultBrowser(false);
       return shell.isDefaultBrowser(false, false);

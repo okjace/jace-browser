@@ -11,15 +11,17 @@
  * - the Jace account panel (sign in, sync status, other devices' tabs)
  */
 
+import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceProfiles: "chrome://jace/content/JaceProfiles.sys.mjs",
   JaceSplash: "chrome://jace/content/JaceSplash.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceUpdates: "chrome://jace/content/JaceUpdates.sys.mjs",
 });
+ChromeUtils.defineLazyGetter(lazy, "CustomizableUI", () => getCustomizableUI());
 
 const SKIN = "chrome://jace/skin/jace.css";
 const VERTICAL_PREF = "sidebar.verticalTabs";

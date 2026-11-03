@@ -9,6 +9,8 @@
  * ending in "SELF-TEST OK" or "SELF-TEST FAILED" to that file, and quits.
  */
 
+import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
+
 export const JaceSelfTest = {
   get requested() {
     return !!Services.env.get("JACE_SELF_TEST_OUT");
@@ -31,42 +33,40 @@ export const JaceSelfTest = {
 
     lines.push(`Jace Browser ${Services.prefs.getStringPref("jace.version", "?")} on Firefox ${Services.appinfo.version} (${Services.appinfo.OS})`);
     await check("Zen skin loaded into the window", () => win.__jaceReady);
-    await check("about:jace is registered", () => {
-      const ch = Services.io.newChannelFromURI(
-        Services.io.newURI("about:jace"),
-        null,
-        Services.scriptSecurityManager.getSystemPrincipal(),
-        null,
-        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-        Ci.nsIContentPolicy.TYPE_OTHER,
-      );
-      return ch.URI.spec.startsWith("chrome://jace/");
-    });
-    await check("about:jace-setup is registered", () => {
-      const ch = Services.io.newChannelFromURI(
-        Services.io.newURI("about:jace-setup"),
-        null,
-        Services.scriptSecurityManager.getSystemPrincipal(),
-        null,
-        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
-        Ci.nsIContentPolicy.TYPE_OTHER,
-      );
-      return ch.URI.spec.startsWith("chrome://jace/content/setup/");
-    });
+    for (const what of ["jace", "jace-setup"]) {
+      await check(`about:${what} is registered`, () => {
+        const contract = `@mozilla.org/network/protocol/about;1?what=${what}`;
+        if (!(contract in Cc)) {
+          throw new Error("no about module registered");
+        }
+        const module = Cc[contract].getService(Ci.nsIAboutModule);
+        return module.getChromeURI(Services.io.newURI(`about:${what}`)).spec.startsWith("chrome://jace/");
+      });
+    }
     await check("startup animation module loads", () => {
       const { ANIMATED_LOGO_SVG } = ChromeUtils.importESModule("chrome://jace/content/JaceSplash.sys.mjs");
       return ANIMATED_LOGO_SVG.includes("jace-logo-j");
     });
-    await check("Mozilla telemetry is off and locked", () =>
-      [
+    await check("Mozilla telemetry is off and locked", () => {
+      const wrong = [
         ["toolkit.telemetry.enabled", false],
         ["datareporting.healthreport.uploadEnabled", false],
         ["app.normandy.enabled", false],
         ["app.shield.optoutstudies.enabled", false],
         ["browser.newtabpage.activity-stream.showSponsored", false],
         ["dom.private-attribution.submission.enabled", false],
-      ].every(([name, value]) => Services.prefs.prefIsLocked(name) && Services.prefs.getBoolPref(name) === value),
-    );
+      ]
+        .filter(([name, value]) => {
+          try {
+            return !Services.prefs.prefIsLocked(name) || Services.prefs.getBoolPref(name) !== value;
+          } catch {
+            return true;
+          }
+        })
+        .map(([name]) => `${name}=${Services.prefs.getPrefType(name) ? Services.prefs.getBoolPref(name, null) : "missing"}${Services.prefs.prefIsLocked(name) ? " (locked)" : " (not locked)"}`);
+      if (wrong.length) throw new Error(wrong.join(", "));
+      return true;
+    });
     await check("enterprise policies (distribution/policies.json) are active", () => {
       return Services.policies.status === Services.policies.ACTIVE && !Services.policies.isAllowed("Shield");
     });
@@ -78,11 +78,11 @@ export const JaceSelfTest = {
       });
     }
     await check("account and vertical tabs widgets exist", () => {
-      const { CustomizableUI } = ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs");
+      const CustomizableUI = getCustomizableUI();
       return !!CustomizableUI.getWidget("jace-account-button")?.provider && !!CustomizableUI.getWidget("jace-vertical-tabs-button")?.provider;
     });
     await check("profiles button can be hidden and shown", () => {
-      const { CustomizableUI } = ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs");
+      const CustomizableUI = getCustomizableUI();
       const { JaceProfiles } = ChromeUtils.importESModule("chrome://jace/content/JaceProfiles.sys.mjs");
       const shownAtStart = !!CustomizableUI.getPlacementOfWidget("jace-profiles-button");
       JaceProfiles.showButton = false;
@@ -126,6 +126,10 @@ export const JaceSelfTest = {
       return Services.prefs.getPrefType("media.gmp-widevinecdm.visible") === Ci.nsIPrefBranch.PREF_BOOL;
     });
 
+    const { initErrors } = ChromeUtils.importESModule("chrome://jace/content/JaceLoader.sys.mjs");
+    for (const e of initErrors) {
+      lines.push(`startup error: ${e}`);
+    }
     lines.push(ok ? "SELF-TEST OK" : "SELF-TEST FAILED");
     await IOUtils.writeUTF8(out, lines.join("\n") + "\n");
     Services.startup.quit(Ci.nsIAppStartup.eForceQuit);

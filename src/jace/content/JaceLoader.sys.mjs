@@ -13,15 +13,17 @@
  * - starts Jace sync once the first window is up
  */
 
+import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceSelfTest: "chrome://jace/content/JaceSelfTest.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
   JaceWindow: "chrome://jace/content/JaceWindow.sys.mjs",
   JaceProfiles: "chrome://jace/content/JaceProfiles.sys.mjs",
 });
+ChromeUtils.defineLazyGetter(lazy, "CustomizableUI", () => getCustomizableUI());
 
 const ABOUT_JACE_URL = "chrome://jace/content/settings/settings.html";
 const ABOUT_PAGES = {
@@ -30,6 +32,8 @@ const ABOUT_PAGES = {
 };
 
 let initialized = false;
+/** Errors from startup, before the console is listening; the self-test prints them. */
+export const initErrors = [];
 let syncStarted = false;
 let setupChecked = false;
 
@@ -153,6 +157,7 @@ function onBrowserWindow(win) {
   try {
     maybeOpenSetup(win);
   } catch (e) {
+    initErrors.push(`couldn't open setup: ${e}`);
     console.error("Jace: couldn't open setup", e);
   }
   if (!syncStarted) {
@@ -179,6 +184,7 @@ export const JaceLoader = {
       try {
         fn();
       } catch (e) {
+        initErrors.push(`couldn't register ${what}: ${e}\n${e?.stack ?? ""}`);
         console.error(`Jace: couldn't register ${what}`, e);
       }
     }
@@ -201,6 +207,7 @@ export const JaceLoader = {
       try {
         createWidgets();
       } catch (e) {
+        initErrors.push(`couldn't create toolbar widgets: ${e}`);
         console.error("Jace: couldn't create toolbar widgets", e);
       }
     }, "final-ui-startup");

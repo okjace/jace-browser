@@ -11,10 +11,12 @@
  * in its panel, or about:jace -> Look); profiles stay in about:jace.
  */
 
+import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
 });
+ChromeUtils.defineLazyGetter(lazy, "CustomizableUI", () => getCustomizableUI());
 
 export const PROFILES_WIDGET = "jace-profiles-button";
 const SHOW_PREF = "jace.profiles.showButton";
