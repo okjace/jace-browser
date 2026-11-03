@@ -76,3 +76,26 @@ test("extension bookmarks get Jace Browser's keys (root names + folder path + ur
   ].sort());
   assert.deepEqual(out[bookmarkKey(["toolbar", "Work"], "https://docs.example/")].path, ["toolbar", "Work"]);
 });
+
+test("Chrome bookmarks map to the same paths as Firefox's", () => {
+  const tree = [
+    {
+      id: "0",
+      children: [
+        { id: "1", title: "Bookmarks bar", children: [{ id: "a", title: "Jace", url: "https://jaceo.vercel.app/" }] },
+        {
+          id: "2",
+          title: "Other bookmarks",
+          children: [
+            { id: "m", title: "Bookmarks Menu", children: [{ id: "b", title: "News", url: "https://news.example/" }] },
+            { id: "c", title: "Misc", url: "https://misc.example/" },
+          ],
+        },
+      ],
+    },
+  ];
+  const out = flattenBookmarks(tree, { chrome: true });
+  assert.ok(out[bookmarkKey(["toolbar"], "https://jaceo.vercel.app/")]);
+  assert.ok(out[bookmarkKey(["menu"], "https://news.example/")]);
+  assert.ok(out[bookmarkKey(["unfiled"], "https://misc.example/")]);
+});

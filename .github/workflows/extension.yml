@@ -51,6 +51,8 @@ jobs:
           V=$(python3 -c "import json;print(json.load(open('extension/manifest.json'))['version'])")
           echo "version=$V" >> "$GITHUB_OUTPUT"
           npx --yes web-ext@8 build --source-dir extension --ignore-files "tools" "tools/**" --artifacts-dir dist --filename "jace-extension-$V-unsigned.xpi" --overwrite-dest
+      - name: Build the Chrome version (same code, Chrome manifest)
+        run: python3 extension/tools/build-chrome.py dist
       - name: Sign with Mozilla (needs AMO_JWT_ISSUER / AMO_JWT_SECRET)
         id: sign
         if: env.AMO_JWT_ISSUER != '' && github.event_name != 'pull_request'
@@ -69,7 +71,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: jace-extension
-          path: dist/*.xpi
+          path: |
+            dist/*.xpi
+            dist/*.zip
       - name: Publish the signed extension
         if: steps.sign.outputs.release == 'true' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v3
@@ -79,7 +83,12 @@ jobs:
           name: Jace extension ${{ steps.build.outputs.version }}
           # Not "latest": Jace Browser's updater reads the latest release.
           make_latest: false
-          files: dist/jace-extension-${{ steps.build.outputs.version }}.xpi
+          files: |
+            dist/jace-extension-${{ steps.build.outputs.version }}.xpi
+            dist/jace-extension-chrome-${{ steps.build.outputs.version }}.zip
           body: |
-            The Jace extension for Firefox, signed by Mozilla.
-            Download the .xpi below in Firefox and click **Add**.
+            The Jace extension for Firefox (signed by Mozilla) and Chrome.
+            - **Firefox:** download the .xpi below in Firefox and click **Add**.
+            - **Chrome** (and Edge, Brave, ...): download the .zip, unzip it, open
+              `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**
+              and pick the unzipped folder.

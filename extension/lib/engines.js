@@ -11,10 +11,12 @@
  *   history   - pages visited in the last 90 days (up to 5,000)
  *   cookies   - site sign-ins (the shared format in cookies.js)
  *   tabs      - this browser's open tabs (shown on other devices, never opened)
+ *   addons    - the add-ons installed here (offered on other devices)
  *
  * Passwords can't be synced: Firefox doesn't let extensions read them.
  */
 
+import { IS_CHROME } from "./compat.js";
 import {
   COOKIE_VALUE_MAX,
   SEP,
@@ -38,19 +40,34 @@ export const ROOTS = {
 };
 const ROOT_NAMES = Object.fromEntries(Object.entries(ROOTS).map(([k, v]) => [v, k]));
 
+// Chrome's roots: "1" bookmarks bar, "2" other bookmarks, "3" mobile. It has
+// no bookmarks menu, so Firefox's menu lives in a "Bookmarks Menu" folder
+// inside Other bookmarks (and syncs back to the menu).
+export const CHROME_ROOTS = { toolbar: "1", unfiled: "2", mobile: "3" };
+export const CHROME_MENU_FOLDER = "Bookmarks Menu";
+const CHROME_ROOT_NAMES = { 1: "toolbar", 2: "unfiled", 3: "mobile" };
+
 export function bookmarkKey(path, url) {
   return [...path, url].join(SEP);
 }
 
 /** Flattens a bookmarks.getTree() result into records (exported for tests). */
-export function flattenBookmarks(tree) {
+export function flattenBookmarks(tree, { chrome = IS_CHROME } = {}) {
   const out = {};
   const walk = (node, path) => {
     for (const child of node.children ?? []) {
       if (child.type === "folder" || (!child.url && child.children)) {
-        const segment = path.length === 0 ? ROOT_NAMES[child.id] : child.title ?? "";
-        if (path.length === 0 && !segment) continue;
-        walk(child, [...path, segment]);
+        let next;
+        if (path.length === 0) {
+          const root = (chrome ? CHROME_ROOT_NAMES : ROOT_NAMES)[child.id];
+          if (!root) continue;
+          next = [root];
+        } else if (chrome && path.length === 1 && path[0] === "unfiled" && child.title === CHROME_MENU_FOLDER) {
+          next = ["menu"]; // Chrome's stand-in for Firefox's bookmarks menu
+        } else {
+          next = [...path, child.title ?? ""];
+        }
+        walk(child, next);
       } else if (child.url && path.length && !child.url.startsWith("place:")) {
         out[bookmarkKey(path, child.url)] = {
           url: child.url,
@@ -66,8 +83,19 @@ export function flattenBookmarks(tree) {
   return out;
 }
 
+async function childFolder(parentId, title) {
+  const children = await browser.bookmarks.getChildren(parentId);
+  const folder = children.find((c) => (c.type === "folder" || !c.url) && c.title === title);
+  return folder ?? (await browser.bookmarks.create({ parentId, title }));
+}
+
 async function folderFor(path) {
-  let parentId = ROOTS[path[0]] ?? ROOTS.unfiled;
+  let parentId;
+  if (IS_CHROME) {
+    parentId = path[0] === "menu" ? (await childFolder(CHROME_ROOTS.unfiled, CHROME_MENU_FOLDER)).id : CHROME_ROOTS[path[0]] ?? CHROME_ROOTS.unfiled;
+  } else {
+    parentId = ROOTS[path[0]] ?? ROOTS.unfiled;
+  }
   for (const title of path.slice(1)) {
     const children = await browser.bookmarks.getChildren(parentId);
     let folder = children.find((c) => (c.type === "folder" || !c.url) && c.title === title);
@@ -119,7 +147,8 @@ const history = {
   async apply({ toAdd, toUpdate, toRemove }) {
     for (const r of [...toAdd, ...toUpdate.map((u) => u.remote)]) {
       if (r.modified > 0) {
-        await browser.history.addUrl({ url: r.url, title: r.title || undefined, visitTime: r.modified }).catch(() => {});
+        // Chrome's addUrl only takes the address (no title or time).
+        await browser.history.addUrl(IS_CHROME ? { url: r.url } : { url: r.url, title: r.title || undefined, visitTime: r.modified }).catch(() => {});
       }
     }
     for (const r of toRemove) {
@@ -138,7 +167,8 @@ const cookies = {
   localDeletionCounts: (base) => !base.session,
   async collect() {
     // The default cookie store only: not private windows, containers or partitioned cookies.
-    const all = await browser.cookies.getAll({ firstPartyDomain: null, storeId: "firefox-default" });
+    // Firefox: the normal (non-container, non-isolated) cookies; Chrome: the normal profile's.
+    const all = await browser.cookies.getAll(IS_CHROME ? {} : { firstPartyDomain: null, storeId: "firefox-default" });
     const out = {};
     let count = 0;
     for (const c of all) {
@@ -175,4 +205,25 @@ const tabs = {
   async apply() {},
 };
 
-export const ENGINES = [bookmarks, history, cookies, tabs];
+// ---------------------------------------------------------------- add-ons
+
+/**
+ * The add-ons installed in this Firefox (extensions and themes), one record
+ * per device, same shape as Jace Browser's "addons" engine. Other devices
+ * show them and offer to install them; nothing is installed from here.
+ */
+const addons = {
+  name: "addons",
+  perDevice: true,
+  async collect({ deviceId, deviceName }) {
+    const self = browser.runtime.id;
+    const list = (await browser.management.getAll())
+      .filter((a) => a.id && a.id !== self && (a.type === "extension" || a.type === "theme") && a.installType !== "development")
+      .map((a) => ({ id: a.id, name: a.name, type: a.type }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return { [deviceId]: { device: deviceName, addons: list, modified: Date.now() } };
+  },
+  async apply() {},
+};
+
+export const ENGINES = [bookmarks, history, cookies, tabs, addons];

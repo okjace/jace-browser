@@ -1,3 +1,4 @@
+import "../lib/compat.js";
 import { profile, startSignIn } from "../lib/account.js";
 import { hasKey, remoteTabs, status, syncNow } from "../lib/sync.js";
 

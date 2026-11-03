@@ -1,3 +1,4 @@
+import "../lib/compat.js";
 import { profile, signOut, startSignIn } from "../lib/account.js";
 import {
   ENGINE_NAMES,
@@ -11,6 +12,7 @@ import {
   setPassphrase,
   status,
   syncNow,
+  remoteAddons,
 } from "../lib/sync.js";
 import { get, set } from "../lib/store.js";
 import { signInToWebsite } from "../lib/websites.js";
@@ -21,6 +23,7 @@ const LABELS = {
   history: "History (last 90 days)",
   cookies: "Site sign-ins (cookies)",
   tabs: "Open tabs",
+  addons: "Add-on list",
 };
 
 function notice(text, isError = false) {
@@ -102,6 +105,33 @@ async function render() {
     }
   }
   if (!devices.length) tabs.innerHTML = '<p class="muted">None yet.</p>';
+
+  // Add-ons your other devices have and this Firefox doesn't.
+  const box = $("remote-addons");
+  const mine = new Set((await browser.management.getAll()).map((a) => a.id));
+  const others = await remoteAddons();
+  box.replaceChildren();
+  for (const d of others) {
+    const missing = (d.addons ?? []).filter((a) => !mine.has(a.id));
+    if (!missing.length) continue;
+    const head = document.createElement("div");
+    head.className = "device";
+    head.textContent = d.device;
+    box.append(head);
+    for (const a of missing) {
+      const link = document.createElement("a");
+      link.href = `https://addons.mozilla.org/firefox/addon/${encodeURIComponent(a.id)}/`;
+      link.target = "_blank";
+      link.textContent = `${a.name} - get it`;
+      box.append(link);
+    }
+  }
+  if (!box.children.length) {
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = others.length ? "You have them all." : "No other device has shared its add-ons yet.";
+    box.append(note);
+  }
 }
 
 $("sign-in").addEventListener("click", () => busy($("sign-in"), startSignIn));

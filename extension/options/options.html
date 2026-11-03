@@ -16,7 +16,7 @@
     <section class="card">
       <h2>Jace account</h2>
       <div id="account-out">
-        <p class="muted">Sign in with your Jace account to sync with Jace Browser and your other Firefoxes, and to stay signed in to Jace websites.</p>
+        <p class="muted">Sign in with your Jace account to sync with Jace Browser and your other browsers, and to stay signed in to Jace websites.</p>
         <button class="primary" id="sign-in">Sign in with Jace</button>
       </div>
       <div id="account-in" hidden>
@@ -34,7 +34,7 @@
         <p id="passphrase-help"></p>
         <input id="passphrase" type="password" placeholder="Sync passphrase" minlength="8" required>
         <input id="passphrase2" type="password" placeholder="Type it again" minlength="8">
-        <p class="muted small">Your data is encrypted in Firefox with a key made from this passphrase before it goes to Jace, so Jace can't read it. Jace can't recover it either: if you forget it, you can only start sync over.</p>
+        <p class="muted small">Your data is encrypted in this browser with a key made from this passphrase before it goes to Jace, so Jace can't read it. Jace can't recover it either: if you forget it, you can only start sync over.</p>
         <button class="primary" type="submit">Turn on sync</button>
       </form>
 
@@ -45,6 +45,8 @@
         <p class="muted small"><strong>Site sign-ins</strong> syncs cookies, so you're signed in to the same sites as on your other devices. Some sites tie a sign-in to one device and will still ask. Passwords can't be synced by an extension; Jace Browser syncs them.</p>
         <h2 class="sub">Tabs on your other devices</h2>
         <div id="remote-tabs" class="list"><p class="muted">None yet.</p></div>
+        <h2 class="sub">Add-ons on your other devices</h2>
+        <div id="remote-addons" class="list"><p class="muted">None yet.</p></div>
         <h2 class="sub">Start over</h2>
         <div class="row">
           <button id="forget">Turn off sync here</button>

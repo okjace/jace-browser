@@ -14,6 +14,8 @@ export function remove(keys) {
 }
 
 /** Notifies open popups / options pages that something changed. */
+
+import "./compat.js";
 export function notify(type, detail = {}) {
   browser.runtime.sendMessage({ type, ...detail }).catch(() => {});
 }

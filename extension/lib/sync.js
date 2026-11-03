@@ -11,6 +11,7 @@
  * add-ons) are left alone.
  */
 
+import "./compat.js";
 import { JaceCrypto } from "./crypto.js";
 import { threeWayMerge, sameRecord } from "./merge.js";
 import { ENGINES } from "./engines.js";
@@ -128,6 +129,16 @@ export async function resetAccountData() {
 export async function remoteTabs() {
   const { id } = await device();
   const base = await get("base:tabs", {});
+  return Object.entries(base)
+    .filter(([deviceId]) => deviceId !== id)
+    .map(([, v]) => v)
+    .sort((a, b) => b.modified - a.modified);
+}
+
+/** Other devices' add-ons: [{ device, addons: [{id, name, type}], modified }]. */
+export async function remoteAddons() {
+  const { id } = await device();
+  const base = await get("base:addons", {});
   return Object.entries(base)
     .filter(([deviceId]) => deviceId !== id)
     .map(([, v]) => v)

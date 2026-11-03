@@ -13,6 +13,7 @@
  * background page being unloaded while you type your password.
  */
 
+import "./compat.js";
 import { get, set, remove, notify } from "./store.js";
 
 export const CLIENT_ID = "00000000-0000-0000-0000-000000000003";

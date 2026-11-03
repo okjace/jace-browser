@@ -1,14 +1,22 @@
-# Jace for Firefox
+# Jace for Firefox and Chrome
 
-A Firefox extension that brings your Jace account to regular Firefox.
+An extension that brings your Jace account to regular Firefox and to Chrome (and Edge, Brave, and other Chrome-based browsers). One codebase: `lib/compat.js` covers the differences, and `tools/build-chrome.py` writes the Chrome version.
 
 - **Sign in with Jace** from the toolbar button.
-- **Jace sync**, end-to-end encrypted with your sync passphrase: bookmarks, history (90 days), open tabs, and **site sign-ins** (cookies), so you're signed in to the same sites as on your other devices. It uses the same sync as [Jace Browser](../README.md), so Jace Browser and Firefox with this extension keep each other up to date.
+- **Jace sync**, end-to-end encrypted with your sync passphrase: bookmarks, history (90 days), open tabs, the **list of your add-ons** (other devices offer to install them), and **site sign-ins** (cookies), so you're signed in to the same sites as on your other devices. It uses the same sync as [Jace Browser](../README.md), so Jace Browser and Firefox with this extension keep each other up to date.
 - **Signed in to Jace websites automatically**: the Jace website, and Jace's own apps (Jace Social, Jace Store, …) skip the sign-in screen. Not in private windows or container tabs. Turn it off in the extension's settings.
 
 Passwords aren't synced: Firefox doesn't let extensions read them. Jace Browser syncs them.
 
 ## Install
+
+**Chrome** (and Edge, Brave, ...):
+1. Download `jace-extension-chrome-<version>.zip` from the [releases](https://github.com/okjace/jace-browser/releases) page (or run `python3 extension/tools/build-chrome.py` and use `dist/chrome-extension/`), and unzip it.
+2. Open `chrome://extensions`, turn on **Developer mode** (top right), click **Load unpacked**, and pick the folder.
+
+Putting it on the Chrome Web Store needs a Chrome developer account (a one-time $5 fee from Google).
+
+**Firefox:**
 
 **Signed release** (once the repo has Mozilla signing keys, see below): download `jace-extension-<version>.xpi` from the [releases](https://github.com/okjace/jace-browser/releases) page in Firefox and click **Add**.
 

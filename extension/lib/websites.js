@@ -14,6 +14,7 @@
  *    consent screen. Never in private windows or container tabs.
  */
 
+import { IS_CHROME } from "./compat.js";
 import { get } from "./store.js";
 import { profile, server, token } from "./account.js";
 
@@ -54,4 +55,33 @@ export async function authorizeHeaderFor(details) {
   if (!(await autoSignIn())) return null;
   const t = await token();
   return t ? { name: "X-Jace-Browser-Token", value: t } : null;
+}
+
+const AUTHORIZE_RULE = 1;
+
+/**
+ * Chrome: extensions can't change requests on the fly there, so the
+ * X-Jace-Browser-Token header comes from a declarativeNetRequest rule for the
+ * Jace site's /oauth/authorize, kept up to date with the account (call this
+ * after signing in or out, and now and then: the token changes).
+ * Chrome only runs extensions in incognito windows if you allow it.
+ */
+export async function updateAuthorizeRule() {
+  if (!IS_CHROME || !browser.declarativeNetRequest) return;
+  let addRules = [];
+  if ((await autoSignIn()) && (await profile())) {
+    const t = await token().catch(() => null);
+    const base = new URL(await server());
+    if (t && (base.protocol === "https:" || ["localhost", "127.0.0.1"].includes(base.hostname))) {
+      addRules = [
+        {
+          id: AUTHORIZE_RULE,
+          priority: 1,
+          action: { type: "modifyHeaders", requestHeaders: [{ header: "X-Jace-Browser-Token", operation: "set", value: t }] },
+          condition: { urlFilter: `|${base.origin}/oauth/authorize`, resourceTypes: ["main_frame"] },
+        },
+      ];
+    }
+  }
+  await browser.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [AUTHORIZE_RULE], addRules });
 }

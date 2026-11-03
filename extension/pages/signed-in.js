@@ -1,3 +1,5 @@
+import "../lib/compat.js";
+
 const hash = decodeURIComponent(location.hash.slice(1));
 if (hash.startsWith("failed")) {
   document.getElementById("title").textContent = "Couldn't sign in";
