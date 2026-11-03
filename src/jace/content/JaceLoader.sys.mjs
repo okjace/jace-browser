@@ -69,33 +69,63 @@ function registerAboutPages() {
 }
 
 /** First run: show Jace Browser's setup in the first window. */
+/** Lines for jace-startup.log in the profile (scripts/try.sh prints it). */
+const startupLog = [];
+export function logStartup(line) {
+  startupLog.push(`${new Date().toISOString().slice(11, 23)} ${line}`);
+}
+
+async function writeStartupLog() {
+  try {
+    const lines = [...startupLog, ...initErrors.map((e) => `ERROR ${e}`)];
+    await IOUtils.writeUTF8(PathUtils.join(PathUtils.profileDir, "jace-startup.log"), lines.join("\n") + "\n");
+  } catch {}
+}
+
+function setupTabIn(gBrowser) {
+  return [...gBrowser.tabs].find((t) => /jace-setup|setup\/setup\.html/.test(t.linkedBrowser.currentURI?.spec ?? ""));
+}
+
+/** First run: show Jace Browser's setup in its own tab, and check it stayed. */
 function maybeOpenSetup(win) {
   if (setupChecked) return;
   setupChecked = true;
-  if (Services.prefs.getBoolPref("jace.setup.done", false)) return;
-  // Wait for Firefox's own first page (new tab / home) to finish opening, so
-  // it can't replace the setup.
-  win.setTimeout(() => {
+  if (Services.prefs.getBoolPref("jace.setup.done", false)) {
+    logStartup("setup already done");
+    return;
+  }
+  const url = jacePageURL("jace-setup");
+  const open = (attempt) => {
     try {
-      const url = jacePageURL("jace-setup");
       const gBrowser = win.gBrowser;
-      const already = gBrowser.tabs.find((t) => /jace-setup|setup\/setup\.html/.test(t.linkedBrowser.currentURI?.spec ?? ""));
-      if (already) {
-        gBrowser.selectedTab = already;
+      const existing = setupTabIn(gBrowser);
+      if (existing) {
+        gBrowser.selectedTab = existing;
+        logStartup(`setup showing (attempt ${attempt})`);
         return;
       }
-      const current = gBrowser.selectedBrowser.currentURI?.spec ?? "";
-      const firstPage = /^about:(home|newtab|blank|welcome)?$/.test(current) || current.startsWith("chrome://jace/content/newtab/");
-      if (gBrowser.tabs.length === 1 && firstPage) {
-        win.openTrustedLinkIn(url, "current");
-      } else {
-        gBrowser.selectedTab = gBrowser.addTrustedTab(url);
+      const tab = gBrowser.addTrustedTab(url, { inBackground: false });
+      gBrowser.selectedTab = tab;
+      logStartup(`setup opened at ${url} (attempt ${attempt})`);
+      // The window's first page (new tab / home) isn't needed under it.
+      for (const t of [...gBrowser.tabs]) {
+        const spec = t.linkedBrowser.currentURI?.spec ?? "";
+        if (t !== tab && (/^about:(home|newtab|blank)?$/.test(spec) || spec.startsWith("chrome://jace/content/newtab/"))) {
+          gBrowser.removeTab(t);
+        }
       }
     } catch (e) {
-      initErrors.push(`couldn't open setup: ${e}`);
-      console.error("Jace: couldn't open setup", e);
+      initErrors.push(`couldn't open setup (attempt ${attempt}): ${e}`);
     }
-  }, 1200);
+    writeStartupLog();
+  };
+  win.setTimeout(() => open(1), 800);
+  // Something (session restore, the home page) can still replace it: check again.
+  win.setTimeout(() => {
+    if (!setupTabIn(win.gBrowser)) open(2);
+    else logStartup("setup still showing after 4s");
+    writeStartupLog();
+  }, 4000);
 }
 
 /**
@@ -206,6 +236,7 @@ function createWidgets() {
 }
 
 function onBrowserWindow(win) {
+  logStartup(`window ready (${win.gBrowser?.selectedBrowser?.currentURI?.spec ?? "?"})`);
   try {
     lazy.JaceWindow.init(win);
   } catch (e) {
@@ -237,6 +268,7 @@ export const JaceLoader = {
       return;
     }
     initialized = true;
+    logStartup(`Jace started (Firefox ${Services.appinfo.version})`);
 
     for (const [what, fn] of [
       ["about:jace pages", registerAboutPages],
@@ -272,6 +304,7 @@ export const JaceLoader = {
       } catch (e) {
         initErrors.push(`couldn't check the user agent: ${e}`);
       }
+      logStartup("browser UI starting (toolbar, new tab page, user agent)");
       relockNewTabPrefs();
       for (const name of NEWTAB_LOCKED) {
         Services.prefs.addObserver(name, () => relockNewTabPrefs());

@@ -65,3 +65,8 @@ rm -rf "$CHECK"
 
 ./firefox/firefox "${NAME_ARGS[@]}" --no-remote --profile "$DIR/profile" -purgecaches >/dev/null 2>&1 &
 echo "Started with a fresh profile."
+
+# What happened while it started (written by Jace Browser into the profile).
+sleep 8
+echo "--- startup log:"
+cat "$DIR/profile/jace-startup.log" 2>/dev/null || echo "(no startup log: Jace Browser's code didn't start in this window)"
