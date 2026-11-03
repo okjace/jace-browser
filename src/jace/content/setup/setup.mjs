@@ -365,10 +365,26 @@ renderStart();
 
 // ------------------------------------------------------------------ search
 
+let engineTries = 0;
 async function renderEngines() {
   const box = $("engines");
-  const engines = await api.engines().catch(() => []);
+  let engines = [];
+  let error = null;
+  try {
+    engines = await api.engines();
+  } catch (e) {
+    error = e;
+    console.error("Jace setup: search engines", e);
+  }
   box.replaceChildren();
+  if (!engines.length) {
+    const note = document.createElement("p");
+    note.className = "small";
+    note.textContent = engineTries < 5 ? "Loading search engines…" : `Couldn't load the search engines${error ? ` (${error.message ?? error})` : ""}. You can pick one later in Settings.`;
+    box.append(note);
+    if (engineTries++ < 5) setTimeout(renderEngines, 1500);
+    return;
+  }
   for (const engine of engines) {
     const b = document.createElement("button");
     b.className = "engine";

@@ -9,6 +9,8 @@
  * included.
  */
 
+import { setTimeout } from "resource://gre/modules/Timer.sys.mjs";
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   SearchSuggestionController: "resource://gre/modules/SearchSuggestionController.sys.mjs",
@@ -16,12 +18,19 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const SUGGEST_PREF = "browser.search.suggest.enabled";
 
+/** An engine's icon, or null. Never waits long: icons can come from the network. */
 async function iconOf(engine) {
   try {
-    return (await engine.getIconURL?.()) ?? engine.iconURI?.spec ?? null;
+    const icon = Promise.resolve(engine.getIconURL?.() ?? engine.iconURI?.spec ?? null).catch(() => null);
+    return await Promise.race([icon, new Promise((r) => setTimeout(() => r(null), 700))]);
   } catch {
     return null;
   }
+}
+
+/** The search service, ready (with a time limit so callers never hang). */
+async function ready() {
+  await Promise.race([Services.search.init(), new Promise((_, no) => setTimeout(() => no(new Error("search service didn't start")), 8000))]);
 }
 
 export const JaceSearch = {
@@ -35,20 +44,20 @@ export const JaceSearch = {
 
   /** [{ name, icon, isDefault }] */
   async engines() {
-    await Services.search.init();
+    await ready();
     const current = await Services.search.getDefault();
-    const list = await Services.search.getVisibleEngines();
+    const list = (await Services.search.getVisibleEngines?.()) ?? (await Services.search.getEngines());
     return Promise.all(list.map(async (e) => ({ name: e.name, icon: await iconOf(e), isDefault: e.name === current?.name })));
   },
 
   async current() {
-    await Services.search.init();
+    await ready();
     const engine = await Services.search.getDefault();
     return engine ? { name: engine.name, icon: await iconOf(engine) } : null;
   },
 
   async setDefault(name) {
-    await Services.search.init();
+    await ready();
     const engine = Services.search.getEngineByName(name);
     if (!engine) throw new Error(`No search engine called ${name}`);
     const reason = Ci.nsISearchService.CHANGE_REASON_USER ?? 0;
@@ -73,7 +82,7 @@ export const JaceSearch = {
   async suggest(text, { max = 6, isPrivate = false } = {}) {
     text = text.trim();
     if (!text || !this.suggestionsOn || text.length > 100 || /^[a-z]+:\/\//i.test(text)) return [];
-    await Services.search.init();
+    await ready();
     const engine = await Services.search.getDefault();
     if (!engine) return [];
     let results = null;

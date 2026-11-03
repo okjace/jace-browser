@@ -446,6 +446,14 @@ async function renderEngines() {
     console.warn("Jace: search engines", e);
   }
   box.replaceChildren();
+  if (!engines.length) {
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = "Loading search engines…";
+    box.append(note);
+    setTimeout(renderEngines, 1500);
+    return;
+  }
   for (const engine of engines) {
     const b = document.createElement("button");
     b.className = "engine-option";

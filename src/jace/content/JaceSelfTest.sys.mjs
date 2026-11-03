@@ -217,6 +217,13 @@ export const JaceSelfTest = {
       if (!panel) throw new Error("no box");
       return `panel ${state}`;
     });
+    await check("search engines are listed", async () => {
+      const { JaceSearch } = ChromeUtils.importESModule("chrome://jace/content/JaceSearch.sys.mjs");
+      const t = Date.now();
+      const engines = await JaceSearch.engines();
+      if (!engines.length) throw new Error("no engines");
+      return `${engines.length} (${engines.map((e) => e.name + (e.isDefault ? "*" : "")).join(", ")}) in ${Date.now() - t} ms`;
+    });
     await check("every tab has a close button", async () => {
       const tab = win.gBrowser.addTrustedTab("about:blank", { inBackground: true });
       await new Promise((r) => win.setTimeout(r, 200));
