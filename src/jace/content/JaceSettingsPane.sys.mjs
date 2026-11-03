@@ -52,7 +52,7 @@ function injectAtTop(win) {
   if (firefoxPane) container.insertBefore(section, firefoxPane);
   else container.prepend(section);
   fitFrame(frame);
-  if (/^#jace/.test(win.location.hash)) section.scrollIntoView();
+  if (/^#jace/.test(win.location.hash) || win.__jaceWantJace) section.scrollIntoView();
   return true;
 }
 
@@ -68,16 +68,17 @@ function fitFrame(frame) {
 }
 
 /** Firefox's settings page as this file knows it: a "Jace" entry in its sidebar. */
-function inject(win) {
-  const doc = win.document;
-  if (doc.getElementById("category-jace") || doc.getElementById("jace-settings-section")) return true;
-  const categories = doc.getElementById("categories");
-  const mainPane = doc.getElementById("mainPrefPane");
-  if (!categories || !mainPane || typeof win.register_module !== "function" || typeof win.gotoPref !== "function") {
-    return injectAtTop(win);
+/** The sidebar entry: a moz-page-nav button (Firefox 13x+) or an older richlistitem. */
+function makeNavEntry(doc, categories) {
+  if (categories.localName === "moz-page-nav") {
+    const button = doc.createElement("moz-page-nav-button");
+    button.id = "category-jace";
+    button.setAttribute("view", "paneJace");
+    button.setAttribute("iconsrc", "chrome://branding/content/icon32.png");
+    button.setAttribute("title", "Jace account, sync, look, profiles, WebUSB, DRM, privacy");
+    button.textContent = "Jace";
+    return button;
   }
-
-  // Sidebar entry, first in the list.
   const item = doc.createXULElement("richlistitem");
   item.id = "category-jace";
   item.className = "category";
@@ -91,7 +92,18 @@ function inject(win) {
   label.setAttribute("flex", "1");
   label.textContent = "Jace";
   item.append(icon, label);
-  categories.prepend(item);
+  return item;
+}
+
+/** Firefox's settings page: a "Jace" entry at the top of its sidebar, with Jace's settings as its page. */
+function inject(win, wantJace) {
+  const doc = win.document;
+  if (doc.getElementById("category-jace") || doc.getElementById("jace-settings-section")) return true;
+  const categories = doc.getElementById("categories");
+  const mainPane = doc.getElementById("mainPrefPane");
+  if (!categories || !mainPane || typeof win.register_module !== "function" || typeof win.gotoPref !== "function") {
+    return injectAtTop(win);
+  }
 
   // The pane: Jace's settings page, embedded.
   const params = new URLSearchParams(win.location.search);
@@ -102,30 +114,49 @@ function inject(win) {
   frame.setAttribute("hidden", "true");
   frame.setAttribute("src", `${SETTINGS_PAGE}?embedded=1${hash}`);
   mainPane.prepend(frame);
-
   win.register_module("paneJace", { init() {} });
-  // Keep the frame as tall as its content so the page scrolls as one.
   fitFrame(frame);
 
-  if (/^#jace/.test(win.location.hash)) {
+  try {
+    const entry = makeNavEntry(doc, categories);
+    categories.prepend(entry);
+    if (categories.localName === "moz-page-nav") {
+      // moz-page-nav reports clicks as "change-view"; Firefox only knows its own views.
+      entry.addEventListener("click", () => win.gotoPref("paneJace"));
+    }
+  } catch (e) {
+    console.error("Jace: couldn't add the sidebar entry; using the top of the page", e);
+    frame.remove();
+    return injectAtTop(win);
+  }
+
+  if (wantJace) {
     win.gotoPref("paneJace");
+    win.history.replaceState(null, "", win.location.pathname + win.location.search + "#jace");
   }
   return true;
 }
 
 function onSettingsDocument(doc) {
   const win = doc.defaultView;
+  // Remember the address now: Firefox replaces an unknown #jace with its own default.
+  const wantJace = /^#jace/.test(win.location.hash);
   const run = () => {
     let ok = false;
     try {
-      ok = inject(win);
+      ok = inject(win, wantJace);
     } catch (e) {
-      console.error("Jace: couldn't add the Jace section to settings", e);
+      console.error("Jace: couldn't add Jace to settings, trying the top of the page", e);
+      try {
+        ok = injectAtTop(win);
+      } catch (e2) {
+        console.error("Jace: couldn't add Jace to settings", e2);
+      }
     }
     Services.prefs.setBoolPref(WORKS_PREF, ok);
-    if (!ok && /^#jace/.test(win.location.hash)) {
+    if (!ok && wantJace) {
       // Couldn't add Jace to this page at all: show Jace's own page.
-      win.location.replace(`${SETTINGS_PAGE}?standalone=1${win.location.hash.replace(/^#jace/, "")}`);
+      win.location.replace(`${SETTINGS_PAGE}?standalone=1`);
     }
   };
   // Firefox builds its categories on load; add ours right after.

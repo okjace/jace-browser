@@ -539,8 +539,8 @@
   min-height: 24px !important;
   padding: 4px !important;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
+  justify-content: center;
+  align-items: center;
   color: var(--jace-text);
   background-color: color-mix(in srgb, currentColor 10%, transparent) !important;
   transition: background-color 120ms ease;
@@ -604,8 +604,8 @@
   width: 16px !important;
   height: 16px !important;
   min-height: 16px !important;
-  display: grid;
-  place-items: center;
+  justify-content: center;
+  align-items: center;
   color: transparent;
 }
 :root[jace-window-controls="jace"] .titlebar-min { background-color: #f5b83d !important; }
@@ -623,12 +623,22 @@
   width: 30px !important;
   height: 26px !important;
   border-radius: 8px;
-  display: grid;
-  place-items: center;
+  justify-content: center;
+  align-items: center;
   color: var(--jace-text);
 }
 :root[jace-window-controls="minimal"] .titlebar-button:hover { background-color: var(--jace-hover) !important; }
 :root[jace-window-controls="minimal"] .titlebar-close:hover { background-color: #e5484d !important; color: #fff; }
+
+/* Only one of maximize / restore at a time (Firefox's own rule, restated
+   because these styles change the buttons' display). */
+:root:is([jace-window-controls="gnome"], [jace-window-controls="jace"], [jace-window-controls="minimal"]) {
+  &[sizemode="maximized"] .titlebar-max,
+  &:not([sizemode="maximized"]) .titlebar-restore,
+  &[sizemode="fullscreen"] .titlebar-buttonbox-container {
+    display: none !important;
+  }
+}
 
 /* ---------- Tab close buttons, new tab button ---------- */
 
@@ -933,4 +943,27 @@ menupopup > menuseparator {
 .panel-footer button,
 .panel-subview-footer-button {
   border-radius: 8px !important;
+}
+
+/* Linux draws menus natively (GTK), which ignores the colors above and makes
+   them the system's gray. Draw them ourselves, on the menu's own surface. */
+menupopup,
+panel {
+  appearance: none !important;
+  -moz-default-appearance: none !important;
+}
+
+menupopup::part(content),
+panel::part(content) {
+  appearance: none !important;
+  background: var(--jace-surface-2) !important;
+  color: var(--jace-text) !important;
+  border: 1px solid color-mix(in srgb, var(--jace-text) 12%, transparent) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--jace-shadow) !important;
+}
+
+menupopup > :is(menuitem, menu) {
+  appearance: none !important;
+  color: var(--jace-text) !important;
 }

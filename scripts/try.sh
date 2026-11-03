@@ -29,6 +29,25 @@ if [ ! -x firefox/firefox ]; then
 fi
 python3 jace-browser/scripts/dev-install.py "$DIR/firefox" >/dev/null
 
+# Its own taskbar entry and icon: the window announces itself as
+# "jace-browser-test" (not "firefox"), and this app entry gives that name the
+# Jace icon. (The real build is named "jace" and ships its own entry.)
+APPS="$HOME/.local/share/applications"
+mkdir -p "$APPS"
+cat > "$APPS/jace-browser-test.desktop" <<DESKTOP
+[Desktop Entry]
+Type=Application
+Name=Jace Browser (test)
+Comment=The latest Jace Browser code, with fresh data each launch
+Exec=bash $DIR/jace-browser/scripts/try.sh
+Icon=$DIR/jace-browser/branding/png/logo-256.png
+Terminal=false
+Categories=Network;WebBrowser;
+StartupWMClass=jace-browser-test
+DESKTOP
+command -v update-desktop-database >/dev/null && update-desktop-database "$APPS" >/dev/null 2>&1 || true
+NAME_ARGS=(--name jace-browser-test --class jace-browser-test)
+
 # Brand-new data every launch.
 rm -rf "$DIR/profile"
 mkdir -p "$DIR/profile"
@@ -44,5 +63,5 @@ else
 fi
 rm -rf "$CHECK"
 
-./firefox/firefox --no-remote --profile "$DIR/profile" -purgecaches >/dev/null 2>&1 &
+./firefox/firefox "${NAME_ARGS[@]}" --no-remote --profile "$DIR/profile" -purgecaches >/dev/null 2>&1 &
 echo "Started with a fresh profile."

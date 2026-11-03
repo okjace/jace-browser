@@ -57,16 +57,34 @@ function row(doc, label, onCommand, { nav = false, icon = null } = {}) {
   });
   if (nav) b.setAttribute("closemenu", "none");
   if (icon) b.setAttribute("image", icon);
-  b.addEventListener("command", onCommand);
+  // Some panels deliver "command", some only "click": run once either way.
+  let last = 0;
+  const run = (e) => {
+    if (e.type === "click" && e.button !== 0) return;
+    if (Date.now() - last < 400) return;
+    last = Date.now();
+    try {
+      onCommand(e);
+    } catch (err) {
+      console.error("Jace: panel action failed", err);
+    }
+  };
+  b.addEventListener("command", run);
+  b.addEventListener("click", run);
   return b;
 }
 
+/** Closes the panel. Never throws: closing must not stop the action that asked for it. */
 function closePanel(view) {
-  const panel = view.closest("panel");
-  if (!panel) return;
-  const win = view.ownerGlobal;
-  if (win.PanelMultiView?.hidePopup) win.PanelMultiView.hidePopup(panel);
-  else panel.hidePopup?.();
+  try {
+    const panel = view.closest("panel");
+    if (!panel) return;
+    const win = view.ownerGlobal;
+    if (win.PanelMultiView?.hidePopup) win.PanelMultiView.hidePopup(panel);
+    else panel.hidePopup?.();
+  } catch (e) {
+    console.warn("Jace: couldn't close the account panel", e);
+  }
 }
 
 function makeView(doc, id, title) {
@@ -104,11 +122,11 @@ export const JaceAccountPanel = {
     const { JaceAccount, JaceSync, JaceSettingsPane } = lazy;
     const profile = JaceAccount.profile;
     const openSettings = (section) => {
-      closePanel(view);
       win.switchToTabHavingURI(JaceSettingsPane.url(section), true, {
         ignoreFragment: "whenComparingAndReplace",
         ignoreQueryString: true,
       });
+      closePanel(view);
     };
 
     // Header, like the site security panel's: who you are, and the state.
@@ -133,8 +151,9 @@ export const JaceAccountPanel = {
 
     if (!profile) {
       const signIn = row(doc, JaceAccount.signingIn ? "Finish signing in…" : "Sign in with Jace", () => {
+        const started = JaceAccount.signIn(win);
         closePanel(view);
-        JaceAccount.signIn(win).catch((e) => {
+        started.catch((e) => {
           if (e?.code === "cancelled") return;
           console.error("Jace sign-in:", e);
           Services.prompt.alert(win, "Sign in with Jace", `Signing in didn't work: ${e?.message ?? e}`);

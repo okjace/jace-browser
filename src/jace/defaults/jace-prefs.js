@@ -19,6 +19,9 @@ pref("browser.toolbars.bookmarks.visibility", "never");
 pref("browser.tabs.inTitlebar", 1);
 pref("browser.compactmode.show", true);
 pref("svg.context-properties.content.enabled", true);
+// Menus drawn by the browser (in Jace's colors), not by the system (GTK gray).
+pref("widget.gtk.native-context-menus", false);
+pref("browser.display.use_system_colors", false);
 pref("jace.theme.compact", false);          // hide the sidebar until you hover the window edge
 pref("jace.theme.floatingContent", true);   // rounded, inset web content with a shadow
 pref("jace.theme.accent", "#3ddc84");       // Jace green

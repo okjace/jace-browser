@@ -195,10 +195,16 @@ export const JaceSelfTest = {
       if (!found) throw new Error(probe);
       return true;
     });
-    await check("Sign in with Jace opens Jace's sign-in page", async () => {
+    await check("the account panel's Sign in with Jace button opens Jace's sign-in page", async () => {
       const { JaceAccount } = ChromeUtils.importESModule("chrome://jace/content/JaceAccount.sys.mjs");
-      JaceAccount.signIn(win).catch(() => {});
-      await new Promise((r) => win.setTimeout(r, 600));
+      const { JaceAccountPanel, ACCOUNT_VIEW } = ChromeUtils.importESModule("chrome://jace/content/JaceAccountPanel.sys.mjs");
+      JaceAccountPanel.install(win);
+      const view = win.PanelMultiView?.getViewNode?.(win.document, ACCOUNT_VIEW) ?? win.document.getElementById(ACCOUNT_VIEW);
+      await JaceAccountPanel.fillAccountView(view);
+      const button = [...view.querySelectorAll("toolbarbutton")].find((b) => /Sign in with Jace/.test(b.getAttribute("label")));
+      if (!button) throw new Error("no Sign in with Jace button in the panel");
+      button.doCommand();
+      await new Promise((r) => win.setTimeout(r, 800));
       const tab = JaceAccount.pendingTab;
       const ok = !!tab?.isConnected;
       JaceAccount.cancelSignIn();
