@@ -269,7 +269,9 @@ export const JaceSelfTest = {
       const missing = [...win.gBrowser.tabs].filter((t) => !t.pinned && !t.querySelector(".jace-tab-close")).length;
       const button = tab.querySelector(".jace-tab-close");
       const box = button?.getBoundingClientRect();
-      const style = button ? win.getComputedStyle(button) : null;
+      // Copied now: the live style is empty once the tab is closed.
+      const live = button ? win.getComputedStyle(button) : null;
+      const style = live ? { display: live.display, visibility: live.visibility, opacity: live.opacity, position: live.position } : null;
       const tabBox = tab.getBoundingClientRect();
       // What's actually drawn at the button's spot (something on top of it?)
       const onTop = box?.width ? win.document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2) : null;
