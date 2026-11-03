@@ -273,6 +273,22 @@ export const JaceSelfTest = {
       if (!box.width) throw new Error(`not visible (in ${where})`);
       return `in ${where}, ${Math.round(box.width)}x${Math.round(box.height)}`;
     });
+    await check("no colored line at the sidebar's edge", async () => {
+      const doc = win.document;
+      const root = doc.querySelector("sidebar-main")?.shadowRoot;
+      const found = [
+        ...doc.querySelectorAll("#browser splitter, [id*='splitter']"),
+        ...(root ? root.querySelectorAll("[class*='splitter'], [class*='resizer'], [id*='splitter']") : []),
+      ];
+      const describe = (n) => {
+        const st = win.getComputedStyle(n);
+        const r = n.getBoundingClientRect();
+        return `${n.localName}${n.id ? "#" + n.id : ""}${typeof n.className === "string" && n.className ? "." + n.className.split(" ")[0] : ""} ${Math.round(r.width)}x${Math.round(r.height)} bg ${st.backgroundColor} border ${st.borderInlineEndColor}/${st.borderInlineStartColor}`;
+      };
+      const container = doc.getElementById("sidebar-container");
+      const cs = container ? win.getComputedStyle(container) : null;
+      return `${found.map(describe).join(" | ") || "no splitters"}; sidebar border ${cs?.borderInlineEndWidth} ${cs?.borderInlineEndColor}, shadow ${cs?.boxShadow}`;
+    });
     await check("themes change the window's colors", async () => {
       const { JaceThemes } = ChromeUtils.importESModule("chrome://jace/content/JaceThemes.sys.mjs");
       const before = Services.prefs.getStringPref("jace.theme.id", "jace");
