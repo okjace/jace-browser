@@ -14,6 +14,8 @@
  * Off with jace.tabs.downloadsButton = false (Settings > Look).
  */
 
+import { getCustomizableUI } from "chrome://jace/content/JaceCompat.sys.mjs";
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
@@ -212,7 +214,7 @@ function togglePanel(win, button) {
   panel.__stop?.();
   panel.__stop = fillList(win, panel.firstChild, () => panel.hidePopup());
   button.setAttribute("open", "true");
-  const vertical = button.hasAttribute("vertical");
+  const vertical = button.id === TOOL_ID || button.hasAttribute("vertical");
   panel.openPopup(button, vertical ? "end_after" : "bottomright topright");
 }
 
@@ -226,22 +228,6 @@ function openDownloads(win, button) {
 }
 
 // ------------------------------------------------------------ the button
-
-function make(win) {
-  const doc = win.document;
-  const button = doc.createXULElement("toolbarbutton");
-  button.id = ID;
-  // Not "toolbarbutton-1": Firefox paints that kind gray on hover. Jace styles it.
-  button.className = "jace-tabs-downloads";
-  button.setAttribute("label", "Downloads"); // for screen readers; only the icon shows
-  button.setAttribute("tooltiptext", "Downloads");
-  const bar = doc.createElementNS(HTML, "span");
-  bar.className = "jace-downloads-progress";
-  button.append(bar);
-  button.addEventListener("command", () => openDownloads(win, button));
-  track(win, button);
-  return button;
-}
 
 const TOOL_ID = "jace-sidebar-downloads-tool";
 
@@ -340,21 +326,45 @@ function addSidebarTool(win) {
 }
 
 export const JaceDownloadsButton = {
+  ID,
+
+  /** For the toolbar widget (JaceLoader createWidgets). */
+  widgetCreated(node) {
+    node.classList.add("jace-tabs-downloads");
+    const bar = node.ownerDocument.createElementNS(HTML, "span");
+    bar.className = "jace-downloads-progress";
+    node.append(bar);
+    track(node.ownerGlobal, node);
+  },
+  widgetCommand(event) {
+    const node = event.target.closest?.(`#${ID}`) ?? event.target;
+    openDownloads(node.ownerGlobal, node);
+  },
+
   /**
    * Vertical tabs: a Downloads icon in the sidebar's bottom row of icons.
    * Tabs across the top: at the end of the tab strip.
    */
   place(win) {
     const doc = win.document;
-    let button = doc.getElementById(ID);
     const tool = doc.querySelector("sidebar-main")?.shadowRoot?.getElementById(TOOL_ID);
     if (!Services.prefs.getBoolPref(PREF, true)) {
-      button?.remove();
       tool?.remove();
+      try {
+        const CUI = getCustomizableUI();
+        if (CUI.getPlacementOfWidget(ID)) CUI.removeWidgetFromArea(ID);
+      } catch {}
       return;
     }
     const vertical = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
     if (vertical) {
+      // Off the (hidden) tab strip.
+      try {
+        const CUI = getCustomizableUI();
+        if (CUI.getPlacementOfWidget(ID)) CUI.removeWidgetFromArea(ID);
+      } catch (e) {
+        console.warn("Jace: downloads button", e);
+      }
       let added = null;
       try {
         added = addSidebarTool(win);
@@ -364,29 +374,17 @@ export const JaceDownloadsButton = {
       // Not found yet: Jace tries again shortly. (Never inside the vertical
       // tabs area itself: Firefox's toolbar manager owns it, and a button it
       // doesn't know there breaks moving the tabs back to the top.)
-      button?.remove();
       void added;
       return;
     } else {
       tool?.remove();
-      button ??= make(win);
-      // End of the tab strip, outside the part the toolbar editor manages
-      // (several places to try: Firefox reshuffles this toolbar now and then).
-      const strip = doc.getElementById("TabsToolbar-customization-target");
-      const tabs = doc.getElementById("tabbrowser-tabs");
-      const items = doc.querySelector("#TabsToolbar .toolbar-items");
-      const toolbar = doc.getElementById("TabsToolbar");
-      if (strip?.parentNode) {
-        if (button.previousSibling !== strip) strip.after(button);
-      } else if (items) {
-        if (button.parentNode !== items) items.append(button);
-      } else if (tabs?.parentNode) {
-        if (button.previousSibling !== tabs) tabs.after(button);
-      } else if (toolbar && button.parentNode !== toolbar) {
-        toolbar.append(button);
-      }
+      // A real toolbar button at the end of the tab strip (Firefox's toolbar
+      // system puts it there and draws it like its other buttons).
+      const CUI = getCustomizableUI();
+      const placement = CUI.getPlacementOfWidget(ID);
+      if (placement?.area !== CUI.AREA_TABSTRIP) CUI.addWidgetToArea(ID, CUI.AREA_TABSTRIP);
+      doc.getElementById(ID)?.setAttribute("horizontal", "true");
     }
-    button.toggleAttribute("vertical", vertical);
   },
 
   /** Where the Downloads icon is (for the self-test). */

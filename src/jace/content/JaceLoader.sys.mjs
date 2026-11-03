@@ -17,6 +17,7 @@ import { getCustomizableUI, jacePageURL } from "chrome://jace/content/JaceCompat
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  JaceDownloadsButton: "chrome://jace/content/JaceDownloadsButton.sys.mjs",
   JaceAccount: "chrome://jace/content/JaceAccount.sys.mjs",
   JaceSelfTest: "chrome://jace/content/JaceSelfTest.sys.mjs",
   JaceSync: "chrome://jace/content/sync/JaceSync.sys.mjs",
@@ -218,6 +219,22 @@ function createWidgets() {
   if (CustomizableUI.getPlacementOfWidget("jace-profiles-button")) {
     CustomizableUI.removeWidgetFromArea("jace-profiles-button");
   }
+
+  // Downloads at the end of the tab strip (tabs across the top); with
+  // vertical tabs it's in the sidebar instead (JaceDownloadsButton.place).
+  CustomizableUI.createWidget({
+    id: "jace-tabs-downloads",
+    type: "button",
+    label: "Downloads",
+    tooltiptext: "Downloads",
+    removable: true,
+    onCreated(node) {
+      lazy.JaceDownloadsButton.widgetCreated(node);
+    },
+    onCommand(event) {
+      lazy.JaceDownloadsButton.widgetCommand(event);
+    },
+  });
 
   CustomizableUI.createWidget({
     id: "jace-vertical-tabs-button",
