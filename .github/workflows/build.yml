@@ -105,6 +105,15 @@ jobs:
       - name: Build jace-usb-helper.exe
         working-directory: usb-helper
         run: cargo build --release
+      - name: It needs no extra DLLs and answers
+        working-directory: usb-helper
+        shell: pwsh
+        run: |
+          $deps = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find "**\dumpbin.exe" | Select-Object -First 1
+          if ($deps) { & $deps /dependents target\release\jace-usb-helper.exe | Select-String "\.dll" }
+          $out = '{"id":1,"cmd":"hello"}' | .\target\release\jace-usb-helper.exe
+          $out
+          if (-not ($out -match '"id":1')) { throw "the helper didn't answer" }
       - uses: actions/upload-artifact@v7
         with:
           name: usb-helper-windows
@@ -367,65 +376,38 @@ jobs:
           path: dist/*.dmg
 
   release:
-    # Windows and Linux are released as soon as they pass (and the Windows
-    # installer test passes); the Mac downloads are added by release-macos
-    # when those builds finish.
-    if: needs.version.outputs.publish == 'true'
+    # Each platform is published as soon as it passes: whichever finishes
+    # first creates the release, the others add their downloads to it, and
+    # the Jace Store entry is refreshed each time. A platform that fails is
+    # simply left out.
+    if: always() && needs.version.outputs.publish == 'true' && (needs.linux.result == 'success' || needs.windows-installer-test.result == 'success')
     needs: [version, linux, windows, windows-installer-test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      JACE_STORE_TOKEN: ${{ secrets.JACE_STORE_TOKEN }}
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
+        if: needs.linux.result == 'success'
         with:
           name: linux
           path: artifacts
       - uses: actions/download-artifact@v8
+        if: needs.windows-installer-test.result == 'success'
         with:
           name: windows
           path: artifacts
-      - name: Keep only the downloads
-        run: rm -f artifacts/jace-usb-helper.exe && ls -la artifacts
-      - uses: actions/checkout@v7
-        with:
-          path: src
-      - name: Release notes from CHANGELOG.md
+      - name: Publish (GitHub release, then Jace Store)
         run: |
-          V="${{ needs.version.outputs.tag }}"; V="${V#v}"
-          awk -v v="$V" '$0 == "## "v {f=1; next} /^## / {f=0} f' src/CHANGELOG.md > notes.md
-          printf '\n_The macOS downloads are added here when their builds finish._\n' >> notes.md
-          cat notes.md
-      - uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ needs.version.outputs.tag }}
-          target_commitish: ${{ github.sha }}
-          name: Jace Browser ${{ needs.version.outputs.tag }}
-          body_path: notes.md
-          files: artifacts/*
-
-  store:
-    # Publish the new release to Jace Store as links to the GitHub downloads.
-    # Needs the JACE_STORE_TOKEN repository secret; skipped if it isn't set.
-    if: needs.version.outputs.publish == 'true'
-    needs: [version, release]
-    runs-on: ubuntu-latest
-    env:
-      JACE_STORE_TOKEN: ${{ secrets.JACE_STORE_TOKEN }}
-    steps:
-      - uses: actions/checkout@v7
-      - name: Publish to Jace Store
-        run: |
-          if [ -z "$JACE_STORE_TOKEN" ]; then
-            echo "::warning::JACE_STORE_TOKEN secret not set - skipping Jace Store"
-            exit 0
-          fi
-          python3 packaging/publish_store.py "${{ needs.version.outputs.tag }}"
+          rm -f artifacts/jace-usb-helper.exe
+          python3 packaging/release.py "${{ needs.version.outputs.tag }}" artifacts/*
 
   release-macos:
-    # Adds whichever Mac builds succeeded to the release, then refreshes the
-    # Jace Store entry so it lists them too.
-    if: always() && needs.version.outputs.publish == 'true' && needs.release.result == 'success'
-    needs: [version, release, store, macos]
+    if: always() && needs.version.outputs.publish == 'true'
+    needs: [version, release, macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -439,15 +421,12 @@ jobs:
           pattern: macos-*
           path: artifacts
           merge-multiple: true
-      - name: Add the Mac downloads to the release
+      - name: Add the Mac downloads (GitHub release, then Jace Store)
         run: |
           shopt -s nullglob
           files=(artifacts/*.dmg)
-          if [ ${#files[@]} -eq 0 ]; then echo "::warning::No Mac build succeeded - the release has Windows and Linux only"; exit 0; fi
-          gh release upload "${{ needs.version.outputs.tag }}" -R "$GITHUB_REPOSITORY" --clobber "${files[@]}"
-          if [ -n "$JACE_STORE_TOKEN" ]; then
-            python3 packaging/publish_store.py "${{ needs.version.outputs.tag }}" --replace
-          fi
+          if [ ${#files[@]} -eq 0 ]; then echo "::warning::No Mac build succeeded - nothing to add"; exit 0; fi
+          python3 packaging/release.py "${{ needs.version.outputs.tag }}" "${files[@]}"
 
   report-failure:
     # An automatic Firefox update that doesn't build or pass its tests gets

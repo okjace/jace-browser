@@ -1,0 +1,5 @@
+# Windows: include the C runtime in the .exe. The helper lives in its own
+# folder (jacebrowser\bin), away from the browser's copy of vcruntime140.dll,
+# so without this it can't start on PCs that don't have the runtime installed.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
