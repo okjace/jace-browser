@@ -73,6 +73,7 @@ function render() {
     ].join("\n")),
     ...section("Tab bar (#TabsToolbar)", `${describe(d.getElementById("TabsToolbar"))}\n.toolbar-items:\n${children(d.querySelector("#TabsToolbar .toolbar-items"))}\ncustomization target:\n${children(d.getElementById("TabsToolbar-customization-target"))}`),
     ...section("Sidebar", `${describe(d.getElementById("sidebar-main") ?? d.querySelector("sidebar-main"))}\n#vertical-tabs:\n${children(d.getElementById("vertical-tabs"))}`),
+    ...section("Downloads clicks", (w.__jaceDownloadsLog ?? []).join("\n") || "(none yet)"),
     ...section("Startup log", getStartupLog().join("\n") || "(empty)"),
   );
 }

@@ -216,6 +216,7 @@ function togglePanel(win, button) {
     });
   }
   if (panel.state === "open" || panel.state === "showing") {
+    panel.__closedByUser = true;
     panel.hidePopup();
     return;
   }
@@ -226,13 +227,30 @@ function togglePanel(win, button) {
   panel.openPopup(button, vertical ? "end_after" : "bottomright topright");
 }
 
+/** What happened on the last Downloads click (about:jace-debug shows it). */
+function note(win, text) {
+  win.__jaceDownloadsLog = [...(win.__jaceDownloadsLog ?? []).slice(-5), `${new Date().toISOString().slice(11, 19)} ${text}`];
+}
+
 function openDownloads(win, button) {
+  note(win, `click on ${button.id || button.localName}`);
   try {
     togglePanel(win, button);
   } catch (e) {
+    note(win, `list failed: ${e}`);
     console.error("Jace: downloads list", e);
     win.switchToTabHavingURI("about:downloads", true);
+    return;
   }
+  const panel = win.document.getElementById(PANEL_ID);
+  win.setTimeout(() => {
+    note(win, `list is ${panel?.state}`);
+    // Didn't open (or closed straight away): the Downloads page instead.
+    if (panel && panel.state === "closed" && !panel.__closedByUser) {
+      win.switchToTabHavingURI("about:downloads", true);
+    }
+    if (panel) panel.__closedByUser = false;
+  }, 450);
 }
 
 // ------------------------------------------------------------ the button
@@ -324,7 +342,7 @@ function addSidebarTool(win) {
   // If the sidebar redraws its row, put it back.
   if (!main.__jaceToolObserver) {
     main.__jaceToolObserver = new win.MutationObserver(() => {
-      if (Services.prefs.getBoolPref(PREF, true) && Services.prefs.getBoolPref("sidebar.verticalTabs", false) && !root.getElementById(TOOL_ID)) {
+      if (Services.prefs.getBoolPref(PREF, true) && !root.getElementById(TOOL_ID)) {
         win.setTimeout(() => addSidebarTool(win), 0);
       }
     });
@@ -350,8 +368,8 @@ export const JaceDownloadsButton = {
   },
 
   /**
-   * Vertical tabs: a Downloads icon in the sidebar's bottom row of icons.
-   * Tabs across the top: at the end of the tab strip.
+   * A Downloads icon in the sidebar's row of icons (both layouts), and with
+   * tabs across the top also at the end of the tab strip.
    */
   place(win) {
     const doc = win.document;
@@ -366,6 +384,12 @@ export const JaceDownloadsButton = {
       return;
     }
     const vertical = Services.prefs.getBoolPref("sidebar.verticalTabs", false);
+    // The sidebar's icon row is there in both layouts: Downloads goes in it.
+    try {
+      addSidebarTool(win);
+    } catch (e) {
+      console.error("Jace: downloads icon in the sidebar", e);
+    }
     if (vertical) {
       // Off the (hidden) tab strip.
       doc.getElementById(BACKUP_ID)?.remove();
@@ -375,19 +399,11 @@ export const JaceDownloadsButton = {
       } catch (e) {
         console.warn("Jace: downloads button", e);
       }
-      let added = null;
-      try {
-        added = addSidebarTool(win);
-      } catch (e) {
-        console.error("Jace: downloads icon in the sidebar", e);
-      }
-      // Not found yet: Jace tries again shortly. (Never inside the vertical
-      // tabs area itself: Firefox's toolbar manager owns it, and a button it
-      // doesn't know there breaks moving the tabs back to the top.)
-      void added;
+      // (Never inside the vertical tabs area itself: Firefox's toolbar
+      // manager owns it, and a button it doesn't know there breaks moving
+      // the tabs back to the top.)
       return;
     } else {
-      tool?.remove();
       // A real toolbar button at the end of the tab strip (Firefox's toolbar
       // system puts it there and draws it like its other buttons).
       let error = null;
