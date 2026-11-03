@@ -30,10 +30,11 @@ on:
 permissions:
   contents: read
 
-# A newer push replaces a build still waiting or running (no paying twice).
+# Ordinary pushes (tests only) never cancel a build that's running; a build
+# only waits for the one before it.
 concurrency:
-  group: build-${{ github.ref }}
-  cancel-in-progress: true
+  group: build-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
 
 jobs:
   version:
