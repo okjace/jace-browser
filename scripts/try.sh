@@ -69,7 +69,7 @@ echo "Checking (up to 90 seconds)..."
 CHECK=$(mktemp -d)
 JACE_SELF_TEST_OUT="$CHECK/report.txt" timeout 90 ./firefox/firefox --headless --no-remote --profile "$CHECK" -purgecaches >/dev/null 2>&1 || true
 if [ -f "$CHECK/report.txt" ]; then
-  grep -E "FAIL|startup error|close button|search engines|sidebar's edge" "$CHECK/report.txt" || true
+  grep -E "FAIL|startup error|close button|search engines|sidebar's edge|Downloads button" "$CHECK/report.txt" || true
   tail -1 "$CHECK/report.txt"
 else
   echo "NO SELF-TEST REPORT (Jace Browser's code didn't start)"

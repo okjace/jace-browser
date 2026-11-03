@@ -90,6 +90,47 @@ function applyTabStyle(win) {
   alignIconsSoon(win);
 }
 
+/**
+ * The sidebar's bottom row of icons (bookmarks, history, ..., downloads)
+ * lives in <sidebar-main>'s own (shadow) DOM, which Jace's skin can't reach.
+ * In the narrow styles it's stacked into a column so every icon fits (no
+ * "more" button hiding some of them).
+ */
+const SIDEBAR_SHADOW_CSS = `
+:host([jace-narrow]) :is(button-group, .tools-and-extensions, .bottom-actions, .actions-list) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  gap: 2px !important;
+  overflow: visible !important;
+  max-width: none !important;
+}
+:host([jace-narrow]) :is(button-group, .tools-and-extensions, .bottom-actions, .actions-list) > moz-button {
+  margin-inline-start: 10px !important;
+}
+:host([jace-narrow]) :is(.overflow-button, .more-tools, [class*="overflow"], moz-button[class*="chevron"], moz-button[iconsrc*="chevron"], moz-button[iconsrc*="arrow-double"]) {
+  display: none !important;
+}
+`;
+
+function styleSidebar(win) {
+  const doc = win.document;
+  const main = doc.querySelector("sidebar-main");
+  const root = main?.shadowRoot;
+  if (!root) return false;
+  const style = doc.documentElement.getAttribute("jace-tabs-style");
+  const narrow = Services.prefs.getBoolPref(VERTICAL_PREF, false) && (style === "icons" || style === "hover");
+  main.toggleAttribute("jace-narrow", narrow);
+  if (!root.getElementById("jace-sidebar-shadow-style")) {
+    const el = doc.createElementNS("http://www.w3.org/1999/xhtml", "style");
+    el.id = "jace-sidebar-shadow-style";
+    el.textContent = SIDEBAR_SHADOW_CSS;
+    root.append(el);
+  }
+  return true;
+}
+
 const ICON_COLUMN = 56; // px: the icon column in the "icons" and "hover" styles
 
 /**
@@ -128,6 +169,7 @@ function alignIconsSoon(win) {
   for (const ms of [0, 300, 1600, 3000]) {
     win.setTimeout(() => {
       try {
+        styleSidebar(win);
         alignIcons(win);
       } catch (e) {
         console.warn("Jace: couldn't line up the tab icons", e);

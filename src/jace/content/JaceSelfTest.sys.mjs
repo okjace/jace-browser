@@ -266,12 +266,16 @@ export const JaceSelfTest = {
       const { JaceDownloadsButton } = ChromeUtils.importESModule("chrome://jace/content/JaceDownloadsButton.sys.mjs");
       const button = JaceDownloadsButton.find(win);
       const root = win.document.querySelector("sidebar-main")?.shadowRoot;
-      const rows = root ? [...root.querySelectorAll("button-group, .tools-and-extensions, .bottom-actions, .actions-list")].map((n) => n.localName + "." + n.className).join(",") : "no sidebar-main";
+      const rows = root
+        ? [...root.querySelectorAll("button-group, .tools-and-extensions, .bottom-actions, .actions-list")]
+            .map((n) => `${n.localName}.${n.className}[${[...n.children].map((c) => c.localName + (c.id ? "#" + c.id : "") + (c.getAttribute?.("iconsrc") ? "(" + c.getAttribute("iconsrc").split("/").pop() + ")" : "")).join(" ")}]`)
+            .join(", ")
+        : "no sidebar-main";
       if (!button) throw new Error(`no button (sidebar rows: ${rows})`);
       const box = button.getBoundingClientRect();
       const where = button.parentNode?.id || button.parentNode?.className || button.parentNode?.localName;
       if (!box.width) throw new Error(`not visible (in ${where})`);
-      return `in ${where}, ${Math.round(box.width)}x${Math.round(box.height)}`;
+      return `in ${where}, ${Math.round(box.width)}x${Math.round(box.height)}; rows: ${rows}`;
     });
     await check("no colored line at the sidebar's edge", async () => {
       const doc = win.document;
