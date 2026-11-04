@@ -64,6 +64,11 @@ jobs:
           elif [[ "$GITHUB_REF" == refs/heads/main && ( "$GITHUB_EVENT_NAME" == push || "$GITHUB_EVENT_NAME" == workflow_dispatch ) ]] && ! gh release view "v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "New version v$V: will be released if every build passes"
             echo "tag=v$V" >> "$GITHUB_OUTPUT"; echo "publish=true" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/heads/main && "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            # A manual run of an already released version: add (or replace) the
+            # platforms it builds in that release.
+            echo "v$V is released: this run's platforms are added to it if they pass"
+            echo "tag=v$V" >> "$GITHUB_OUTPUT"; echo "publish=true" >> "$GITHUB_OUTPUT"
           else
             echo "v$V is already released (or this isn't a push to main): build and test only"
             echo "publish=false" >> "$GITHUB_OUTPUT"
