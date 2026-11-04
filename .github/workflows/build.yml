@@ -27,6 +27,10 @@ on:
       - ".github/workflows/extension.yml"
   pull_request:
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Which to build: all, or any of linux, windows, macos (comma-separated)"
+        default: all
 
 permissions:
   contents: read
@@ -99,7 +103,7 @@ jobs:
 
   usb-helper-windows:
     needs: version
-    if: needs.version.outputs.build == 'true'
+    if: needs.version.outputs.build == 'true' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'windows'))
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -120,7 +124,7 @@ jobs:
 
   linux:
     needs: [version, tests]
-    if: needs.version.outputs.build == 'true'
+    if: needs.version.outputs.build == 'true' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'linux'))
     # Ubicloud's 16-core runner (~$0.0064/min; about 40-60 min a build; the project's quota is 16 cores).
     # Older Ubuntu = older glibc = the AppImage runs on more distros.
     # To go back to GitHub's free (slower) runner, set the repository
@@ -198,7 +202,7 @@ jobs:
   windows:
     # Cross-compiled on Linux, like Mozilla builds Firefox for Windows.
     needs: [version, tests, usb-helper-windows]
-    if: needs.version.outputs.build == 'true'
+    if: needs.version.outputs.build == 'true' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'windows'))
     # Ubicloud's 16-core runner; JACE_WINDOWS_RUNNER=ubuntu-24.04 for GitHub's free one.
     runs-on: ${{ vars.JACE_WINDOWS_RUNNER || 'ubicloud-standard-16' }}
     timeout-minutes: 240
@@ -305,7 +309,7 @@ jobs:
 
   macos:
     needs: [version, tests]
-    if: needs.version.outputs.build == 'true'
+    if: needs.version.outputs.build == 'true' && (github.event_name != 'workflow_dispatch' || inputs.platforms == 'all' || contains(inputs.platforms, 'macos'))
     strategy:
       fail-fast: false
       matrix:
