@@ -30,6 +30,8 @@ jobs:
           "./$name" --appimage-extract >/dev/null
           cp ../packaging/appimage/AppRun squashfs-root/AppRun
           chmod 755 squashfs-root/AppRun
+          # Extraction leaves folders readable only by us; an AppImage must be readable by everyone.
+          chmod -R u+rwX,go+rX squashfs-root
           curl -fsSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
           rm "$name"
