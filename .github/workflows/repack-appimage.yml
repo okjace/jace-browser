@@ -1,7 +1,9 @@
-# Swap a released AppImage's start script (packaging/appimage/AppRun) for this
-# commit's, without rebuilding Firefox (free, a couple of minutes), and put
-# it back on the release.
-name: Repack AppImage
+# Update a release's Linux downloads with this commit's Jace files, without
+# rebuilding Firefox (free, a few minutes): the AppImage's start script
+# (packaging/appimage/AppRun) and Jace's own files that sit next to the
+# browser (jace.cfg, jacebrowser/: Jace's code, look and settings), in both
+# the .AppImage and the .tar.xz. Firefox itself is unchanged.
+name: Repack Linux downloads
 
 on:
   workflow_dispatch:
@@ -23,20 +25,39 @@ jobs:
       - name: Repack
         run: |
           set -e
+          SRC="$PWD/src/jace"
+          update_jace() {  # $1 = the browser folder (where jace.cfg is)
+            cp "$SRC/autoconfig/jace.cfg" "$1/jace.cfg"
+            cp -r "$SRC/content/." "$1/jacebrowser/content/"
+            cp -r "$SRC/skin/." "$1/jacebrowser/skin/"
+            cp "$SRC/jace-chrome.txt" "$1/jacebrowser/"
+            cp "$SRC/policies/policies.json" "$1/distribution/policies.json"
+          }
           mkdir work && cd work
-          gh release download "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" -p "*-x86_64.AppImage"
-          name=$(ls *.AppImage)
-          chmod +x "$name"
-          "./$name" --appimage-extract >/dev/null
+          gh release download "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" -p "*-x86_64.AppImage" -p "*-linux-x86_64.tar.xz"
+          # AppImage
+          app=$(ls *.AppImage); chmod +x "$app"
+          "./$app" --appimage-extract >/dev/null
           cp ../packaging/appimage/AppRun squashfs-root/AppRun
-          chmod 755 squashfs-root/AppRun
+          update_jace squashfs-root/usr/lib/jace
           # Extraction leaves folders readable only by us; an AppImage must be readable by everyone.
-          chmod -R u+rwX,go+rX squashfs-root
+          chmod -R u+rwX,go+rX squashfs-root && chmod 755 squashfs-root/AppRun
           curl -fsSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
-          rm "$name"
-          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool --no-appstream squashfs-root "$name"
-          # Check the new start script is in it.
-          rm -rf squashfs-root && "./$name" --appimage-extract >/dev/null && grep -q MOZ_LEGACY_PROFILES squashfs-root/AppRun
-          ls -la "$name"
-          gh release upload "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" --clobber "$name"
+          rm "$app"
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool --no-appstream squashfs-root "$app"
+          # tar.xz
+          tarball=$(ls *.tar.xz); mkdir t && tar -xf "$tarball" -C t
+          update_jace t/jace
+          rm "$tarball" && tar -cJf "$tarball" -C t jace
+          # Check: the updated AppImage has Jace's code and passes the self-test.
+          rm -rf squashfs-root && "./$app" --appimage-extract >/dev/null
+          grep -q MOZ_LEGACY_PROFILES squashfs-root/AppRun
+          sudo apt-get install -y -q libgtk-3-0 libdbus-glib-1-2 libasound2t64 >/dev/null 2>&1 || true
+          export JACE_SELF_TEST_OUT="$RUNNER_TEMP/selftest.txt" MOZ_HEADLESS=1
+          mkdir -p "$RUNNER_TEMP/profile"
+          timeout 300 squashfs-root/usr/lib/jace/jace --headless -no-remote -profile "$RUNNER_TEMP/profile" || true
+          cat "$JACE_SELF_TEST_OUT"
+          grep -q "SELF-TEST OK" "$JACE_SELF_TEST_OUT"
+          ls -la "$app" "$tarball"
+          gh release upload "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" --clobber "$app" "$tarball"

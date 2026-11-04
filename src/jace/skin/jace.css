@@ -1549,3 +1549,9 @@ toolbarbutton:not([disabled]):active > :is(.toolbarbutton-icon, .toolbarbutton-b
   box-shadow: none !important;
 }
 
+
+/* Firefox's AI / smart-window / VPN pieces (turned off in jace.cfg): never shown */
+:is(#ai-window-toggle, #smartwindow-group-tabs-button, #ai-window-splitter, #ipprotection-button, #firefox-view-button, #sidebar-ai-chatbot),
+moz-button[view="viewGenaiChatSidebar"] {
+  display: none !important;
+}

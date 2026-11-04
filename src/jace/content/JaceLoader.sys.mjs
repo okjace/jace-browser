@@ -204,6 +204,18 @@ function registerWebUSB() {
   });
 }
 
+/** Search engines Jace doesn't list (AI answer engines bundled as Mozilla partners). */
+const HIDDEN_ENGINES = ["Perplexity"];
+async function hideSearchEngines() {
+  const { getSearchService } = ChromeUtils.importESModule("chrome://jace/content/JaceCompat.sys.mjs");
+  const search = getSearchService();
+  await search.init();
+  for (const name of HIDDEN_ENGINES) {
+    const engine = search.getEngineByName(name);
+    if (engine && !engine.hidden) engine.hidden = true;
+  }
+}
+
 function createWidgets() {
   const { CustomizableUI } = lazy;
 
@@ -231,6 +243,12 @@ function createWidgets() {
 
   // The profiles button was removed (profiles live in Settings -> Jace);
   // take it off toolbars it was put on before.
+  // Firefox's AI / smart-window buttons (its AI features are off): off the toolbars.
+  for (const id of ["ai-window-toggle", "smartwindow-group-tabs-button", "ipprotection-button", "firefox-view-button"]) {
+    try {
+      if (CustomizableUI.getPlacementOfWidget(id)) CustomizableUI.removeWidgetFromArea(id);
+    } catch {}
+  }
   if (CustomizableUI.getPlacementOfWidget("jace-profiles-button")) {
     CustomizableUI.removeWidgetFromArea("jace-profiles-button");
   }
@@ -349,6 +367,7 @@ export const JaceLoader = {
       for (const name of NEWTAB_LOCKED) {
         Services.prefs.addObserver(name, () => relockNewTabPrefs());
       }
+      hideSearchEngines().catch((e) => initErrors.push(`couldn't tidy the search engines: ${e}`));
       try {
         lazy.JaceNewTab.start();
       } catch (e) {

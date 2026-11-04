@@ -103,6 +103,18 @@ export const JaceSelfTest = {
         !Services.prefs.getBoolPref("browser.urlbar.quicksuggest.enabled", true)
       );
     });
+    await check("Firefox's AI features, VPN and backup are off", () => {
+      const off = [
+        Services.prefs.getStringPref("browser.ai.control.default", "") === "blocked",
+        !Services.prefs.getBoolPref("browser.ml.chat.enabled", true),
+        !Services.prefs.getBoolPref("browser.smartwindow.enabled", true),
+        !Services.prefs.getBoolPref("browser.ipProtection.enabled", true),
+        !Services.prefs.getBoolPref("browser.backup.enabled", true),
+        Services.prefs.prefIsLocked("browser.ai.control.default"),
+      ];
+      if (off.every(Boolean)) return true;
+      throw new Error(`still on: ${off.map((v, i) => (v ? "" : i)).filter((x) => x !== "").join(",")}`);
+    });
     await check("startup animation module loads", () => {
       const { ANIMATED_LOGO_SVG } = ChromeUtils.importESModule("chrome://jace/content/JaceSplash.sys.mjs");
       return ANIMATED_LOGO_SVG.includes("jace-logo-j");

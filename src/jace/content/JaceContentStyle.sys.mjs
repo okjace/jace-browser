@@ -89,7 +89,11 @@ function css(accent) {
     border-radius: var(--border-radius-medium) !important;
   }
 
-  /* Settings: Firefox-only sections Jace Browser doesn't use */
+  /* Settings: Firefox-only sections Jace Browser doesn't use (AI, Mozilla VPN, backup) */
+  moz-page-nav-button:is([view="paneAi"], [view="paneManageMemories"], [view="panePersonalizeSmartWindow"], [view="paneVpnSiteRules"], [view="paneExperimental"]),
+  richlistitem:is([value="paneAi"], [value="paneManageMemories"], [value="panePersonalizeSmartWindow"], [value="paneVpnSiteRules"], [value="paneExperimental"]),
+  #backupCategory,
+  #dataBackupGroup,
   #category-more-from-mozilla,
   #moreFromMozillaCategory,
   #category-experimental,
