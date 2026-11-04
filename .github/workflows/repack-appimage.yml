@@ -1,0 +1,40 @@
+# Swap a released AppImage's start script (packaging/appimage/AppRun) for this
+# commit's, without rebuilding Firefox (free, a couple of minutes), and put
+# it back on the release.
+name: Repack AppImage
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.1)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  repack:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Repack
+        run: |
+          set -e
+          mkdir work && cd work
+          gh release download "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" -p "*-x86_64.AppImage"
+          name=$(ls *.AppImage)
+          chmod +x "$name"
+          "./$name" --appimage-extract >/dev/null
+          cp ../packaging/appimage/AppRun squashfs-root/AppRun
+          chmod 755 squashfs-root/AppRun
+          curl -fsSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          rm "$name"
+          ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 ./appimagetool --no-appstream squashfs-root "$name"
+          # Check the new start script is in it.
+          rm -rf squashfs-root && "./$name" --appimage-extract >/dev/null && grep -q MOZ_LEGACY_PROFILES squashfs-root/AppRun
+          ls -la "$name"
+          gh release upload "${{ inputs.tag }}" -R "$GITHUB_REPOSITORY" --clobber "$name"
