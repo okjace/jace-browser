@@ -184,7 +184,13 @@ main {
   overflow: hidden;
 }
 
-.tile .icon img { width: 26px; height: 26px; display: block; }
+.tile .icon img {
+  width: 26px; height: 26px; display: block;
+  /* The browser's stand-in icon (no favicon yet) follows the text color, so
+     it stays visible in dark mode; real favicons are unaffected. */
+  -moz-context-properties: fill;
+  fill: var(--fg);
+}
 
 .tile .name {
   font-size: 12.5px;

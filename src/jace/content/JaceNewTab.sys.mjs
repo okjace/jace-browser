@@ -14,8 +14,8 @@ export const NEWTAB_URL = "chrome://jace/content/newtab/newtab.html";
 
 function aboutNewTab() {
   return importFirst([
-    "moz-src:///browser/components/newtab/AboutNewTab.sys.mjs",
     "resource:///modules/AboutNewTab.sys.mjs",
+    "moz-src:///browser/components/newtab/AboutNewTab.sys.mjs",
   ]).AboutNewTab;
 }
 

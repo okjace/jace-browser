@@ -29,6 +29,8 @@
       "Locked": true
     },
     "SkipTermsOfUse": true,
-    "DisableAppUpdate": true
+    "DisableAppUpdate": true,
+    "NoDefaultBookmarks": true,
+    "DisplayBookmarksToolbar": "never"
   }
 }

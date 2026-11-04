@@ -96,6 +96,8 @@ function makeView(doc, id, title) {
 export const JaceAccountPanel = {
   /** Adds the two panel views to a window (once), where the toolbar can find them. */
   install(win) {
+    // The toolbar can make the button in a window-less template first: nothing to do there.
+    if (!win?.document) return;
     const doc = win.document;
     if (doc.getElementById(ACCOUNT_VIEW)) return;
     const cache = doc.getElementById("appMenu-viewCache");

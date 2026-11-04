@@ -385,11 +385,13 @@ export const JaceDownloadsButton = {
     // Nothing may be added inside: Firefox only builds a toolbar button's
     // icon and label when it starts out empty. (Progress is drawn by CSS.)
     node.setAttribute("image", ICON);
-    track(node.ownerGlobal, node);
+    // (Not for a copy the toolbar makes in a window-less template.)
+    const win = node.ownerGlobal ?? node.ownerDocument?.defaultView;
+    if (win) track(win, node);
   },
   widgetCommand(event) {
     const node = event.target.closest?.(`#${ID}`) ?? event.target;
-    openDownloads(node.ownerGlobal, node);
+    openDownloads(node.ownerGlobal ?? node.ownerDocument.defaultView, node);
   },
 
   /**

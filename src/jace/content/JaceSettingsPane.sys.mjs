@@ -70,7 +70,6 @@ function fitFrame(frame) {
 }
 
 const HTML = "http://www.w3.org/1999/xhtml";
-const ACCOUNT_PANE = "paneJaceAccount";
 
 /**
  * Firefox's own "Account" box (Mozilla accounts, which Jace Browser doesn't
@@ -80,7 +79,7 @@ const ACCOUNT_PANE = "paneJaceAccount";
 function replaceFirefoxAccountBox(win) {
   const doc = win.document;
   const tryReplace = () => {
-    if (doc.getElementById("jace-account-box")) return true;
+    if (doc.getElementById("jace-account-box") || doc.querySelector("[jace-hidden='mozilla-account']")) return true;
     const walker = doc.createTreeWalker(doc.body ?? doc.documentElement, 4 /* text */);
     let firefoxBox = null;
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -90,10 +89,12 @@ function replaceFirefoxAccountBox(win) {
       }
     }
     if (!firefoxBox) return false;
-    const box = jaceAccountBox(win);
-    firefoxBox.before(box);
+    // Jace's own account and sync are already on this page: just hide Mozilla's box.
+    const jaceHere = [...doc.querySelectorAll(".jace-settings-frame")].some((f) => /only=[^&#]*account/.test(f.getAttribute("src") ?? ""));
+    if (!jaceHere) firefoxBox.before(jaceAccountBox(win));
     firefoxBox.hidden = true;
     firefoxBox.style.display = "none";
+    firefoxBox.setAttribute("jace-hidden", "mozilla-account");
     return true;
   };
   if (tryReplace()) return;
@@ -162,58 +163,23 @@ function jaceAccountBox(win) {
  * own About/version box), so nothing shows twice.
  */
 const PLACEMENT = [
-  // Jace's own category, at the top of the sidebar: account and sync.
-  // (Firefox's own Sync category is for Mozilla accounts: it's hidden.)
-  { sections: ["account", "sync"], panes: [ACCOUNT_PANE], label: /^$/ },
+  // Account and sync: at the top of Firefox's "Account and sync" page (which,
+  // since Firefox 15x, also has Default browser and Import), in place of the
+  // Mozilla account box.
+  { sections: ["account", "sync"], panes: ["paneSync"], label: /sync|account/i },
   { sections: ["about"], panes: ["paneAbout"], label: /^\s*about/i, replace: true },
-  { sections: ["look", "profiles", "drm"], panes: ["paneGeneral"], label: /general/i },
+  // The first of these that's actually shown (Firefox 159 hides General).
+  { sections: ["look", "profiles", "drm"], panes: ["paneGeneral", "paneAppearance"], label: /general|appearance/i },
   { sections: ["search"], panes: ["paneSearch"], label: /search/i },
   { sections: ["privacy", "usb"], panes: ["panePrivacy"], label: /privacy|security/i },
 ];
 const ALL_SECTIONS = PLACEMENT.flatMap((p) => p.sections);
 
-/** Adds the "Account" category to the top of the settings sidebar. */
-function addAccountCategory(win, categories) {
-  const doc = win.document;
-  if (doc.getElementById("category-jace-account")) return true;
-  if (typeof win.register_module !== "function") return false;
-  let entry;
-  if (categories.localName === "moz-page-nav") {
-    entry = doc.createElement("moz-page-nav-button");
-    entry.setAttribute("view", ACCOUNT_PANE);
-    entry.setAttribute("iconsrc", "chrome://jace/skin/icons/account.svg");
-    entry.textContent = "Account";
-    // moz-page-nav reports clicks as "change-view"; Firefox only knows its own views.
-    entry.addEventListener("click", () => win.gotoPref(ACCOUNT_PANE));
-  } else {
-    entry = doc.createXULElement("richlistitem");
-    entry.className = "category";
-    entry.setAttribute("value", ACCOUNT_PANE);
-    entry.setAttribute("align", "center");
-    const label = doc.createXULElement("label");
-    label.className = "category-name";
-    label.setAttribute("flex", "1");
-    label.textContent = "Account";
-    entry.append(label);
-  }
-  entry.id = "category-jace-account";
-  entry.setAttribute("title", "Your Jace account");
-  win.register_module(ACCOUNT_PANE, { init() {} });
-  categories.prepend(entry);
-  // Firefox's Sync category (Mozilla accounts) is replaced by this one.
-  const style = doc.createElementNS(HTML, "style");
-  style.textContent = `#category-sync, [view="paneSync"], richlistitem[value="paneSync"] { display: none !important; }`;
-  (doc.head ?? doc.documentElement).append(style);
-  const gotoPref = win.gotoPref;
-  win.gotoPref = function (category, ...rest) {
-    return gotoPref.call(this, category === "paneSync" ? ACCOUNT_PANE : category, ...rest);
-  };
-  return true;
-}
-
 /** The panes in the settings sidebar: [{ pane, label }]. */
 function sidebarPanes(categories) {
+  const win = categories.ownerDocument.defaultView;
   return [...categories.querySelectorAll("[view], richlistitem[value]")]
+    .filter((n) => !n.hidden && win.getComputedStyle(n).display !== "none")
     .map((n) => ({ pane: n.getAttribute("view") ?? n.getAttribute("value"), label: n.textContent || n.getAttribute("label") || "" }))
     .filter((p) => p.pane);
 }
@@ -222,7 +188,7 @@ function sidebarPanes(categories) {
 function planPlacement(categories) {
   const panes = sidebarPanes(categories);
   const has = (name) => panes.some((p) => p.pane === name);
-  const general = has("paneGeneral") ? "paneGeneral" : panes[0]?.pane;
+  const general = ["paneGeneral", "paneAppearance", "paneSync"].find(has) ?? panes[0]?.pane;
   const plan = new Map(); // pane -> { sections, replace }
   for (const place of PLACEMENT) {
     let pane = place.panes.find(has) ?? panes.find((p) => place.label.test(p.label))?.pane;
@@ -255,11 +221,6 @@ function inject(win, wantJace) {
   if (!categories || !mainPane || typeof win.gotoPref !== "function") {
     return injectAtTop(win);
   }
-  try {
-    addAccountCategory(win, categories);
-  } catch (e) {
-    console.error("Jace: couldn't add the Account category", e);
-  }
   const plan = planPlacement(categories);
   if (!plan.size) return injectAtTop(win);
 
@@ -285,8 +246,19 @@ function inject(win, wantJace) {
     } else {
       // Jace's parts come first in the category, then Firefox's own settings.
       const firstOfPane = mainPane.querySelector(`[data-category="${pane}"]`);
-      if (firstOfPane) firstOfPane.before(frame);
-      else mainPane.prepend(frame);
+      // Firefox 15x draws each category as one <setting-pane> with its title
+      // first: Jace's part goes right under the title, inside it (and shows
+      // and hides with it).
+      const header = firstOfPane?.localName === "setting-pane" ? firstOfPane.querySelector(":scope > moz-page-header, moz-page-header") : null;
+      if (header) {
+        header.after(frame);
+        frame.removeAttribute("hidden");
+        frame.removeAttribute("data-category");
+      } else if (firstOfPane) {
+        firstOfPane.before(frame);
+      } else {
+        mainPane.prepend(frame);
+      }
     }
     fitFrame(frame);
     if (target && sections.includes(target)) {
@@ -302,11 +274,15 @@ function inject(win, wantJace) {
     if (frame.dataset.category === shownPane) frame.removeAttribute("hidden");
   }
 
-  if (!wantJace && /^#sync/.test(win.location.hash) && doc.getElementById("category-jace-account")) {
-    win.gotoPref(ACCOUNT_PANE);
-  }
-
   if (wantJace) {
+    // Firefox may still switch to its own first page after this: switch back.
+    const want = targetPane ?? plan.keys().next().value;
+    for (const ms of [300, 1200]) {
+      win.setTimeout(() => {
+        const shown = [...mainPane.children].find((n) => n.dataset?.category && !n.hidden)?.dataset.category;
+        if (shown && shown !== want) win.gotoPref(want);
+      }, ms);
+    }
     const pane = targetPane ?? (plan.has("paneGeneral") ? "paneGeneral" : plan.keys().next().value);
     win.gotoPref(pane);
     if (targetFrame && target) {
@@ -322,6 +298,44 @@ function inject(win, wantJace) {
     }
   }
   return true;
+}
+
+const JACE_ICON = "chrome://branding/content/icon32.png";
+
+/**
+ * Firefox's pictures on the settings page: the fox ("kit") on the
+ * default-browser card goes, and Firefox / Mozilla logos on headings and
+ * in the sidebar become Jace's. Also hides the "managed by your
+ * organization" notice (that's Jace's own policies.json, not an employer).
+ * Firefox draws parts of the page late, so this keeps watching.
+ */
+function debrandSettings(win) {
+  const doc = win.document;
+  const fix = () => {
+    for (const el of doc.querySelectorAll("[imagesrc*='illustrations/kit-']")) el.removeAttribute("imagesrc");
+    for (const el of doc.querySelectorAll("[iconsrc*='firefox'], [iconsrc*='mozilla-logo']")) {
+      if (el.getAttribute("iconsrc") !== JACE_ICON) el.setAttribute("iconsrc", JACE_ICON);
+    }
+    const walker = doc.createTreeWalker(doc.body ?? doc.documentElement, 4 /* text */);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (/being managed by your organi[sz]ation/i.test(node.nodeValue)) {
+        const box = node.parentElement?.closest("moz-message-bar, .info-box-container, #policies-container, div, hbox") ?? node.parentElement;
+        if (box && box.style.display !== "none") box.style.display = "none";
+      }
+    }
+  };
+  fix();
+  let pending = false;
+  const observer = new win.MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    win.setTimeout(() => {
+      pending = false;
+      fix();
+    }, 50);
+  });
+  observer.observe(doc.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["imagesrc", "iconsrc"] });
+  win.addEventListener("unload", () => observer.disconnect(), { once: true });
 }
 
 function onSettingsDocument(doc) {
@@ -342,6 +356,11 @@ function onSettingsDocument(doc) {
     }
     Services.prefs.setBoolPref(WORKS_PREF, ok);
     try {
+      debrandSettings(win);
+    } catch (e) {
+      console.error("Jace: settings pictures", e);
+    }
+    try {
       replaceFirefoxAccountBox(win);
     } catch (e) {
       console.error("Jace: couldn't replace the account box", e);
@@ -355,8 +374,20 @@ function onSettingsDocument(doc) {
   if (doc.readyState === "complete") {
     run();
   } else {
-    win.addEventListener("load", () => win.setTimeout(run, 0), { once: true });
+    // After Firefox has drawn its sidebar (it decides which pages show then).
+    win.addEventListener("load", () => whenSidebarReady(win, run), { once: true });
   }
+}
+
+function whenSidebarReady(win, fn) {
+  let tries = 0;
+  const check = () => {
+    const nav = win.document.getElementById("categories");
+    const ready = nav && [...nav.querySelectorAll("[view], richlistitem[value]")].some((n) => !n.hidden && win.getComputedStyle(n).display !== "none");
+    if (ready || ++tries > 30) fn();
+    else win.setTimeout(check, 100);
+  };
+  win.setTimeout(check, 0);
 }
 
 let started = false;
