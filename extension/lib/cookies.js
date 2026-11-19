@@ -11,7 +11,9 @@
  *
  * Record:
  *   { host, path, name, value, secure, httpOnly, session,
- *     expires,   // seconds since 1970, 0 for a session cookie
+ *     expires,   // seconds since 1970, 0 for a session cookie; rounded up to
+ *                // a whole day, so sites that push the expiry forward on every
+ *                // request don't count as a change each time
  *     sameSite,  // "none" | "lax" | "strict" | "unset"
  *     modified } // ms, only a tie-breaker for the merge
  * host keeps Firefox's convention: ".example.com" for a domain cookie,
@@ -25,8 +27,26 @@ export function cookieKey(r) {
   return [r.host, r.path, r.name].join(SEP);
 }
 
+/**
+ * Analytics, ad and bot-check cookies: not sign-ins, and many change every
+ * few minutes (Cloudflare's __cf_bm every 30), which would re-upload all of
+ * a person's cookies each time. Never synced.
+ */
+const NOT_SIGN_INS =
+  /^(_ga($|_)|_gid$|_gat|_gcl_|_fbp$|_fbc$|_hj|__utm|_uetsid$|_uetvid$|_clck$|_clsk$|__cf_bm$|_cfuvid$|cf_chl_|ajs_|AMP_|mp_|__gads$|__gpi$|__eoi$|_pin_unauth$|_rdt_uuid$|_scid|_tt_enable_cookie$|_ttp$|_dd_s$|__hssc$|__hstc$|__hssrc$|hubspotutk$|_vwo|_pk_|_hjSession)/;
+
+export function syncsCookie(name) {
+  return !NOT_SIGN_INS.test(name);
+}
+
+const DAY = 86400;
+/** Expiry rounded up to a whole day (never earlier than the real one). */
+export function roundExpiry(seconds) {
+  return seconds > 0 ? Math.ceil(seconds / DAY) * DAY : 0;
+}
+
 export function retainCookie(r, now = Date.now()) {
-  return r.session || r.expires * 1000 > now;
+  return syncsCookie(r.name) && (r.session || r.expires * 1000 > now);
 }
 
 // ---- Firefox internals (nsICookie) ----
@@ -48,7 +68,7 @@ export function fromGeckoCookie(c) {
     secure: !!c.isSecure,
     httpOnly: !!c.isHttpOnly,
     session: !!c.isSession,
-    expires: c.isSession ? 0 : geckoExpiryToSeconds(c.expiry),
+    expires: c.isSession ? 0 : roundExpiry(geckoExpiryToSeconds(c.expiry)),
     sameSite: GECKO_SAMESITE[c.sameSite] ?? "unset",
     modified: Math.floor((c.lastAccessed ?? c.creationTime ?? 0) / 1000),
   };
@@ -72,7 +92,7 @@ export function fromExtensionCookie(c) {
     secure: !!c.secure,
     httpOnly: !!c.httpOnly,
     session: !!c.session,
-    expires: c.session ? 0 : Math.floor(c.expirationDate ?? 0),
+    expires: c.session ? 0 : roundExpiry(Math.floor(c.expirationDate ?? 0)),
     sameSite: EXT_SAMESITE[c.sameSite] ?? "unset",
     modified: 0,
   };

@@ -176,7 +176,7 @@ export const JaceAccountPanel = {
       if (keyed) {
         body.append(
           row(doc, "Sync now", async () => {
-            await JaceSync.syncNow().catch(() => {});
+            await JaceSync.syncNow({ force: true }).catch(() => {});
             this.fillAccountView(view);
           }),
         );

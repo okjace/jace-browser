@@ -9,7 +9,7 @@
  *
  * Engines:
  *   bookmarks  - every bookmark, with its folder path
- *   history    - pages visited in the last 90 days (up to 5,000)
+ *   history    - pages visited in the last 30 days (up to 1,000)
  *   passwords  - saved logins
  *   cookies    - site cookies, so a site you're signed in to on one device is
  *                signed in on all of them
@@ -124,8 +124,9 @@ const bookmarks = {
 
 // ---------------------------------------------------------------- history
 
-const HISTORY_DAYS = 90;
-const HISTORY_MAX = 5000;
+// Kept small: the whole collection is re-sent whenever it changes.
+const HISTORY_DAYS = 30;
+const HISTORY_MAX = 1000;
 
 const history = {
   name: "history",

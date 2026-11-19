@@ -3,7 +3,7 @@
 An extension that brings your Jace account to regular Firefox and to Chrome (and Edge, Brave, and other Chrome-based browsers). One codebase: `lib/compat.js` covers the differences, and `tools/build-chrome.py` writes the Chrome version.
 
 - **Sign in with Jace** from the toolbar button.
-- **Jace sync**, end-to-end encrypted with your sync passphrase: bookmarks, history (90 days), open tabs, the **list of your add-ons** (other devices offer to install them), and **site sign-ins** (cookies), so you're signed in to the same sites as on your other devices. It uses the same sync as [Jace Browser](../README.md), so Jace Browser and Firefox with this extension keep each other up to date.
+- **Jace sync**, end-to-end encrypted with your sync passphrase: bookmarks, history (30 days), open tabs, the **list of your add-ons** (other devices offer to install them), and **site sign-ins** (cookies), so you're signed in to the same sites as on your other devices. It uses the same sync as [Jace Browser](../README.md), so Jace Browser and Firefox with this extension keep each other up to date.
 - **Signed in to Jace websites automatically**: the Jace website, and Jace's own apps (Jace Social, Jace Store, …) skip the sign-in screen. Not in private windows or container tabs. Turn it off in the extension's settings.
 
 Passwords aren't synced: Firefox doesn't let extensions read them. Jace Browser syncs them.

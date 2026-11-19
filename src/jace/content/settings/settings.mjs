@@ -35,7 +35,7 @@ const browserWindow = () => window.browsingContext.topChromeWindow;
 
 const ENGINE_LABELS = {
   bookmarks: "Bookmarks",
-  history: "History (last 90 days)",
+  history: "History (last 30 days)",
   passwords: "Passwords",
   cookies: "Site sign-ins (cookies)",
   tabs: "Open tabs",
@@ -224,7 +224,7 @@ $("passphrase-form").addEventListener("submit", async (e) => {
   renderSync();
 });
 
-$("sync-now").addEventListener("click", (e) => busy(e.target, () => JaceSync.syncNow()));
+$("sync-now").addEventListener("click", (e) => busy(e.target, () => JaceSync.syncNow({ force: true })));
 $("forget-device").addEventListener("click", (e) =>
   busy(e.target, async () => {
     await JaceSync.forgetDevice();

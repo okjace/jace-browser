@@ -38,7 +38,7 @@ async function render() {
       return;
     }
     $("action").disabled = true;
-    await syncNow().catch(() => {});
+    await syncNow({ force: true }).catch(() => {});
     $("action").disabled = false;
     render();
   };

@@ -20,7 +20,7 @@ import { signInToWebsite } from "../lib/websites.js";
 const $ = (id) => document.getElementById(id);
 const LABELS = {
   bookmarks: "Bookmarks",
-  history: "History (last 90 days)",
+  history: "History (last 30 days)",
   cookies: "Site sign-ins (cookies)",
   tabs: "Open tabs",
   addons: "Add-on list",
@@ -157,7 +157,7 @@ $("passphrase-form").addEventListener("submit", async (e) => {
   });
   render();
 });
-$("sync-now").addEventListener("click", () => busy($("sync-now"), syncNow));
+$("sync-now").addEventListener("click", () => busy($("sync-now"), () => syncNow({ force: true })));
 $("forget").addEventListener("click", () => busy($("forget"), async () => {
   await forgetDevice();
   accountHas = null;

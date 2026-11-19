@@ -58,6 +58,37 @@ async function writeBase(name, data) {
   await IOUtils.writeJSON(baseFile(name), data, { tmpPath: `${baseFile(name)}.tmp` });
 }
 
+/**
+ * What this device knows about each collection on Jace: { [name]: { version,
+ * uploaded } } (plus the small keys record itself, as `keys.payload`). The
+ * saved copy (base) is what Jace had at `version`, so when Jace says nothing
+ * changed (304) the copy is used instead of downloading it again.
+ */
+function metaFile() {
+  return PathUtils.join(PathUtils.profileDir, "jace-sync", "_meta.json");
+}
+
+async function readMeta() {
+  try {
+    return await IOUtils.readJSON(metaFile());
+  } catch {
+    return {};
+  }
+}
+
+async function writeMeta(meta) {
+  await IOUtils.makeDirectory(PathUtils.join(PathUtils.profileDir, "jace-sync"), { ignoreExisting: true });
+  await IOUtils.writeJSON(metaFile(), meta, { tmpPath: `${metaFile()}.tmp` });
+}
+
+/**
+ * Upload a changed collection at most this often (unless you press Sync
+ * now). Jace bills for transfer, and history and cookies change constantly
+ * while you browse, so their changes are batched longer.
+ */
+const UPLOAD_EVERY_MS = { history: 15 * 60 * 1000, cookies: 15 * 60 * 1000 };
+const UPLOAD_EVERY_DEFAULT_MS = 5 * 60 * 1000;
+
 async function clearBases() {
   await IOUtils.remove(PathUtils.join(PathUtils.profileDir, "jace-sync"), { recursive: true, ignoreAbsent: true });
 }
@@ -76,8 +107,17 @@ async function api(path, options) {
   return response;
 }
 
-async function getCollection(name) {
-  const response = await api(`/${name}`);
+/**
+ * Downloads a collection. With `knownVersion` (the version this device has a
+ * copy of), Jace answers 304 with no body if it hasn't changed:
+ * { notModified: true } then, and the copy is used.
+ */
+async function getCollection(name, knownVersion = 0) {
+  const headers = knownVersion > 0 ? { "If-None-Match": `"${knownVersion}"` } : {};
+  const response = await api(`/${name}`, { headers });
+  if (response.status === 304) {
+    return { version: knownVersion, payload: null, notModified: true };
+  }
   if (response.status === 404) {
     return { version: 0, payload: null };
   }
@@ -185,7 +225,7 @@ export const JaceSync = {
     }
     await clearBases(); // first sync on this device merges everything
     setStatus({ state: "idle", error: null });
-    this.syncNow().catch(() => {});
+    this.syncNow({ force: true }).catch(() => {});
     return { created };
   },
 
@@ -229,7 +269,14 @@ export const JaceSync = {
     }
     started = true;
     Services.obs.addObserver(() => this.forgetDevice().catch(() => {}), "jace-account-signed-out");
-    Services.obs.addObserver(() => this.syncNow().catch(() => {}), "jace-account-changed");
+    // Only when someone signs in (the account notice also fires for profile
+    // refreshes, which don't need a sync).
+    let signedInAs = JaceAccount.profile?.sub ?? null;
+    Services.obs.addObserver(() => {
+      const now = JaceAccount.profile?.sub ?? null;
+      if (now && now !== signedInAs) this.syncNow({ force: true }).catch(() => {});
+      signedInAs = now;
+    }, "jace-account-changed");
     this._schedule(firstSyncDelayMs);
   },
 
@@ -254,17 +301,21 @@ export const JaceSync = {
     }, delayMs);
   },
 
-  /** Syncs every enabled engine. Concurrent calls share one run. */
-  syncNow() {
+  /**
+   * Syncs every enabled engine. Concurrent calls share one run.
+   * `force` (Sync now, signing in, setting the passphrase) uploads changes
+   * right away instead of batching them.
+   */
+  syncNow({ force = false } = {}) {
     if (!running) {
-      running = this._sync().finally(() => {
+      running = this._sync({ force }).finally(() => {
         running = null;
       });
     }
     return running;
   },
 
-  async _sync() {
+  async _sync({ force = false } = {}) {
     if (!this.enabled) {
       setStatus({ state: "off" });
       return;
@@ -280,10 +331,16 @@ export const JaceSync = {
     setStatus({ state: "syncing", error: null });
     try {
       // If someone reset sync or changed the passphrase on another device, stop and ask again.
-      const keys = await getCollection("keys");
-      if (keys.version === 0 || !(await JaceCrypto.checkKey(key, JaceCrypto.decodeKeysRecord(keys.payload)))) {
+      const meta = await readMeta();
+      const keys = await getCollection("keys", meta.keys?.payload ? meta.keys.version : 0);
+      const keysPayload = keys.notModified ? meta.keys.payload : keys.payload;
+      if (keys.version === 0 || !(await JaceCrypto.checkKey(key, JaceCrypto.decodeKeysRecord(keysPayload)))) {
         await this.forgetDevice();
         return;
+      }
+      if (!keys.notModified) {
+        meta.keys = { version: keys.version, payload: keys.payload };
+        await writeMeta(meta);
       }
       const errors = [];
       for (const engine of ENGINES) {
@@ -291,7 +348,7 @@ export const JaceSync = {
           continue;
         }
         try {
-          await this._syncEngine(engine, key);
+          await this._syncEngine(engine, key, { force });
         } catch (e) {
           if (e?.code === "signed_out") {
             throw e;
@@ -307,11 +364,18 @@ export const JaceSync = {
     }
   },
 
-  async _syncEngine(engine, key) {
+  async _syncEngine(engine, key, { force = false } = {}) {
     const ctx = { deviceId: JaceAccount.deviceId, deviceName: JaceAccount.deviceName };
     for (let attempt = 0; attempt < 3; attempt++) {
-      const remoteRec = await getCollection(engine.name);
-      const remote = remoteRec.payload ? await JaceCrypto.decrypt(key, engine.name, remoteRec.payload) : {};
+      const meta = await readMeta();
+      const known = meta[engine.name];
+      // Only download it if it changed since this device's copy (Jace answers 304 otherwise).
+      const remoteRec = await getCollection(engine.name, known?.version ?? 0);
+      const remote = remoteRec.notModified
+        ? await readBase(engine.name)
+        : remoteRec.payload
+          ? await JaceCrypto.decrypt(key, engine.name, remoteRec.payload)
+          : {};
       const local = await engine.collect(ctx);
 
       let merged;
@@ -328,7 +392,7 @@ export const JaceSync = {
           Object.keys(merged).length !== Object.keys(remote).length ||
           !sameRecord(remote[ctx.deviceId], local[ctx.deviceId]);
       } else {
-        const base = await readBase(engine.name);
+        const base = remoteRec.notModified ? remote : await readBase(engine.name);
         const result = threeWayMerge({
           local,
           remote,
@@ -342,13 +406,27 @@ export const JaceSync = {
       }
 
       if (remoteChanged) {
+        // Batch: a collection uploaded a moment ago waits, and its changes go
+        // up together with the next ones. (Its copy isn't updated, so the
+        // changes are still seen as new next time.)
+        const every = UPLOAD_EVERY_MS[engine.name] ?? UPLOAD_EVERY_DEFAULT_MS;
+        if (!force && remoteRec.version > 0 && known?.uploaded && Date.now() - known.uploaded < every) {
+          return;
+        }
         const payload = await JaceCrypto.encrypt(key, engine.name, merged);
         const version = await putCollection(engine.name, payload, remoteRec.version);
         if (version === null) {
           continue; // another device wrote first: merge again with theirs
         }
+        await writeBase(engine.name, merged);
+        await writeMeta({ ...(await readMeta()), [engine.name]: { version, uploaded: Date.now() } });
+        return;
       }
+      // Nothing to upload: this device's copy is what Jace has at this version.
       await writeBase(engine.name, merged);
+      if (!remoteRec.notModified || known?.version !== remoteRec.version) {
+        await writeMeta({ ...(await readMeta()), [engine.name]: { version: remoteRec.version, uploaded: known?.uploaded ?? 0 } });
+      }
       return;
     }
     throw new JaceSyncError("busy", "Another device kept syncing at the same time; will try again later.");

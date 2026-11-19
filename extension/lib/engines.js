@@ -8,7 +8,7 @@
  * so the two sync with each other.
  *
  *   bookmarks - every bookmark, with its folder path
- *   history   - pages visited in the last 90 days (up to 5,000)
+ *   history   - pages visited in the last 30 days (up to 1,000)
  *   cookies   - site sign-ins (the shared format in cookies.js)
  *   tabs      - this browser's open tabs (shown on other devices, never opened)
  *   addons    - the add-ons installed here (offered on other devices)
@@ -125,8 +125,9 @@ const bookmarks = {
 
 // ---------------------------------------------------------------- history
 
-const HISTORY_DAYS = 90;
-const HISTORY_MAX = 5000;
+// Kept small: the whole collection is re-sent whenever it changes.
+const HISTORY_DAYS = 30;
+const HISTORY_MAX = 1000;
 
 const history = {
   name: "history",

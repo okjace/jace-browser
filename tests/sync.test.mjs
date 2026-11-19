@@ -72,7 +72,21 @@ test("expired records drop out without deleting anything", () => {
   });
   assert.equal(out.merged.a, undefined);
   assert.equal(out.toRemove.length, 0);
+  // Ageing out alone isn't worth re-uploading the collection for.
+  assert.equal(out.remoteChanged, false);
+  assert.equal(out.expiredOnRemote, true);
+});
+
+test("an expired record leaves with a real change", () => {
+  const old = { value: 1, modified: 1, expired: true };
+  const out = threeWayMerge({
+    local: { a: old, b: { value: 2, modified: 5 } },
+    remote: { a: old },
+    base: { a: old },
+    retain: (x) => !x.expired,
+  });
   assert.equal(out.remoteChanged, true);
+  assert.deepEqual(Object.keys(out.merged), ["b"]);
 });
 
 test("_local and modified are ignored when comparing", () => {

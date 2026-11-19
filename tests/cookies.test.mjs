@@ -4,6 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  roundExpiry,
+  syncsCookie,
   cookieKey,
   fromExtensionCookie,
   fromGeckoCookie,
@@ -98,4 +100,22 @@ test("Chrome bookmarks map to the same paths as Firefox's", () => {
   assert.ok(out[bookmarkKey(["toolbar"], "https://jaceo.vercel.app/")]);
   assert.ok(out[bookmarkKey(["menu"], "https://news.example/")]);
   assert.ok(out[bookmarkKey(["unfiled"], "https://misc.example/")]);
+});
+
+test("cookie expiry is compared to the day, never earlier than the real one", () => {
+  const day = 86400;
+  assert.equal(roundExpiry(0), 0);
+  assert.equal(roundExpiry(10 * day), 10 * day);
+  assert.equal(roundExpiry(10 * day + 1), 11 * day);
+  // A site moving its expiry forward by minutes isn't a change.
+  assert.equal(roundExpiry(10 * day + 60), roundExpiry(10 * day + 3600));
+});
+
+test("analytics and bot-check cookies aren't synced", () => {
+  for (const name of ["_ga", "_ga_ABC123", "_gid", "__cf_bm", "_fbp", "_hjSessionUser_1", "__utma", "_uetsid"]) {
+    assert.equal(syncsCookie(name), false, name);
+  }
+  for (const name of ["session", "sid", "__Secure-next-auth.session-token", "_gh_sess", "user_session", "galaxy"]) {
+    assert.equal(syncsCookie(name), true, name);
+  }
 });

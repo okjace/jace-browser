@@ -66,7 +66,12 @@ function stripLocal(record) {
  *   merged: Object<string, object>,           // the new remote and base (no _local)
  *   toAdd: object[], toUpdate: {local, remote}[], toRemove: object[],  // apply locally
  *   remoteChanged: boolean,                    // must upload merged
+ *   expiredOnRemote: boolean,                  // remote still has records retain() drops
  * }}
+ * Records only ageing out (retain false) don't make remoteChanged true:
+ * every device ignores them already, so uploading just to drop them would
+ * re-send the whole collection for nothing. They leave on the next real
+ * upload.
  */
 export function threeWayMerge({ local, remote, base, retain = () => true, localDeletionCounts = () => true }) {
   const merged = {};
@@ -74,6 +79,7 @@ export function threeWayMerge({ local, remote, base, retain = () => true, localD
   const toUpdate = [];
   const toRemove = [];
   let remoteChanged = false;
+  let expiredOnRemote = false;
 
   const keep = (r) => (r && retain(r) ? r : undefined);
   const keys = new Set([...Object.keys(local), ...Object.keys(remote), ...Object.keys(base)]);
@@ -83,7 +89,7 @@ export function threeWayMerge({ local, remote, base, retain = () => true, localD
     const r = keep(remote[key]);
     const b = keep(base[key]);
     if (!remote[key] !== !r) {
-      remoteChanged = true; // an expired record leaves the remote copy
+      expiredOnRemote = true; // an expired record leaves with the next real upload
     }
 
     if (l && r) {
@@ -129,5 +135,5 @@ export function threeWayMerge({ local, remote, base, retain = () => true, localD
     // Neither side has it (only base): already gone everywhere.
   }
 
-  return { merged, toAdd, toUpdate, toRemove, remoteChanged };
+  return { merged, toAdd, toUpdate, toRemove, remoteChanged, expiredOnRemote };
 }

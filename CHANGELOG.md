@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2
+- **Jace sync uses far less data.** Checking for changes downloads nothing when nothing changed (Jace answers "not modified"); a collection is only uploaded when its contents really changed, and changes are batched (at most every 5 minutes, every 15 for history and cookies; Sync now still syncs right away). History keeps the last 30 days (up to 1,000 pages). Cookies whose expiry is pushed forward on every visit no longer count as a change, and analytics and bot-check cookies (not sign-ins) aren't synced.
+- **Settings fit Firefox 159's layout**: your Jace account and sync at the top of "Account and sync", the look under "Appearance"; no Mozilla account box, fox pictures or Firefox logos.
+- **Firefox's AI features, Mozilla VPN, backup and partner suggestions are off**; Perplexity is no longer a search engine; no Firefox default bookmarks.
+- **The AppImage keeps your data** between runs.
+- **Jace's own installers**: the AppImage and the Mac app install themselves from the setup; the Windows installer has Jace's artwork.
+
 ## 1.0.1
 The first release of **Jace Browser**, built on **Firefox 159.0**.
 

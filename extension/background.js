@@ -25,7 +25,7 @@ browser.webRequest.onBeforeRequest.addListener(
         browser.tabs.update(details.tabId, { url: browser.runtime.getURL("pages/signed-in.html#ok") });
         signInToWebsite().catch(() => {});
         updateAuthorizeRule().catch(() => {});
-        syncNow().catch(() => {});
+        syncNow({ force: true }).catch(() => {});
       },
       (e) => {
         notify("sign-in-failed", { message: e.message });
